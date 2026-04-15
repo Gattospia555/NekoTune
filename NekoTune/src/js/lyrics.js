@@ -64,7 +64,10 @@ class LyricsManager {
     }, 400);
     this.isVisible = false;
     document.getElementById('btn-lyrics-toggle').classList.remove('active');
-    this.stopSync();
+    const miniVisible = document.getElementById('mini-lyrics-panel')?.style.display !== 'none';
+    if (!miniVisible) {
+      this.stopSync();
+    }
   }
 
   toggleFullscreen() {
@@ -202,6 +205,8 @@ class LyricsManager {
           <p class="lyrics-empty-track">"${track.title}" — ${track.artist}</p>
         </div>
       `;
+      const miniContent = document.getElementById('mini-lyrics-content');
+      if (miniContent) miniContent.innerHTML = '<p style="color: rgba(255,255,255,0.4); font-style: italic;">Nessun testo disponibile</p>';
       return;
     }
 
@@ -234,6 +239,13 @@ class LyricsManager {
 
       content.appendChild(el);
     });
+
+    // Also update mini player if it's open and we just loaded
+    if (document.getElementById('mini-lyrics-panel')?.style.display !== 'none') {
+       if (window.nekotune && window.nekotune.player) {
+          window.nekotune.player.syncMiniLyrics();
+       }
+    }
   }
 
   renderPlainLyrics(content) {
@@ -246,13 +258,20 @@ class LyricsManager {
       el.textContent = line || '';
       content.appendChild(el);
     });
+    
+    // Fill mini player with the first few lines as static view
+    const miniContent = document.getElementById('mini-lyrics-content');
+    if (miniContent) {
+       miniContent.innerHTML = lines.slice(0, 3).map(l => `<div class="lyrics-line lyrics-plain" style="margin:2px 0;">${l}</div>`).join('');
+    }
   }
 
   // ===== SYNC ENGINE =====
   startSync() {
     this.stopSync();
     const sync = () => {
-      if (!this.isVisible || !this.currentLyrics) {
+      const miniVisible = document.getElementById('mini-lyrics-panel')?.style.display !== 'none';
+      if ((!this.isVisible && !miniVisible) || !this.currentLyrics) {
         this.animationFrame = requestAnimationFrame(sync);
         return;
       }
@@ -306,16 +325,27 @@ class LyricsManager {
         top: lineTop - containerHeight / 3,
         behavior: 'smooth'
       });
+      
+      // Update Mini Player lyrics live
+      const miniContent = document.getElementById('mini-lyrics-content');
+      if (miniContent && document.getElementById('mini-lyrics-panel')?.style.display !== 'none') {
+        const text = line.textContent;
+        miniContent.innerHTML = `<div class="lyrics-line active" style="margin:0;">${text}</div>`;
+      }
     }
   }
 
   // Called when track changes
   onTrackChange() {
     this.activeLine = -1;
-    if (this.isVisible) {
+    const miniVisible = document.getElementById('mini-lyrics-panel')?.style.display !== 'none';
+    if (this.isVisible || miniVisible) {
       this.loadCurrentLyrics();
     }
   }
 }
 
 export default LyricsManager;
+
+
+

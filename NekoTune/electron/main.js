@@ -71,6 +71,10 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    thickFrame: false,
     icon: path.join(__dirname, '../icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -127,13 +131,21 @@ app.whenReady().then(() => {
   ipcMain.on('toggle-pip', (event, enable) => {
     if (!win) return;
     if (enable) {
-      win.setMinimumSize(250, 250);
+      win.setMinimumSize(300, 350);
       win.setAlwaysOnTop(true, 'screen-saver', 1);
-      win.setSize(320, 320);
+      win.setSize(360, 420);
     } else {
       win.setAlwaysOnTop(false);
       win.setMinimumSize(900, 600);
       win.setSize(1200, 800);
+    }
+  });
+
+  ipcMain.on('resize-pip', (event, width, height) => {
+    if (!win) return;
+    // Only resize if we're basically in PiP bounds to avoid accidental main window resizing
+    if (win.isAlwaysOnTop()) {
+      win.setSize(width, height);
     }
   });
 
@@ -191,14 +203,27 @@ app.whenReady().then(() => {
       const youtubedl = ytdlModule.default || ytdlModule;
       const url = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
         getUrl: true,
-        format: quality
+        format: quality,
+        cookiesFromBrowser: 'chrome',
       });
       const urlString = typeof url === 'string' ? url : String(url);
       const cleanUrl = urlString.trim().split('\n').pop().trim();
       return cleanUrl;
     } catch (e) {
-      console.error('Youtube-dl Error:', e);
-      return null;
+      // Retry without cookies if browser cookies fail
+      try {
+        const ytdlModule = await import('youtube-dl-exec');
+        const youtubedl = ytdlModule.default || ytdlModule;
+        const url = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
+          getUrl: true,
+          format: quality,
+        });
+        const urlString = typeof url === 'string' ? url : String(url);
+        return urlString.trim().split('\n').pop().trim();
+      } catch (e2) {
+        console.error('Youtube-dl Error:', e2.message || e2);
+        return null;
+      }
     }
   });
 

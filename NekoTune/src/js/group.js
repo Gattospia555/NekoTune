@@ -1,5 +1,5 @@
-// Nekotune Group Listening Session (WebSocket Remote Sync)
-import socketManager from './socket.js';
+// Nekotune Group Listening Session (Supabase Realtime)
+import realtimeManager from './socket.js';
 
 function getMyUser() {
   const profile = JSON.parse(localStorage.getItem('sw_user_profile') || '{}');
@@ -21,127 +21,165 @@ class GroupSession {
     this.sessionCode = '';
     this.participants = [];
     this.chatMessages = [];
-    
+
     // My Identity from profile
     this.myUser = getMyUser();
-    
-    // WebSockets Server
-    this.socket = socketManager.getSocket();
-    this.setupSocketListeners();
+
+    // Periodic time sync interval reference
+    this._syncInterval = null;
 
     this.initEvents();
-    
+
     // Sync triggers for Host
     this.player.onPlayStateChange = (playing) => {
       if (this.isActive && this.isHost) {
-        this.socket.emit('session_sync_playstate', {
-          sessionCode: this.sessionCode,
+        realtimeManager.broadcast('session_' + this.sessionCode, 'sync_playstate', {
           playing: playing,
           time: this.player.getCurrentTime()
         });
       }
     };
-
-    // Periodic time sync (host to clients)
-    setInterval(() => {
-      if (this.isActive && this.isHost && this.player.isPlaying) {
-        this.socket.emit('session_sync_time', {
-          sessionCode: this.sessionCode,
-          time: this.player.getCurrentTime()
-        });
-      }
-    }, 5000);
   }
 
   generateCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
-  setupSocketListeners() {
-    this.socket.on('peer_join_request', (data) => {
-      if (this.isHost && data.sessionCode === this.sessionCode) {
-        this.participants.push(data.user);
-        this.renderParticipants();
-        this.app.showToast(`${data.user.name} si è unito alla sessione!`);
-        
-        // Accept user
-        this.socket.emit('session_host_accept', {
-          sessionCode: this.sessionCode,
-          toSocketId: data.socketId,
-          participants: this.participants
+  setupRealtimeListeners() {
+    const channelName = 'session_' + this.sessionCode;
+
+    realtimeManager.joinChannel(channelName, {
+      presenceKey: this.myUser.id,
+      presenceData: {
+        user: this.myUser,
+        joinedAt: new Date().toISOString()
+      },
+
+      broadcastEvents: [
+        'sync_track',
+        'sync_playstate',
+        'sync_time',
+        'chat_message',
+        'dj_propose',
+        'host_welcome'
+      ],
+
+      onBroadcast: (event, data) => {
+        switch (event) {
+          case 'host_welcome':
+            // Host sends welcome with current track state
+            if (!this.isHost && data.targetUserId === this.myUser.id) {
+              this.app.showToast('Unito con successo!');
+              if (data.track) {
+                this.player.loadTrack(data.track, data.playing);
+                this.updateGroupNowPlaying();
+              }
+            }
+            break;
+
+          case 'sync_track':
+            if (!this.isHost && data.track) {
+              this.player.loadTrack(data.track, data.playing);
+              this.updateGroupNowPlaying();
+            }
+            break;
+
+          case 'sync_playstate':
+            if (!this.isHost) {
+              if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
+                this.player.seekTo(data.time);
+              }
+              if (data.playing) this.player.play();
+              else this.player.pause();
+            }
+            break;
+
+          case 'sync_time':
+            if (!this.isHost) {
+              if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
+                this.player.seekTo(data.time);
+              }
+            }
+            break;
+
+          case 'chat_message':
+            this.addChatMessage(data.user, data.text, data.time);
+            break;
+
+          case 'dj_propose':
+            if (this.isHost) {
+              this.app.showToast(`${data.user.name} propone: ${data.track.title}`);
+              if (confirm(`${data.user.name} vorrebbe aggiungere "${data.track.title}" in coda. Accetti?`)) {
+                this.player.addToQueue(data.track);
+                this.app.showToast(`Aggiunto: ${data.track.title}`);
+              }
+            }
+            break;
+        }
+      },
+
+      onPresenceSync: (state) => {
+        // Rebuild participant list from presence state
+        this.participants = [];
+        Object.values(state).forEach(presences => {
+          presences.forEach(p => {
+            if (p.user) {
+              this.participants.push(p.user);
+            }
+          });
         });
-        
-        // Push current track and time
-        setTimeout(() => {
-          this.socket.emit('session_sync_track', {
-            sessionCode: this.sessionCode,
-            track: this.player.currentTrack,
-            playing: this.player.isPlaying
-          });
-          this.socket.emit('session_sync_playstate', {
-            sessionCode: this.sessionCode,
-            playing: this.player.isPlaying,
-            time: this.player.getCurrentTime()
-          });
-        }, 500);
+        this.renderParticipants();
+        document.getElementById('participant-count').textContent = this.participants.length;
+      },
+
+      onPresenceJoin: (key, newPresences) => {
+        newPresences.forEach(p => {
+          if (p.user && p.user.id !== this.myUser.id) {
+            this.app.showToast(`${p.user.name} si è unito alla sessione!`);
+
+            // If I'm the host, send current track state to the new user
+            if (this.isHost && this.player.currentTrack) {
+              setTimeout(() => {
+                realtimeManager.broadcast('session_' + this.sessionCode, 'host_welcome', {
+                  targetUserId: p.user.id,
+                  track: this.player.currentTrack,
+                  playing: this.player.isPlaying,
+                  time: this.player.getCurrentTime()
+                });
+              }, 500);
+            }
+          }
+        });
+      },
+
+      onPresenceLeave: (key, leftPresences) => {
+        leftPresences.forEach(p => {
+          if (p.user) {
+            this.app.showToast(`${p.user.name} ha lasciato la sessione`);
+          }
+        });
+      },
+
+      onSubscribed: () => {
+        this.isActive = true;
+        this.showSession();
+        this.updateConnectionStatus('connected');
+      },
+
+      onError: (err) => {
+        this.updateConnectionStatus('error');
+        this.app.showToast('Errore di connessione alla sessione');
       }
     });
 
-    this.socket.on('peer_join_accept', (data) => {
-      this.participants = data.participants;
-      this.isActive = true;
-      this.app.showToast(`Unito con successo!`);
-      this.showSession();
-    });
-
-    this.socket.on('peer_participant_update', (data) => {
-      this.participants = data.participants;
-      this.renderParticipants();
-    });
-
-    this.socket.on('peer_participant_leave', (data) => {
-      this.participants = this.participants.filter(p => p.id !== data.senderId);
-      this.renderParticipants();
-    });
-
-    this.socket.on('peer_chat', (data) => {
-      this.addChatMessage(data.user, data.text, data.time);
-    });
-
-    this.socket.on('peer_sync_track', (data) => {
-      if (!this.isHost && data.track) {
-        this.player.loadTrack(data.track, data.playing);
-        this.updateGroupNowPlaying();
+    // Periodic time sync (host to clients)
+    this._syncInterval = setInterval(() => {
+      if (this.isActive && this.isHost && this.player.isPlaying) {
+        realtimeManager.broadcast('session_' + this.sessionCode, 'sync_time', {
+          time: this.player.getCurrentTime()
+        });
       }
-    });
-
-    this.socket.on('peer_sync_playstate', (data) => {
-      if (!this.isHost) {
-        if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
-           this.player.seekTo(data.time);
-        }
-        if (data.playing) this.player.play();
-        else this.player.pause();
-      }
-    });
-
-    this.socket.on('peer_sync_time', (data) => {
-      if (!this.isHost) {
-         if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
-           this.player.seekTo(data.time);
-         }
-      }
-    });
-
-    this.socket.on('peer_dj_propose', (data) => {
-      if (this.isHost) {
-        this.app.showToast(`${data.user.name} propone: ${data.track.title}`);
-        if (confirm(`${data.user.name} vorrebbe aggiungere "${data.track.title}" in coda. Accetti?`)) {
-          this.player.addToQueue(data.track);
-          this.app.showToast(`Aggiunto: ${data.track.title}`);
-        }
-      }
-    });
+    }, 5000);
   }
 
   initEvents() {
@@ -150,7 +188,7 @@ class GroupSession {
     document.getElementById('btn-leave-session').addEventListener('click', () => this.leaveSession());
     document.getElementById('btn-send-chat').addEventListener('click', () => this.sendMessage());
     document.getElementById('btn-dj-propose').addEventListener('click', () => this.proposeTrack());
-    
+
     document.getElementById('chat-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this.sendMessage();
     });
@@ -159,16 +197,12 @@ class GroupSession {
   createSession() {
     this.sessionCode = this.generateCode();
     this.isHost = true;
-    this.isActive = true;
-    
-    // I am the host
     this.myUser.isHost = true;
-    this.participants = [ this.myUser ];
+    this.participants = [this.myUser];
 
-    // Let the server know we have "joined" our own room
-    this.socket.emit('join_session', { sessionCode: this.sessionCode, user: this.myUser });
+    this.updateConnectionStatus('connecting');
+    this.setupRealtimeListeners();
 
-    this.showSession();
     this.app.showToast(`Sessione creata! Codice: ${this.sessionCode}`);
   }
 
@@ -178,26 +212,35 @@ class GroupSession {
       this.app.showToast('Inserisci un codice valido');
       return;
     }
-    
+
     this.sessionCode = code;
     this.myUser.isHost = false;
-    
-    // Send join request to server
-    this.socket.emit('join_session', { sessionCode: this.sessionCode, user: this.myUser });
-    
-    this.app.showToast('Ricerca host in corso...');
+    this.isHost = false;
+
+    this.updateConnectionStatus('connecting');
+    this.setupRealtimeListeners();
+
+    this.app.showToast('Connessione in corso...');
+
+    // Timeout if nobody is in the session
     setTimeout(() => {
-      if (!this.isActive) {
-        this.app.showToast('Impossibile trovare la sessione o host offline.');
+      if (this.isActive && this.participants.length <= 1) {
+        // We're the only one — might be the wrong code
+        this.app.showToast('Sei l\'unico nella sessione. Assicurati che il codice sia corretto.');
       }
-    }, 5000);
+    }, 8000);
   }
 
   leaveSession() {
     if (this.isActive) {
-      this.socket.emit('session_leave', { sessionCode: this.sessionCode, user: this.myUser });
+      realtimeManager.leaveChannel('session_' + this.sessionCode);
     }
-    
+
+    if (this._syncInterval) {
+      clearInterval(this._syncInterval);
+      this._syncInterval = null;
+    }
+
     this.isActive = false;
     this.isHost = false;
     this.sessionCode = '';
@@ -208,7 +251,31 @@ class GroupSession {
     document.getElementById('group-session').classList.add('hidden');
     document.getElementById('join-code').value = '';
 
+    this.updateConnectionStatus('disconnected');
     this.app.showToast('Hai lasciato la sessione');
+  }
+
+  updateConnectionStatus(status) {
+    const statusEl = document.getElementById('group-connection-status');
+    if (!statusEl) return;
+
+    switch (status) {
+      case 'connecting':
+        statusEl.innerHTML = '<span class="material-icons-round" style="font-size:14px;color:var(--warning);animation:spin 1s linear infinite;">sync</span> Connessione...';
+        statusEl.style.color = 'var(--warning)';
+        break;
+      case 'connected':
+        statusEl.innerHTML = '<span class="material-icons-round" style="font-size:14px;color:var(--success);">cloud_done</span> Connesso via Supabase';
+        statusEl.style.color = 'var(--success)';
+        break;
+      case 'error':
+        statusEl.innerHTML = '<span class="material-icons-round" style="font-size:14px;color:var(--danger);">cloud_off</span> Errore connessione';
+        statusEl.style.color = 'var(--danger)';
+        break;
+      case 'disconnected':
+        statusEl.innerHTML = '';
+        break;
+    }
   }
 
   showSession() {
@@ -262,11 +329,10 @@ class GroupSession {
         <span>Nessun brano in riproduzione</span>
       `;
     }
-    
+
     // Broadcast track change if host
     if (this.isActive && this.isHost) {
-      this.socket.emit('session_sync_track', {
-        sessionCode: this.sessionCode,
+      realtimeManager.broadcast('session_' + this.sessionCode, 'sync_track', {
         track: track,
         playing: this.player.isPlaying
       });
@@ -295,7 +361,7 @@ class GroupSession {
 
   async proposeTrack() {
     if (!this.isActive) return;
-    
+
     const query = window.prompt("Cerca il brano che vuoi proporre all'host:");
     if (!query) return;
 
@@ -318,13 +384,12 @@ class GroupSession {
             src: '',
             source: 'Proposta DJ'
           };
-          
+
           if (this.isHost) {
             this.player.addToQueue(track);
             this.app.showToast(`Brano aggiunto: ${track.title}`);
           } else {
-            this.socket.emit('session_dj_propose', {
-              sessionCode: this.sessionCode,
+            realtimeManager.broadcast('session_' + this.sessionCode, 'dj_propose', {
               user: this.myUser,
               track: track
             });
@@ -350,18 +415,17 @@ class GroupSession {
 
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     // Show locally
     this.addChatMessage(this.myUser, text, time);
-    
-    // Broadcast
-    this.socket.emit('session_chat', {
-       sessionCode: this.sessionCode,
-       user: this.myUser,
-       text: text,
-       time: time
+
+    // Broadcast via Supabase Realtime
+    realtimeManager.broadcast('session_' + this.sessionCode, 'chat_message', {
+      user: this.myUser,
+      text: text,
+      time: time
     });
-    
+
     input.value = '';
   }
 }

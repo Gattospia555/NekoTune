@@ -31,8 +31,6 @@
     "discord-rpc": "^4.0.1",
     "express": "^5.2.1",
     "play-dl": "^1.9.7",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "spotify-url-info": "^3.3.0",
     "youtube-dl-exec": "^3.1.4",
     "youtube-ext": "^1.1.25",

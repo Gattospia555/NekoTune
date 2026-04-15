@@ -42,6 +42,10 @@ function g() {
 		minWidth: 900,
 		minHeight: 600,
 		frame: !1,
+		transparent: !0,
+		backgroundColor: "#00000000",
+		hasShadow: !1,
+		thickFrame: !1,
 		icon: t.join(m, "../icon.ico"),
 		webPreferences: {
 			preload: t.join(m, "preload.cjs"),
@@ -65,7 +69,9 @@ i.on("window-all-closed", () => {
 	}), o.on("window-close", () => h.close()), o.on("update-discord", (e, { details: t, state: n, playing: r, currentTime: i, totalDuration: a, imageUrl: o }) => {
 		f(t, n, r, i, a, o);
 	}), o.on("toggle-pip", (e, t) => {
-		h && (t ? (h.setMinimumSize(250, 250), h.setAlwaysOnTop(!0, "screen-saver", 1), h.setSize(320, 320)) : (h.setAlwaysOnTop(!1), h.setMinimumSize(900, 600), h.setSize(1200, 800)));
+		h && (t ? (h.setMinimumSize(300, 350), h.setAlwaysOnTop(!0, "screen-saver", 1), h.setSize(360, 420)) : (h.setAlwaysOnTop(!1), h.setMinimumSize(900, 600), h.setSize(1200, 800)));
+	}), o.on("resize-pip", (e, t, n) => {
+		h && h.isAlwaysOnTop() && h.setSize(t, n);
 	}), o.handle("search-youtube", async (e, t, n = 10) => {
 		try {
 			let { default: e } = await import("ytmusic-api"), r = new e();
@@ -98,11 +104,20 @@ i.on("window-all-closed", () => {
 		try {
 			let e = await import("youtube-dl-exec"), r = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
 				getUrl: !0,
-				format: n
+				format: n,
+				cookiesFromBrowser: "chrome"
 			});
 			return (typeof r == "string" ? r : String(r)).trim().split("\n").pop().trim();
-		} catch (e) {
-			return console.error("Youtube-dl Error:", e), null;
+		} catch {
+			try {
+				let e = await import("youtube-dl-exec"), r = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
+					getUrl: !0,
+					format: n
+				});
+				return (typeof r == "string" ? r : String(r)).trim().split("\n").pop().trim();
+			} catch (e) {
+				return console.error("Youtube-dl Error:", e.message || e), null;
+			}
 		}
 	}), o.handle("parse-spotify-url", async (e, t) => {
 		try {

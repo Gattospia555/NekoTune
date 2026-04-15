@@ -1,7 +1,7 @@
 // Nekotune — Playlist Management
 import { DEMO_TRACKS, DEFAULT_PLAYLISTS, generateId, generateCoverGradient, resolveTracks, resolveTrack } from './data.js';
 import { storage } from './storage.js';
-import socketManager from './socket.js';
+import realtimeManager from './socket.js';
 
 class PlaylistManager {
   constructor(player, app) {
@@ -13,18 +13,25 @@ class PlaylistManager {
     this.currentPlaylistId = null;
     this.isFavManageMode = false;
     
-    // Collaborative Playlists Remote Sync
-    this.socket = socketManager.getSocket();
-    this.socket.on('collab_sync_playlist', (data) => this.handleCollabMessage({ type: 'SYNC_PLAYLIST', ...data }));
-    this.socket.on('collab_request_playlist', (data) => this.handleCollabMessage({ type: 'REQUEST_PLAYLIST', ...data }));
-    
-    // Join rooms for all collaborative playlists we already have
+    // Collaborative Playlists — Join channels for all collaborative playlists
     this.playlists.filter(p => p.isCollaborative && p.shareCode).forEach(p => {
-      this.socket.emit('join_session', { sessionCode: 'collab_' + p.shareCode, user: { name: 'peer' } });
+      this._joinCollabChannel(p.shareCode);
     });
-
     this.initEvents();
     this.renderSidebarPlaylists();
+  }
+
+  _joinCollabChannel(code) {
+    realtimeManager.joinChannel('collab_' + code, {
+      broadcastEvents: ['collab_sync_playlist', 'collab_request_playlist'],
+      onBroadcast: (event, payload) => {
+        if (event === 'collab_sync_playlist') {
+          this.handleCollabMessage({ type: 'SYNC_PLAYLIST', ...payload });
+        } else if (event === 'collab_request_playlist') {
+          this.handleCollabMessage({ type: 'REQUEST_PLAYLIST', ...payload });
+        }
+      }
+    });
   }
 
   loadPlaylists() {
@@ -213,6 +220,7 @@ class PlaylistManager {
 
     if (playlist.isCollaborative) {
       this.app.showToast(`Playlist collaborativa creata! Codice: ${playlist.shareCode}`);
+      this._joinCollabChannel(playlist.shareCode);
       this.broadcastPlaylist(playlist);
     } else {
       this.app.showToast(`Playlist "${inputName}" creata!`);
@@ -259,24 +267,22 @@ class PlaylistManager {
       this.app.showToast('Possiedi già questa playlist!');
       return;
     }
-    this.socket.emit('join_session', { sessionCode: 'collab_' + code, user: { name: 'requester' } });
+    
+    // Join the channel
+    this._joinCollabChannel(code);
     
     // Delay request slightly to ensure we joined the room
     setTimeout(() => {
-      this.socket.emit('session_chat', {
-        sessionCode: 'collab_' + code,
-        user: { id: 'sys' },
-        time: Date.now(),
-        text: 'REQUEST_PLAYLIST:' + code
+      realtimeManager.broadcast('collab_' + code, 'collab_request_playlist', {
+        shareCode: code
       });
       this.app.showToast('Attesa del creatore della playlist...');
-    }, 200);
+    }, 500);
   }
 
   broadcastPlaylist(playlist) {
     if (playlist.isCollaborative && playlist.shareCode) {
-      this.socket.emit('collab_sync_broadcast', {
-        sessionCode: 'collab_' + playlist.shareCode,
+      realtimeManager.broadcast('collab_' + playlist.shareCode, 'collab_sync_playlist', {
         playlist: playlist
       });
     }
@@ -736,3 +742,4 @@ function formatDuration(seconds) {
 }
 
 export default PlaylistManager;
+

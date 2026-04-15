@@ -223,6 +223,9 @@ export class AiDiscovery {
     if (this.currentSwipeTrack.isYoutube && window.electronAPI && window.electronAPI.getStreamUrl) {
       try {
         const streamUrl = await window.electronAPI.getStreamUrl(this.currentSwipeTrack.videoId);
+        // Abort if the user left the discovery section while waiting for the stream URL
+        if (this.app.currentSection !== 'discovery') return;
+        
         if (streamUrl) {
           this.audioPreview.src = streamUrl;
         } else {

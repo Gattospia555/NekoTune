@@ -23,4 +23,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // App Features
   updateDiscord: (data) => ipcRenderer.send('update-discord', data),
   togglePiP: (enable) => ipcRenderer.send('toggle-pip', enable),
+  resizePiP: (width, height) => ipcRenderer.send('resize-pip', width, height),
 });
