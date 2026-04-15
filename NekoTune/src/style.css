@@ -4007,8 +4007,15 @@ body.mini-player #electron-titlebar {
 }
 
 body.mini-player {
-  background: transparent;
+  background: #0d0d1a;
   overflow: hidden;
+}
+
+body.mini-player,
+body.mini-player #app {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .mini-player-overlay {
@@ -4020,12 +4027,15 @@ body.mini-player {
   align-items: center;
   justify-content: center;
   background: linear-gradient(145deg, #0d0d1a 0%, #1a1028 50%, #0d0d1a 100%);
-  border-radius: 16px;
+  border-radius: 0;
   overflow: hidden;
   padding: 20px;
   gap: 12px;
   user-select: none;
   animation: miniPlayerFadeIn 0.3s ease;
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 @keyframes miniPlayerFadeIn {
@@ -4152,11 +4162,18 @@ body.mini-player {
   display: flex;
   align-items: center;
   justify-content: center;
+  outline: none;
 }
 
 .mini-btn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.mini-btn:focus,
+.mini-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .mini-btn .material-icons-round {
