@@ -1021,6 +1021,113 @@ body.is-electron .lyrics-panel {
   transition: opacity var(--transition-fast);
 }
 
+.offline-progress-section {
+  padding: 0 32px 24px;
+}
+
+.offline-section-title {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.offline-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.offline-progress-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+}
+
+.offline-progress-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  color: var(--bg-primary);
+}
+
+.offline-progress-cover .material-icons-round {
+  font-size: 22px;
+}
+
+.offline-progress-info {
+  min-width: 0;
+}
+
+.offline-progress-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offline-progress-artist {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offline-progress-meta {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 48px;
+  text-align: right;
+}
+
+.offline-progress-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.offline-progress-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.offline-cancel-download {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}
+
+.offline-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-gradient);
+  transition: width 0.2s ease;
+}
+
+.offline-completed-list {
+  padding-top: 8px;
+}
+
 .track-item:hover .track-actions .btn-icon {
   opacity: 1;
 }
@@ -1823,6 +1930,24 @@ body.is-electron .lyrics-panel {
   filter: drop-shadow(0 2px 4px var(--accent-glow));
 }
 
+body.player-cursor-dot .progress-bar-handle {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  right: -7px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body.player-cursor-bar .progress-bar-handle {
+  width: 6px;
+  height: 18px;
+  border-radius: 8px;
+  right: -3px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 .progress-bar-container:hover .progress-bar-handle {
   transform: translateY(-50%) scale(1);
 }
@@ -1879,6 +2004,24 @@ body.is-electron .lyrics-panel {
   transform: translateY(-50%) scale(0);
   filter: drop-shadow(0 2px 4px var(--accent-glow));
   transition: transform var(--transition-fast);
+}
+
+body.volume-cursor-dot .volume-slider-handle {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  right: -6px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body.volume-cursor-bar .volume-slider-handle {
+  width: 5px;
+  height: 16px;
+  border-radius: 8px;
+  right: -2px;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 .volume-slider-container:hover .volume-slider-handle {
