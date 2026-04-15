@@ -866,12 +866,12 @@
 
   <!-- EQ Modal -->
   <div class="modal-overlay" id="eq-modal" style="display: none;">
-    <div class="modal-content" style="min-width: 500px;">
+    <div class="modal-content" style="min-width: 550px;">
       <div class="modal-header">
         <h3>Equalizzatore Grafico</h3>
         <button class="btn-icon" id="btn-close-eq"><span class="material-icons-round">close</span></button>
       </div>
-      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: flex-start; gap: 16px;">
         <label style="font-weight: 600; color: var(--text-secondary);">Preset:</label>
         
         <div class="custom-dropdown" id="eq-custom-dropdown">
@@ -880,7 +880,6 @@
           
           <div class="dropdown-options" id="eq-dropdown-options">
             <div class="dropdown-option" data-value="flat">Flat</div>
-            <div class="dropdown-option" data-value="custom" hidden>Modificato</div>
             <div class="dropdown-option" data-value="acoustic">Acoustic</div>
             <div class="dropdown-option" data-value="bass_booster">Bass Booster</div>
             <div class="dropdown-option" data-value="bass_reducer">Bass Reducer</div>
@@ -889,10 +888,52 @@
             <div class="dropdown-option" data-value="electronic">Electronic</div>
             <div class="dropdown-option" data-value="hiphop">Hip-Hop</div>
             <div class="dropdown-option" data-value="jazz">Jazz</div>
-      <div class="queue-now-playing" id="queue-now-playing"></div>
-      <h4 class="queue-next-label">Prossimi brani</h4>
-      <div id="queue-list" class="queue-list"></div>
+            <div class="dropdown-option" data-value="pop">Pop</div>
+            <div class="dropdown-option" data-value="rock">Rock</div>
+            <div class="dropdown-option" data-value="vocal_booster">Vocal Booster</div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="eq-container" class="eq-container"></div>
+      
+      <div class="modal-footer" style="margin-top: 20px; display: flex; gap: 12px; justify-content: space-between;">
+        <button class="btn-danger" id="btn-delete-custom-eq" title="Elimina il preset personalizzato selezionato" style="display: none;">
+          <span class="material-icons-round" style="font-size: 18px; margin-right: 4px;">delete</span>
+          Elimina Preset
+        </button>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn-secondary" id="btn-save-custom-eq" title="Salva la configurazione attuale come preset personalizzato">
+            <span class="material-icons-round" style="font-size: 18px; margin-right: 4px;">save</span>
+            Salva Preset
+          </button>
+          <button class="btn-secondary" id="btn-reset-eq">Reset</button>
+          <button class="btn-secondary" id="btn-close-eq-modal">Chiudi</button>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Save Custom EQ Modal -->
+  <div class="modal-overlay" id="save-eq-modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Salva Preset Personalizzato</h3>
+        <button class="btn-icon" id="btn-close-save-eq"><span class="material-icons-round">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Nome del Preset:</label>
+          <input type="text" id="custom-eq-name" placeholder="Es. My Rock Setup" class="import-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);" />
+          <small style="color: var(--text-secondary); display:block; margin-top: 4px;">Scegli un nome unico per identificare questo preset.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-cancel-save-eq">Annulla</button>
+        <button class="btn-primary" id="btn-confirm-save-eq">Salva</button>
+      </div>
+    </div>
+  </div>
 
     <!-- Sleep Timer Modal -->
     <div id="sleep-timer-modal" class="modal hidden">
@@ -1057,46 +1098,6 @@
         <canvas id="equalizer-canvas" class="equalizer-canvas" width="80" height="32"></canvas>
       </div>
     </footer>
-  </div>
-
-  <!-- EQ Modal -->
-  <div class="modal-overlay" id="eq-modal" style="display: none;">
-    <div class="modal-content" style="min-width: 500px;">
-      <div class="modal-header">
-        <h3>Equalizzatore Grafico</h3>
-        <button class="btn-icon" id="btn-close-eq"><span class="material-icons-round">close</span></button>
-      </div>
-      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-        <label style="font-weight: 600; color: var(--text-secondary);">Preset:</label>
-        
-        <div class="custom-dropdown" id="eq-custom-dropdown">
-          <div class="dropdown-selected" id="eq-dropdown-selected">Flat</div>
-          <span class="material-icons-round dropdown-icon">expand_more</span>
-          
-          <div class="dropdown-options" id="eq-dropdown-options">
-            <div class="dropdown-option" data-value="flat">Flat</div>
-            <div class="dropdown-option" data-value="custom" hidden>Modificato</div>
-            <div class="dropdown-option" data-value="acoustic">Acoustic</div>
-            <div class="dropdown-option" data-value="bass_booster">Bass Booster</div>
-            <div class="dropdown-option" data-value="bass_reducer">Bass Reducer</div>
-            <div class="dropdown-option" data-value="classical">Classical</div>
-            <div class="dropdown-option" data-value="dance">Dance</div>
-            <div class="dropdown-option" data-value="electronic">Electronic</div>
-            <div class="dropdown-option" data-value="hiphop">Hip-Hop</div>
-            <div class="dropdown-option" data-value="jazz">Jazz</div>
-            <div class="dropdown-option" data-value="pop">Pop</div>
-            <div class="dropdown-option" data-value="rock">Rock</div>
-            <div class="dropdown-option" data-value="vocal_booster">Vocal Booster</div>
-          </div>
-        </div>
-      </div>
-      <div class="eq-container" id="eq-container">
-        <!-- Sliders injected securely via JS -->
-      </div>
-      <div style="margin-top:24px; text-align:right;">
-        <button class="btn-secondary" id="btn-reset-eq" style="padding: 8px 16px; border-radius: var(--radius-lg);">Reset</button>
-      </div>
-    </div>
   </div>
 
   <!-- Mini Player Overlay (PiP Mode) -->

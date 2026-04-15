@@ -1,10 +1,10 @@
 // Nekotune — Music Player Engine
-import { DEMO_TRACKS, formatTime, generateCoverGradient } from './data.js';
-import { storage } from './storage.js';
+import { DEMO_TRACKS, formatTime, generateCoverGradient } from "./data.js";
+import { storage } from "./storage.js";
 
 class Player {
   constructor() {
-    this.audio = document.getElementById('audio-player');
+    this.audio = document.getElementById("audio-player");
     this.currentTrack = null;
     this.currentIndex = -1;
     this.queue = [];
@@ -12,7 +12,7 @@ class Player {
     this.streamCache = new Map(); // Add a stream URL cache for faster playback
     this.isPlaying = false;
     this.isShuffle = false;
-    this.repeatMode = 'none'; // none, all, one
+    this.repeatMode = "none"; // none, all, one
     this.volume = 0.7;
     this.isMuted = false;
     this.previousVolume = 0.7;
@@ -46,243 +46,433 @@ class Player {
   initAudio() {
     this.audio.volume = this.volume;
 
-    this.audio.addEventListener('timeupdate', () => {
+    this.audio.addEventListener("timeupdate", () => {
       this.updateProgressBar();
       this.updateMiniPlayerProgress();
-      if (this.onTimeUpdate) this.onTimeUpdate(this.audio.currentTime, this.audio.duration);
+      if (this.onTimeUpdate)
+        this.onTimeUpdate(this.audio.currentTime, this.audio.duration);
     });
 
-    this.audio.addEventListener('ended', () => {
+    this.audio.addEventListener("ended", () => {
       this.handleTrackEnd();
     });
 
-    this.audio.addEventListener('loadedmetadata', () => {
-      document.getElementById('player-time-total').textContent = formatTime(this.audio.duration);
+    this.audio.addEventListener("loadedmetadata", () => {
+      document.getElementById("player-time-total").textContent = formatTime(
+        this.audio.duration,
+      );
     });
 
-    this.audio.addEventListener('error', () => {
+    this.audio.addEventListener("error", () => {
       // If audio fails to load, still allow UI interaction
-      console.warn('Audio failed to load, using fallback');
+      console.warn("Audio failed to load, using fallback");
     });
   }
 
   initControls() {
-    document.getElementById('btn-play').addEventListener('click', () => this.togglePlay());
-    document.getElementById('btn-prev').addEventListener('click', () => this.previous());
-    document.getElementById('btn-next').addEventListener('click', () => this.next());
-    document.getElementById('btn-shuffle').addEventListener('click', () => this.toggleShuffle());
-    document.getElementById('btn-repeat').addEventListener('click', () => this.toggleRepeat());
-    
-    const btn8D = document.getElementById('btn-8d-audio');
+    document
+      .getElementById("btn-play")
+      .addEventListener("click", () => this.togglePlay());
+    document
+      .getElementById("btn-prev")
+      .addEventListener("click", () => this.previous());
+    document
+      .getElementById("btn-next")
+      .addEventListener("click", () => this.next());
+    document
+      .getElementById("btn-shuffle")
+      .addEventListener("click", () => this.toggleShuffle());
+    document
+      .getElementById("btn-repeat")
+      .addEventListener("click", () => this.toggleRepeat());
+
+    const btn8D = document.getElementById("btn-8d-audio");
     if (btn8D) {
-      btn8D.addEventListener('click', () => {
+      btn8D.addEventListener("click", () => {
         const isActive = this.toggle8DAudio();
-        btn8D.classList.toggle('active', isActive);
+        btn8D.classList.toggle("active", isActive);
       });
     }
 
-    const btnKaraoke = document.getElementById('btn-karaoke');
+    const btnKaraoke = document.getElementById("btn-karaoke");
     if (btnKaraoke) {
-      btnKaraoke.addEventListener('click', () => {
+      btnKaraoke.addEventListener("click", () => {
         const isActive = this.toggleKaraoke();
-        btnKaraoke.classList.toggle('active', isActive);
+        btnKaraoke.classList.toggle("active", isActive);
       });
     }
 
-    const btnPip = document.getElementById('btn-mini-player');
+    const btnPip = document.getElementById("btn-mini-player");
     if (btnPip) {
-      btnPip.addEventListener('click', () => this.togglePiP());
+      btnPip.addEventListener("click", () => this.togglePiP());
     }
 
     this.initEQUI();
   }
 
   initEQUI() {
-    const btnEQ = document.getElementById('btn-eq');
-    const modal = document.getElementById('eq-modal');
-    const btnClose = document.getElementById('btn-close-eq');
-    const btnReset = document.getElementById('btn-reset-eq');
-    const container = document.getElementById('eq-container');
-    const presetDropdown = document.getElementById('eq-custom-dropdown');
-    const presetSelected = document.getElementById('eq-dropdown-selected');
-    const presetOptions = document.querySelectorAll('#eq-dropdown-options .dropdown-option');
+    const btnEQ = document.getElementById("btn-eq");
+    const modal = document.getElementById("eq-modal");
+    const btnClose = document.getElementById("btn-close-eq");
+    const btnReset = document.getElementById("btn-reset-eq");
+    const container = document.getElementById("eq-container");
+    const presetDropdown = document.getElementById("eq-custom-dropdown");
+    const presetSelected = document.getElementById("eq-dropdown-selected");
+    const presetOptions = document.querySelectorAll(
+      "#eq-dropdown-options .dropdown-option",
+    );
 
     if (!btnEQ || !modal || !container) return;
-    const eqPresets = {
-      flat:           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      acoustic:       [5.1, 5.1, 3.8, 1.2, 1.2, 1.2, 3.8, 5.1, 3.8, 2.5],
-      bass_booster:   [6.3, 5.1, 4.0, 2.5, 1.2, 0, 0, 0, 0, 0],
-      bass_reducer:   [-5.1, -4.0, -2.5, -1.2, 0, 0, 0, 0, 0, 0],
-      classical:      [5.1, 3.8, 2.5, 0, 0, 0, 2.5, 3.8, 5.1, 6.3],
-      dance:          [7.6, 6.3, 3.8, 0, 0, 0, 2.5, 3.8, 5.1, 5.1],
-      electronic:     [6.3, 5.1, 2.5, 0, 0, 0, 0, 2.5, 5.1, 6.3],
-      hiphop:         [6.3, 5.1, 2.5, 1.2, -1.2, -1.2, 1.2, 2.5, 3.8, 5.1],
-      jazz:           [5.1, 3.8, 2.5, 1.2, -1.2, -1.2, 0, 1.2, 3.8, 5.1],
-      pop:            [-1.2, -1.2, 0, 2.5, 5.1, 5.1, 2.5, 0, -1.2, -1.2],
-      rock:           [6.3, 5.1, 3.8, 1.2, -1.2, -1.2, 1.2, 3.8, 5.1, 6.3],
-      vocal_booster:  [-1.2, -1.2, 0, 2.5, 5.1, 5.1, 3.8, 1.2, 0, -1.2]
+
+    // Store presets and custom presets
+    this.eqPresets = {
+      flat: [0, 0, 0, 0, 0],
+      acoustic: [3, 5, 2, 1, 3],
+      bass_booster: [8, 6, 2, 0, -2],
+      bass_reducer: [-8, -6, -2, 0, 2],
+      classical: [4, 2, -1, 2, 6],
+      dance: [6, 5, 0, 3, 4],
+      electronic: [5, 4, -1, 1, 7],
+      hiphop: [7, 4, 1, 1, 3],
+      jazz: [4, 3, 0, 2, 4],
+      pop: [-1, 2, 3, 2, 0],
+      rock: [6, 4, 2, 2, 5],
+      vocal_booster: [-2, 3, 5, 3, 1],
     };
 
+    // Load custom presets from localStorage
+    this.loadCustomEQPresets();
+    this.currentEQPreset =
+      localStorage.getItem("sw_eq_current_preset") || "flat";
+
     if (presetDropdown && presetSelected && presetOptions) {
-      presetDropdown.addEventListener('click', (e) => {
-        // Prevent event from bubbling so document click listener won't immediately close it
+      presetDropdown.addEventListener("click", (e) => {
         e.stopPropagation();
-        presetDropdown.classList.toggle('active');
+        presetDropdown.classList.toggle("active");
       });
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
+
+      document.addEventListener("click", (e) => {
         if (!presetDropdown.contains(e.target)) {
-          presetDropdown.classList.remove('active');
+          presetDropdown.classList.remove("active");
         }
       });
-      presetOptions.forEach(option => {
-        option.addEventListener('click', (e) => {
-          const selected = e.target.getAttribute('data-value');
-          if (selected !== 'custom') {
-            presetSelected.textContent = e.target.textContent;
-          } else {
-            presetSelected.textContent = 'Modificato';
-          }
-          if (selected === 'custom') return;
-          const gains = eqPresets[selected] || eqPresets.flat;
-          if (this.eqBands && this.eqBands.length === 10) {
-            this.eqBands.forEach((band, idx) => {
-              band.gain.value = gains[idx];
-              const slider = document.getElementById(`eq-slider-${idx}`);
-              if (slider) {
-                slider.value = gains[idx];
-                // Fire input event to update label visually in case we need it
-                slider.dispatchEvent(new Event('input'));
-              }
-            });
-          }
-          presetDropdown.classList.remove('active');
+
+      presetOptions.forEach((option) => {
+        option.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const selected = e.target.getAttribute("data-value");
+          this.applyEQPreset(selected);
+          presetDropdown.classList.remove("active");
         });
       });
     }
 
-    btnEQ.addEventListener('click', () => {
-      // Create audio context if not created yet so we have bands
-      if (!this.audioCtx) this.initWebAudio();
-      modal.style.display = 'flex';
-      // Force reflow before adding class for smooth transition
+    btnEQ.addEventListener("click", () => {
+      if (!this.audioCtx) {
+        this.initWebAudio();
+      }
+      if (this.audioCtx && this.audioCtx.state === "suspended") {
+        this.audioCtx.resume().catch((e) => console.warn("Resume failed:", e));
+      }
+      modal.style.display = "flex";
       modal.offsetHeight;
-      modal.classList.add('visible');
+      modal.classList.add("visible");
       this.renderEQSliders(container);
+      presetSelected.textContent =
+        this.currentEQPreset.charAt(0).toUpperCase() +
+        this.currentEQPreset.slice(1);
     });
 
-    btnClose.addEventListener('click', () => {
-      modal.classList.remove('visible');
+    btnClose.addEventListener("click", () => {
+      modal.classList.remove("visible");
       setTimeout(() => {
-        modal.style.display = 'none';
-      }, 300); // 300ms matches transition length
+        modal.style.display = "none";
+      }, 300);
     });
 
-    modal.addEventListener('click', (e) => {
+    modal.addEventListener("click", (e) => {
       if (e.target === modal) {
-        modal.classList.remove('visible');
+        modal.classList.remove("visible");
         setTimeout(() => {
-          modal.style.display = 'none';
+          modal.style.display = "none";
         }, 300);
       }
     });
 
-    btnReset.addEventListener('click', () => {
+    btnReset.addEventListener("click", () => {
+      this.applyEQPreset("flat");
+      presetSelected.textContent = "Flat";
+    });
+
+    // Setup Save Custom EQ Modal
+    this.setupSaveEQModal();
+
+    // Delete custom EQ preset
+    const btnDelete = document.getElementById("btn-delete-custom-eq");
+    if (btnDelete) {
+      btnDelete.addEventListener("click", () => {
+        const presetName = this.currentEQPreset;
+        // Usa il modal custom invece di confirm
+        this.showConfirmDialog(
+          `Sei sicuro di voler eliminare il preset "${presetName}"?`,
+          () => {
+            // Delete from localStorage
+            const custom = localStorage.getItem("sw_eq_custom_presets");
+            if (custom) {
+              const customPresets = JSON.parse(custom);
+              delete customPresets[presetName];
+              localStorage.setItem(
+                "sw_eq_custom_presets",
+                JSON.stringify(customPresets),
+              );
+            }
+            // Delete from eqPresets object
+            delete this.eqPresets[presetName];
+            // Remove from dropdown
+            const dropdown = document.getElementById("eq-dropdown-options");
+            const optionToDelete = dropdown.querySelector(
+              `[data-value="${presetName}"]`,
+            );
+            if (optionToDelete) {
+              optionToDelete.remove();
+            }
+            // Reset to Flat
+            this.applyEQPreset("flat");
+            // Hide delete button
+            btnDelete.style.display = "none";
+            // Show success message
+            if (window.nekotune && window.nekotune.showToast) {
+              window.nekotune.showToast(
+                `Preset "${presetName}" eliminato con successo!`,
+              );
+            }
+          },
+          () => {}, // onCancel
+        );
+      });
+    }
+  }
+
+  loadCustomEQPresets() {
+    const saved = localStorage.getItem("sw_eq_custom_presets");
+    if (saved) {
+      try {
+        const custom = JSON.parse(saved);
+        this.eqPresets = { ...this.eqPresets, ...custom };
+      } catch (e) {
+        console.warn("Failed to load custom EQ presets:", e);
+      }
+    }
+  }
+
+  saveCustomEQPreset(name, gains) {
+    const custom = localStorage.getItem("sw_eq_custom_presets");
+    const customPresets = custom ? JSON.parse(custom) : {};
+    customPresets[name] = gains;
+    localStorage.setItem("sw_eq_custom_presets", JSON.stringify(customPresets));
+    this.eqPresets[name] = gains;
+  }
+
+  applyEQPreset(presetName) {
+    if (!this.eqPresets[presetName]) return;
+    const gains = this.eqPresets[presetName];
+
+    // Applica i valori alle bande disponibili (5 bande)
+    if (this.eqBands && this.eqBands.length > 0) {
       this.eqBands.forEach((band, idx) => {
-        band.gain.value = 0;
+        // Se il preset ha meno valori delle bande, fallback a 0
+        const gain = gains[idx] !== undefined ? gains[idx] : 0;
+        band.gain.value = gain;
         const slider = document.getElementById(`eq-slider-${idx}`);
         if (slider) {
-           slider.value = 0;
-           slider.dispatchEvent(new Event('input'));
+          slider.value = gain;
+          slider.dispatchEvent(new Event("input"));
         }
       });
-      if (presetSelected) presetSelected.textContent = 'Flat';
-    });
+    }
+
+    this.currentEQPreset = presetName;
+    localStorage.setItem("sw_eq_current_preset", presetName);
+
+    const presetSelected = document.getElementById("eq-dropdown-selected");
+    if (presetSelected) {
+      presetSelected.textContent =
+        presetName.charAt(0).toUpperCase() + presetName.slice(1);
+    }
+
+    // Mostra il bottone elimina solo per preset custom
+    const btnDelete = document.getElementById("btn-delete-custom-eq");
+    if (btnDelete) {
+      const builtInPresets = [
+        "flat",
+        "acoustic",
+        "bass_booster",
+        "bass_reducer",
+        "classical",
+        "dance",
+        "electronic",
+        "hiphop",
+        "jazz",
+        "pop",
+        "rock",
+        "vocal_booster",
+      ];
+      btnDelete.style.display = builtInPresets.includes(presetName)
+        ? "none"
+        : "flex";
+    }
   }
 
   renderEQSliders(container) {
-    if (container.children.length > 0) return; // Already rendered
-    
-    container.innerHTML = '';
-    const frequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-    const labels = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
+    // Clear previous sliders
+    container.innerHTML = "";
+
+    const frequencies = [60, 230, 910, 3600, 14000];
+    const labels = ["60", "230", "910", "3.6k", "14k"];
+
+    const sliderGrid = document.createElement("div");
+    sliderGrid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 12px;
+      width: fit-content;
+      margin: 0 auto;
+      padding: 20px 10px;
+      align-items: end;
+      justify-items: center;
+      justify-content: center;
+    `;
 
     frequencies.forEach((freq, idx) => {
       const band = this.eqBands[idx];
-      const div = document.createElement('div');
-      div.className = 'eq-band';
-      
-      const wrapper = document.createElement('div');
-      wrapper.className = 'eq-slider-wrapper';
-      
-      const input = document.createElement('input');
-      input.type = 'range';
-      input.className = 'eq-slider';
+      const initialValue = band ? band.gain.value : 0;
+
+      const bandDiv = document.createElement("div");
+      bandDiv.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      `;
+
+      // Value display
+      const valueSpan = document.createElement("span");
+      valueSpan.className = "eq-value-display";
+      valueSpan.textContent =
+        initialValue > 0
+          ? "+" + initialValue.toFixed(1)
+          : initialValue.toFixed(1);
+      valueSpan.style.cssText = `
+        font-size: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+        min-width: 40px;
+        text-align: center;
+        height: 16px;
+      `;
+
+      // Vertical slider with better styling
+      const input = document.createElement("input");
+      input.type = "range";
+      input.className = "eq-slider-vertical";
       input.id = `eq-slider-${idx}`;
-      input.min = -12;
-      input.max = 12;
-      input.step = 0.5;
-      input.value = band ? band.gain.value : 0;
-      
-      input.addEventListener('input', (e) => {
+      input.min = "-10";
+      input.max = "10";
+      input.step = "0.1";
+      input.value = initialValue;
+      input.style.cssText = `
+        height: 120px;
+        width: 32px;
+        margin: 0;
+        cursor: pointer;
+        accent-color: var(--accent);
+      `;
+
+      // Event listener with modal title update
+      input.addEventListener("input", (e) => {
+        const value = parseFloat(e.target.value);
         if (this.eqBands[idx]) {
-          this.eqBands[idx].gain.value = parseFloat(e.target.value);
+          this.eqBands[idx].gain.value = value;
         }
-        if (e.isTrusted) {
-          const selectText = document.getElementById('eq-dropdown-selected');
-          if (selectText) selectText.textContent = 'Modificato';
+        valueSpan.textContent =
+          value > 0 ? "+" + value.toFixed(1) : value.toFixed(1);
+
+        // Check if we've modified from the preset
+        if (this.currentEQPreset !== "custom") {
+          this.currentEQPreset = "custom";
+          const presetSelected = document.getElementById(
+            "eq-dropdown-selected",
+          );
+          if (presetSelected) {
+            presetSelected.textContent = "Personalizzato ✎";
+          }
         }
       });
-      
-      const label = document.createElement('div');
-      label.className = 'eq-label';
-      label.textContent = labels[idx];
-      
-      wrapper.appendChild(input);
-      div.appendChild(wrapper);
-      div.appendChild(label);
-      
-      container.appendChild(div);
+
+      // Frequency label
+      const labelDiv = document.createElement("div");
+      labelDiv.textContent = labels[idx];
+      labelDiv.style.cssText = `
+        font-size: 0.7rem;
+        color: var(--text-tertiary);
+        text-align: center;
+        width: 100%;
+      `;
+
+      bandDiv.appendChild(valueSpan);
+      bandDiv.appendChild(input);
+      bandDiv.appendChild(labelDiv);
+      sliderGrid.appendChild(bandDiv);
     });
+
+    container.appendChild(sliderGrid);
   }
 
   initProgressBar() {
-    const container = document.getElementById('progress-bar-container');
+    const container = document.getElementById("progress-bar-container");
     let isDragging = false;
 
     const seek = (e) => {
       const rect = container.getBoundingClientRect();
-      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const percent = Math.max(
+        0,
+        Math.min(1, (e.clientX - rect.left) / rect.width),
+      );
       if (this.audio.duration) {
         this.audio.currentTime = percent * this.audio.duration;
       }
       this.updateProgressBar();
     };
 
-    container.addEventListener('mousedown', (e) => {
+    container.addEventListener("mousedown", (e) => {
       isDragging = true;
       seek(e);
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener("mousemove", (e) => {
       if (isDragging) seek(e);
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener("mouseup", () => {
       isDragging = false;
     });
   }
 
   initVolumeControl() {
-    const slider = document.getElementById('volume-slider-container') || document.querySelector('.volume-slider-container');
-    const btnVolume = document.getElementById('btn-volume');
+    const slider =
+      document.getElementById("volume-slider-container") ||
+      document.querySelector(".volume-slider-container");
+    const btnVolume = document.getElementById("btn-volume");
     let isDragging = false;
 
     if (!slider) return;
 
     const setVolume = (e) => {
       const rect = slider.getBoundingClientRect();
-      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const percent = Math.max(
+        0,
+        Math.min(1, (e.clientX - rect.left) / rect.width),
+      );
       this.volume = percent;
       this.isMuted = false;
       this.audio.volume = percent;
@@ -290,46 +480,68 @@ class Player {
       this.updateVolumeUI();
     };
 
-    slider.addEventListener('mousedown', (e) => {
+    slider.addEventListener("mousedown", (e) => {
       isDragging = true;
       setVolume(e);
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener("mousemove", (e) => {
       if (isDragging) setVolume(e);
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener("mouseup", () => {
       isDragging = false;
     });
 
-    btnVolume.addEventListener('click', () => {
+    btnVolume.addEventListener("click", () => {
       this.toggleMute();
     });
   }
 
   initEqualizer() {
-    this.eqCanvas = document.getElementById('equalizer-canvas');
-    this.eqCtx = this.eqCanvas ? this.eqCanvas.getContext('2d') : null;
+    this.eqCanvas = document.getElementById("equalizer-canvas");
+    this.eqCtx = this.eqCanvas ? this.eqCanvas.getContext("2d") : null;
     this.eqBars = Array(8).fill(0);
+
+    // Initialize Web Audio on first audio play (browser requirement for AudioContext)
+    this.audio.addEventListener(
+      "play",
+      () => {
+        if (!this.audioCtx) {
+          this.initWebAudio();
+        }
+      },
+      { once: false },
+    );
+
     this.animateEqualizer();
   }
 
   initWebAudio() {
     if (this.audioCtx) {
-      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+      if (this.audioCtx.state === "suspended") {
+        this.audioCtx
+          .resume()
+          .catch((e) => console.warn("AudioContext resume failed:", e));
+      }
       return;
     }
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    this.audioCtx = new AudioContext();
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.audioCtx = new AudioContext();
+    } catch (e) {
+      console.error("Web Audio API not supported:", e);
+      return;
+    }
+
     this.source = this.audioCtx.createMediaElementSource(this.audio);
 
-    // Graphic EQ (10 bands)
-    const frequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
-    this.eqBands = frequencies.map(freq => {
+    // Graphic EQ (5 bands)
+    const frequencies = [60, 230, 910, 3600, 14000];
+    this.eqBands = frequencies.map((freq) => {
       const filter = this.audioCtx.createBiquadFilter();
-      filter.type = 'peaking';
+      filter.type = "peaking";
       filter.frequency.value = freq;
       filter.Q.value = 1;
       filter.gain.value = 0;
@@ -338,19 +550,19 @@ class Player {
 
     // Panner
     this.pannerNode = this.audioCtx.createStereoPanner();
-    
+
     // Analyzer
     this.analyzer = this.audioCtx.createAnalyser();
     this.analyzer.fftSize = 64; // Small fft for our 8 bars UI
     this.analyzerData = new Uint8Array(this.analyzer.frequencyBinCount);
 
-    // Routing
+    // Routing: source -> EQ bands -> Panner -> Analyzer -> destination
     let lastNode = this.source;
-    this.eqBands.forEach(band => {
+    this.eqBands.forEach((band) => {
       lastNode.connect(band);
       lastNode = band;
     });
-    
+
     lastNode.connect(this.pannerNode);
     this.pannerNode.connect(this.analyzer);
     this.analyzer.connect(this.audioCtx.destination);
@@ -383,7 +595,7 @@ class Player {
   toggleKaraoke() {
     this.isKaraokeActive = !this.isKaraokeActive;
     if (!this.audioCtx) return this.isKaraokeActive;
-    
+
     if (this.isKaraokeActive) {
       // Basic OOPS (Out Of Phase Stereo) vocal remover
       if (!this.karaokeNodes) {
@@ -392,23 +604,23 @@ class Player {
         const gainL = this.audioCtx.createGain();
         const gainR = this.audioCtx.createGain();
         const finalGain = this.audioCtx.createGain();
-        
+
         // Invert phase of right channel
         gainR.gain.value = -1;
-        
+
         // Output left to both, inverted right to both to cancel center
         splitter.connect(gainL, 0); // left
         splitter.connect(gainR, 1); // right
-        
+
         gainL.connect(merger, 0, 0);
         gainL.connect(merger, 0, 1);
         gainR.connect(merger, 0, 0);
         gainR.connect(merger, 0, 1);
-        
+
         merger.connect(finalGain);
         this.karaokeNodes = { splitter, finalGain };
       }
-      
+
       // Route: Panner -> Splitter ... -> finalGain -> Analyzer
       this.pannerNode.disconnect(this.analyzer);
       this.pannerNode.connect(this.karaokeNodes.splitter);
@@ -420,18 +632,18 @@ class Player {
       }
       this.pannerNode.connect(this.analyzer);
     }
-    
+
     return this.isKaraokeActive;
   }
 
   async togglePiP() {
     this.isElectronPiP = !this.isElectronPiP;
-    const overlay = document.getElementById('mini-player-overlay');
+    const overlay = document.getElementById("mini-player-overlay");
 
     if (this.isElectronPiP) {
       // Show mini-player overlay
-      overlay.style.display = 'flex';
-      document.body.classList.add('mini-player');
+      overlay.style.display = "flex";
+      document.body.classList.add("mini-player");
 
       // Sync current track info
       this.syncMiniPlayer();
@@ -440,16 +652,29 @@ class Player {
       if (!this._miniPlayerWired) {
         this._miniPlayerWired = true;
 
-        document.getElementById('mini-btn-play').addEventListener('click', () => this.togglePlay());
-        document.getElementById('mini-btn-prev').addEventListener('click', () => this.previous());
-        document.getElementById('mini-btn-next').addEventListener('click', () => this.next());
-        document.getElementById('mini-btn-close').addEventListener('click', () => this.togglePiP());
+        document
+          .getElementById("mini-btn-play")
+          .addEventListener("click", () => this.togglePlay());
+        document
+          .getElementById("mini-btn-prev")
+          .addEventListener("click", () => this.previous());
+        document
+          .getElementById("mini-btn-next")
+          .addEventListener("click", () => this.next());
+        document
+          .getElementById("mini-btn-close")
+          .addEventListener("click", () => this.togglePiP());
 
         // Mini progress bar seek
-        const miniProgress = document.getElementById('mini-player-progress-container');
-        miniProgress.addEventListener('click', (e) => {
+        const miniProgress = document.getElementById(
+          "mini-player-progress-container",
+        );
+        miniProgress.addEventListener("click", (e) => {
           const rect = miniProgress.getBoundingClientRect();
-          const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+          const percent = Math.max(
+            0,
+            Math.min(1, (e.clientX - rect.left) / rect.width),
+          );
           if (this.audio.duration) {
             this.audio.currentTime = percent * this.audio.duration;
           }
@@ -462,8 +687,8 @@ class Player {
       }
     } else {
       // Hide mini-player overlay
-      overlay.style.display = 'none';
-      document.body.classList.remove('mini-player');
+      overlay.style.display = "none";
+      document.body.classList.remove("mini-player");
 
       // Restore Electron window
       if (window.electronAPI && window.electronAPI.togglePiP) {
@@ -475,24 +700,29 @@ class Player {
   syncMiniPlayer() {
     if (!this.currentTrack) return;
     const cover = this.getTrackCover(this.currentTrack);
-    const coverEl = document.getElementById('mini-player-cover');
+    const coverEl = document.getElementById("mini-player-cover");
     coverEl.innerHTML = `<img src="${cover}" alt="${this.currentTrack.title}" />`;
-    document.getElementById('mini-player-title').textContent = this.currentTrack.title;
-    document.getElementById('mini-player-artist').textContent = this.currentTrack.artist;
+    document.getElementById("mini-player-title").textContent =
+      this.currentTrack.title;
+    document.getElementById("mini-player-artist").textContent =
+      this.currentTrack.artist;
 
     // Sync play button icon
-    const playIcon = document.getElementById('mini-btn-play')?.querySelector('.material-icons-round');
-    if (playIcon) playIcon.textContent = this.isPlaying ? 'pause' : 'play_arrow';
+    const playIcon = document
+      .getElementById("mini-btn-play")
+      ?.querySelector(".material-icons-round");
+    if (playIcon)
+      playIcon.textContent = this.isPlaying ? "pause" : "play_arrow";
   }
 
   updateMiniPlayerProgress() {
     if (!this.isElectronPiP) return;
-    const fill = document.getElementById('mini-player-progress-fill');
+    const fill = document.getElementById("mini-player-progress-fill");
     if (fill && this.audio.duration) {
-      fill.style.width = ((this.audio.currentTime / this.audio.duration) * 100) + '%';
+      fill.style.width =
+        (this.audio.currentTime / this.audio.duration) * 100 + "%";
     }
   }
-
 
   animateEqualizer() {
     if (!this.eqCtx) return;
@@ -511,7 +741,8 @@ class Player {
         for (let i = 0; i < 8; i++) {
           const startBin = i * 3;
           let sum = 0;
-          for (let j = 0; j < 3; j++) sum += this.analyzerData[startBin + j] || 0;
+          for (let j = 0; j < 3; j++)
+            sum += this.analyzerData[startBin + j] || 0;
           const avg = sum / 3;
           // Scale to height
           this.eqBars[i] = (avg / 255) * h;
@@ -530,8 +761,9 @@ class Player {
 
         const gradient = ctx.createLinearGradient(x, y, x, h);
         const style = getComputedStyle(document.documentElement);
-        const accent = style.getPropertyValue('--accent').trim() || '#6c5ce7';
-        const accentSecondary = style.getPropertyValue('--accent-secondary').trim() || '#a29bfe';
+        const accent = style.getPropertyValue("--accent").trim() || "#6c5ce7";
+        const accentSecondary =
+          style.getPropertyValue("--accent-secondary").trim() || "#a29bfe";
         gradient.addColorStop(0, accentSecondary);
         gradient.addColorStop(1, accent);
 
@@ -550,28 +782,39 @@ class Player {
   getTrackCover(track) {
     if (track.cover) return track.cover;
     if (!this.coverCache[track.id]) {
-      this.coverCache[track.id] = generateCoverGradient(track.color || '#333');
+      this.coverCache[track.id] = generateCoverGradient(track.color || "#333");
     }
     return this.coverCache[track.id];
   }
 
   async loadTrack(track, autoplay = true) {
     this.currentTrack = track;
-    
+
     // Resolve YouTube streams at playback time so the URL doesn't expire
-    if (track.isYoutube && window.electronAPI && window.electronAPI.getStreamUrl) {
+    if (
+      track.isYoutube &&
+      window.electronAPI &&
+      window.electronAPI.getStreamUrl
+    ) {
       try {
         let streamUrl = this.streamCache.get(track.videoId);
         if (!streamUrl) {
-          const quality = localStorage.getItem('sw_settings_quality') || 'bestaudio';
-          streamUrl = await window.electronAPI.getStreamUrl(track.videoId, quality);
+          const quality =
+            localStorage.getItem("sw_settings_quality") || "bestaudio";
+          streamUrl = await window.electronAPI.getStreamUrl(
+            track.videoId,
+            quality,
+          );
         }
         if (streamUrl) {
           track.src = streamUrl;
         } else {
           console.error("YTDL returned null stream");
           if (window.nekotune && window.nekotune.showToast) {
-            window.nekotune.showToast('Brano bloccato per limiti d\'età o non disponibile.', true);
+            window.nekotune.showToast(
+              "Brano bloccato per limiti d'età o non disponibile.",
+              true,
+            );
           }
           this.pause();
           setTimeout(() => this.next(), 2000);
@@ -580,7 +823,10 @@ class Player {
       } catch (e) {
         console.error("Failed to extract YouTube stream:", e);
         if (window.nekotune && window.nekotune.showToast) {
-          window.nekotune.showToast('Errore durante l\'estrazione del brano.', true);
+          window.nekotune.showToast(
+            "Errore durante l'estrazione del brano.",
+            true,
+          );
         }
         this.pause();
         setTimeout(() => this.next(), 2000);
@@ -599,25 +845,28 @@ class Player {
       } else {
         if (!navigator.onLine) {
           if (window.nekotune && window.nekotune.showToast) {
-            window.nekotune.showToast('Impossibile riprodurre: questo brano non è scaricato e sei offline.', true);
+            window.nekotune.showToast(
+              "Impossibile riprodurre: questo brano non è scaricato e sei offline.",
+              true,
+            );
           }
           return;
         }
         this.audio.src = track.src;
       }
     } catch (e) {
-      console.error('Storage error:', e);
-      this.audio.src = track.src || '';
+      console.error("Storage error:", e);
+      this.audio.src = track.src || "";
     }
-    
+
     this.audio.load();
 
     // Update UI
     const cover = this.getTrackCover(track);
-    const playerCover = document.getElementById('player-cover');
+    const playerCover = document.getElementById("player-cover");
     playerCover.innerHTML = `<img src="${cover}" alt="${track.title}" />`;
-    document.getElementById('player-track-name').textContent = track.title;
-    document.getElementById('player-track-artist').textContent = track.artist;
+    document.getElementById("player-track-name").textContent = track.title;
+    document.getElementById("player-track-artist").textContent = track.artist;
 
     // Update document title
     document.title = `${track.title} — ${track.artist} | Nekotune`;
@@ -626,7 +875,7 @@ class Player {
     this.updateFavoriteButton();
 
     this.updateMediaSession(track);
-    
+
     if (autoplay) {
       this.play();
     }
@@ -634,42 +883,54 @@ class Player {
     this.syncMiniPlayer();
 
     if (this.onTrackChange) this.onTrackChange(track);
-    
+
     // Check if queue is running low
-    if (this.onQueueLow && (this.queue.length - this.currentIndex <= 3)) {
+    if (this.onQueueLow && this.queue.length - this.currentIndex <= 3) {
       this.onQueueLow();
     }
   }
 
   updateMediaSession(track) {
-    if ('mediaSession' in navigator) {
+    if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
-        album: track.album || 'Nekotune',
+        album: track.album || "Nekotune",
         artwork: [
           // Since our cover is a data URI gradient, it works as an image
-          { src: this.getTrackCover(track), sizes: '512x512', type: 'image/png' }
-        ]
+          {
+            src: this.getTrackCover(track),
+            sizes: "512x512",
+            type: "image/png",
+          },
+        ],
       });
 
-      navigator.mediaSession.setActionHandler('play', () => this.play());
-      navigator.mediaSession.setActionHandler('pause', () => this.pause());
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.previous());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.next());
+      navigator.mediaSession.setActionHandler("play", () => this.play());
+      navigator.mediaSession.setActionHandler("pause", () => this.pause());
+      navigator.mediaSession.setActionHandler("previoustrack", () =>
+        this.previous(),
+      );
+      navigator.mediaSession.setActionHandler("nexttrack", () => this.next());
     }
   }
 
   notifyDiscord() {
     if (!window.electronAPI || !window.electronAPI.updateDiscord) return;
     if (!this.currentTrack) {
-      window.electronAPI.updateDiscord({ details: 'Sfoglia la libreria', state: 'Nekotune Desktop' });
+      window.electronAPI.updateDiscord({
+        details: "Sfoglia la libreria",
+        state: "Nekotune Desktop",
+      });
       return;
     }
 
     // A valid Audio element has duration once loaded; handle cases where it isn't fully loaded yet
     const current = this.audio.currentTime || 0;
-    const total = this.audio.duration && !isNaN(this.audio.duration) ? this.audio.duration : (this.currentTrack.duration || 0);
+    const total =
+      this.audio.duration && !isNaN(this.audio.duration)
+        ? this.audio.duration
+        : this.currentTrack.duration || 0;
 
     window.electronAPI.updateDiscord({
       details: this.currentTrack.title,
@@ -677,22 +938,24 @@ class Player {
       playing: this.isPlaying,
       currentTime: current,
       totalDuration: total,
-      imageUrl: this.currentTrack.thumbnail
+      imageUrl: this.currentTrack.thumbnail,
     });
   }
 
   play() {
     if (!this.currentTrack) return;
-    
+
     // Init audio ctx on first user gesture
     this.initWebAudio();
 
     const promise = this.audio.play();
     if (promise) {
-      promise.catch(err => console.warn('Playback prevented:', err));
+      promise.catch((err) => console.warn("Playback prevented:", err));
     }
     this.isPlaying = true;
-    document.getElementById('btn-play').querySelector('.material-icons-round').textContent = 'pause';
+    document
+      .getElementById("btn-play")
+      .querySelector(".material-icons-round").textContent = "pause";
     this.syncMiniPlayer();
     if (this.onPlayStateChange) this.onPlayStateChange(true);
     this.notifyDiscord();
@@ -701,7 +964,9 @@ class Player {
   pause() {
     this.audio.pause();
     this.isPlaying = false;
-    document.getElementById('btn-play').querySelector('.material-icons-round').textContent = 'play_arrow';
+    document
+      .getElementById("btn-play")
+      .querySelector(".material-icons-round").textContent = "play_arrow";
     this.syncMiniPlayer();
     if (this.onPlayStateChange) this.onPlayStateChange(false);
     this.notifyDiscord();
@@ -722,7 +987,7 @@ class Player {
 
   next() {
     if (this.queue.length === 0) return;
-    if (this.repeatMode === 'one') {
+    if (this.repeatMode === "one") {
       this.audio.currentTime = 0;
       this.play();
       return;
@@ -737,15 +1002,19 @@ class Player {
       this.audio.currentTime = 0;
       return;
     }
-    this.currentIndex = (this.currentIndex - 1 + this.queue.length) % this.queue.length;
+    this.currentIndex =
+      (this.currentIndex - 1 + this.queue.length) % this.queue.length;
     this.loadTrack(this.queue[this.currentIndex]);
   }
 
   handleTrackEnd() {
-    if (this.repeatMode === 'one') {
+    if (this.repeatMode === "one") {
       this.audio.currentTime = 0;
       this.play();
-    } else if (this.currentIndex < this.queue.length - 1 || this.repeatMode === 'all') {
+    } else if (
+      this.currentIndex < this.queue.length - 1 ||
+      this.repeatMode === "all"
+    ) {
       this.next();
     } else {
       this.pause();
@@ -755,8 +1024,8 @@ class Player {
 
   toggleShuffle() {
     this.isShuffle = !this.isShuffle;
-    const btn = document.getElementById('btn-shuffle');
-    btn.classList.toggle('active', this.isShuffle);
+    const btn = document.getElementById("btn-shuffle");
+    btn.classList.toggle("active", this.isShuffle);
 
     if (this.isShuffle) {
       this.originalQueue = [...this.queue];
@@ -772,20 +1041,22 @@ class Player {
     } else {
       const currentTrack = this.currentTrack;
       this.queue = [...this.originalQueue];
-      this.currentIndex = this.queue.findIndex(t => t.id === currentTrack?.id);
+      this.currentIndex = this.queue.findIndex(
+        (t) => t.id === currentTrack?.id,
+      );
     }
     if (this.onQueueChange) this.onQueueChange();
   }
 
   toggleRepeat() {
-    const modes = ['none', 'all', 'one'];
+    const modes = ["none", "all", "one"];
     const idx = modes.indexOf(this.repeatMode);
     this.repeatMode = modes[(idx + 1) % modes.length];
 
-    const btn = document.getElementById('btn-repeat');
-    const icon = btn.querySelector('.material-icons-round');
-    btn.classList.toggle('active', this.repeatMode !== 'none');
-    icon.textContent = this.repeatMode === 'one' ? 'repeat_one' : 'repeat';
+    const btn = document.getElementById("btn-repeat");
+    const icon = btn.querySelector(".material-icons-round");
+    btn.classList.toggle("active", this.repeatMode !== "none");
+    icon.textContent = this.repeatMode === "one" ? "repeat_one" : "repeat";
   }
 
   toggleMute() {
@@ -800,38 +1071,44 @@ class Player {
   }
 
   updateProgressBar() {
-    const fill = document.getElementById('progress-bar-fill');
-    const current = document.getElementById('player-time-current');
+    const fill = document.getElementById("progress-bar-fill");
+    const current = document.getElementById("player-time-current");
     if (this.audio.duration) {
       const percent = (this.audio.currentTime / this.audio.duration) * 100;
-      fill.style.width = percent + '%';
+      fill.style.width = percent + "%";
       current.textContent = formatTime(this.audio.currentTime);
     }
   }
 
   updateVolumeUI() {
-    const fill = document.getElementById('volume-slider-fill');
-    const icon = document.getElementById('btn-volume').querySelector('.material-icons-round');
+    const fill = document.getElementById("volume-slider-fill");
+    const icon = document
+      .getElementById("btn-volume")
+      .querySelector(".material-icons-round");
 
     const vol = this.isMuted ? 0 : this.volume;
-    fill.style.width = (vol * 100) + '%';
+    fill.style.width = vol * 100 + "%";
 
     if (this.isMuted || vol === 0) {
-      icon.textContent = 'volume_off';
+      icon.textContent = "volume_off";
     } else if (vol < 0.5) {
-      icon.textContent = 'volume_down';
+      icon.textContent = "volume_down";
     } else {
-      icon.textContent = 'volume_up';
+      icon.textContent = "volume_up";
     }
   }
 
   updateFavoriteButton() {
-    const btn = document.getElementById('btn-favorite-current');
+    const btn = document.getElementById("btn-favorite-current");
     if (!btn || !this.currentTrack) return;
-    const favorites = JSON.parse(localStorage.getItem('sw_favorites') || '[]');
-    const isFav = favorites.some(t => (typeof t === 'string' ? t : t.id) === this.currentTrack.id);
-    btn.classList.toggle('is-favorite', isFav);
-    btn.querySelector('.material-icons-round').textContent = isFav ? 'favorite' : 'favorite_border';
+    const favorites = JSON.parse(localStorage.getItem("sw_favorites") || "[]");
+    const isFav = favorites.some(
+      (t) => (typeof t === "string" ? t : t.id) === this.currentTrack.id,
+    );
+    btn.classList.toggle("is-favorite", isFav);
+    btn.querySelector(".material-icons-round").textContent = isFav
+      ? "favorite"
+      : "favorite_border";
   }
 
   playTrackList(tracks, startIndex = 0) {
@@ -856,24 +1133,36 @@ class Player {
 
   // Pre-fetch the URL of the next YouTube song to ensure instant playback without UI freeze
   async prefetchNextTrack() {
-    if (!this.queue || this.currentIndex === -1 || this.currentIndex >= this.queue.length - 1) return;
-    
+    if (
+      !this.queue ||
+      this.currentIndex === -1 ||
+      this.currentIndex >= this.queue.length - 1
+    )
+      return;
+
     const nextTrack = this.queue[this.currentIndex + 1];
-    if (nextTrack && nextTrack.isYoutube && window.electronAPI && window.electronAPI.getStreamUrl) {
+    if (
+      nextTrack &&
+      nextTrack.isYoutube &&
+      window.electronAPI &&
+      window.electronAPI.getStreamUrl
+    ) {
       if (!this.streamCache.has(nextTrack.videoId)) {
         try {
-          const streamUrl = await window.electronAPI.getStreamUrl(nextTrack.videoId);
+          const streamUrl = await window.electronAPI.getStreamUrl(
+            nextTrack.videoId,
+          );
           if (streamUrl) {
             this.streamCache.set(nextTrack.videoId, streamUrl);
-            
+
             // Clean up cache to prevent memory bloating over long sessions
             if (this.streamCache.size > 10) {
               const firstKey = this.streamCache.keys().next().value;
               this.streamCache.delete(firstKey);
             }
           }
-        } catch(e) {
-           console.error("Prefetch next track failed", e);
+        } catch (e) {
+          console.error("Prefetch next track failed", e);
         }
       }
     }
@@ -887,7 +1176,7 @@ class Player {
   getQueue() {
     return {
       tracks: this.queue,
-      currentIndex: this.currentIndex
+      currentIndex: this.currentIndex,
     };
   }
 
@@ -903,6 +1192,276 @@ class Player {
 
   getDuration() {
     return this.audio.duration || 0;
+  }
+
+  setupSaveEQModal() {
+    const btnSave = document.getElementById("btn-save-custom-eq");
+    const saveModal = document.getElementById("save-eq-modal");
+    const btnCloseSaveEQ = document.getElementById("btn-close-save-eq");
+    const btnCancelSaveEQ = document.getElementById("btn-cancel-save-eq");
+    const btnConfirmSaveEQ = document.getElementById("btn-confirm-save-eq");
+    const inputName = document.getElementById("custom-eq-name");
+
+    if (!btnSave || !saveModal) return;
+
+    btnSave.addEventListener("click", () => {
+      inputName.value = "";
+      saveModal.style.display = "flex";
+      saveModal.offsetHeight;
+      saveModal.classList.add("visible");
+      inputName.focus();
+    });
+
+    btnCloseSaveEQ.addEventListener("click", () => {
+      saveModal.classList.remove("visible");
+      setTimeout(() => (saveModal.style.display = "none"), 300);
+    });
+
+    btnCancelSaveEQ.addEventListener("click", () => {
+      saveModal.classList.remove("visible");
+      setTimeout(() => (saveModal.style.display = "none"), 300);
+    });
+
+    btnConfirmSaveEQ.addEventListener("click", () => {
+      const presetName = inputName.value.trim();
+
+      if (!presetName) {
+        alert("Inserisci un nome per il preset");
+        return;
+      }
+
+      if (presetName.length > 20) {
+        alert("Il nome deve avere massimo 20 caratteri");
+        return;
+      }
+
+      // Get current EQ gains
+      const gains = this.eqBands.map((band) => band.gain.value);
+
+      // Save to localStorage
+      this.saveCustomEQPreset(
+        presetName.toLowerCase().replace(/\s+/g, "_"),
+        gains,
+      );
+
+      // Add to dropdown
+      const dropdown = document.getElementById("eq-dropdown-options");
+      const newOption = document.createElement("div");
+      newOption.className = "dropdown-option";
+      newOption.setAttribute(
+        "data-value",
+        presetName.toLowerCase().replace(/\s+/g, "_"),
+      );
+      newOption.textContent = presetName;
+      newOption.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.applyEQPreset(presetName.toLowerCase().replace(/\s+/g, "_"));
+        document
+          .getElementById("eq-custom-dropdown")
+          .classList.remove("active");
+      });
+      dropdown.appendChild(newOption);
+
+      // Apply the preset
+      this.applyEQPreset(presetName.toLowerCase().replace(/\s+/g, "_"));
+
+      // Close modal
+      saveModal.classList.remove("visible");
+      setTimeout(() => (saveModal.style.display = "none"), 300);
+
+      // Show success message
+      if (window.nekotune && window.nekotune.showToast) {
+        window.nekotune.showToast(
+          `Preset "${presetName}" salvato con successo!`,
+        );
+      }
+    });
+
+    // Allow Enter key to confirm
+    inputName.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        btnConfirmSaveEQ.click();
+      }
+    });
+
+    // Close modal when clicking outside
+    saveModal.addEventListener("click", (e) => {
+      if (e.target === saveModal) {
+        saveModal.classList.remove("visible");
+        setTimeout(() => (saveModal.style.display = "none"), 300);
+      }
+    });
+
+    // Delete custom EQ preset
+    const btnDelete = document.getElementById("btn-delete-custom-eq");
+    if (btnDelete) {
+      btnDelete.addEventListener("click", () => {
+        const presetName = this.currentEQPreset;
+        // Usa il modal custom invece di confirm
+        this.showConfirmDialog(
+          `Sei sicuro di voler eliminare il preset "${presetName}"?`,
+          () => {
+            // Delete from localStorage
+            const custom = localStorage.getItem("sw_eq_custom_presets");
+            if (custom) {
+              const customPresets = JSON.parse(custom);
+              delete customPresets[presetName];
+              localStorage.setItem(
+                "sw_eq_custom_presets",
+                JSON.stringify(customPresets),
+              );
+            }
+            // Delete from eqPresets object
+            delete this.eqPresets[presetName];
+            // Remove from dropdown
+            const dropdown = document.getElementById("eq-dropdown-options");
+            const optionToDelete = dropdown.querySelector(
+              `[data-value="${presetName}"]`,
+            );
+            if (optionToDelete) {
+              optionToDelete.remove();
+            }
+            // Reset to Flat
+            this.applyEQPreset("flat");
+            // Hide delete button
+            btnDelete.style.display = "none";
+            // Show success message
+            if (window.nekotune && window.nekotune.showToast) {
+              window.nekotune.showToast(
+                `Preset "${presetName}" eliminato con successo!`,
+              );
+            }
+          },
+          () => {}, // onCancel
+        );
+      });
+    }
+  }
+
+  // Mostra un modal di conferma custom, stile NekoTune
+  showConfirmDialog(message, onConfirm, onCancel) {
+    // Se esiste già, rimuovi
+    let old = document.getElementById("nt-confirm-modal");
+    if (old) old.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "nt-confirm-modal";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20, 24, 38, 0.82);
+      backdrop-filter: blur(6px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.22s cubic-bezier(.4,1.4,.6,1);
+    `;
+
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+      background: var(--modal-bg, #232946);
+      color: var(--text-primary, #fff);
+      border-radius: 22px;
+      box-shadow: 0 8px 40px #000a, 0 1.5px 8px #0004;
+      padding: 38px 34px 28px 34px;
+      min-width: 340px;
+      max-width: 92vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      animation: popIn 0.22s cubic-bezier(.4,1.4,.6,1);
+      border: 1.5px solid var(--accent, #6c5ce7);
+    `;
+
+    const msg = document.createElement("div");
+    msg.textContent = message;
+    msg.style.cssText = `font-size: 1.18rem; text-align: center; margin-bottom: 8px; font-weight: 500; letter-spacing: 0.01em;`;
+
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = `display: flex; gap: 22px; margin-top: 8px; justify-content: center; width: 100%;`;
+
+    const btnOk = document.createElement("button");
+    btnOk.textContent = "OK";
+    btnOk.className = "btn btn-danger";
+    btnOk.style.cssText = `
+      min-width: 110px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      border-radius: 100px;
+      padding: 10px 0;
+      background: var(--danger, #e74c3c);
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 8px #e74c3c22;
+      transition: background 0.18s, box-shadow 0.18s;
+      outline: none;
+      cursor: pointer;
+    `;
+    btnOk.onmouseenter = () => (btnOk.style.background = "#ff5a36");
+    btnOk.onmouseleave = () =>
+      (btnOk.style.background = "var(--danger, #e74c3c)");
+    btnOk.onfocus = () =>
+      (btnOk.style.boxShadow = "0 0 0 2px #fff5, 0 2px 8px #e74c3c22");
+    btnOk.onblur = () => (btnOk.style.boxShadow = "0 2px 8px #e74c3c22");
+    btnOk.onclick = () => {
+      overlay.remove();
+      if (onConfirm) onConfirm();
+    };
+
+    const btnCancel = document.createElement("button");
+    btnCancel.textContent = "Annulla";
+    btnCancel.className = "btn";
+    btnCancel.style.cssText = `
+      min-width: 110px;
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 100px;
+      padding: 10px 0;
+      background: #fff;
+      color: var(--accent, #6c5ce7);
+      border: none;
+      box-shadow: 0 2px 8px #0001;
+      transition: background 0.18s, color 0.18s;
+      outline: none;
+      cursor: pointer;
+    `;
+    btnCancel.onmouseenter = () => {
+      btnCancel.style.background = "#f3f3fa";
+      btnCancel.style.color = "#232946";
+    };
+    btnCancel.onmouseleave = () => {
+      btnCancel.style.background = "#fff";
+      btnCancel.style.color = "var(--accent, #6c5ce7)";
+    };
+    btnCancel.onfocus = () =>
+      (btnCancel.style.boxShadow = "0 0 0 2px #6c5ce755, 0 2px 8px #0001");
+    btnCancel.onblur = () => (btnCancel.style.boxShadow = "0 2px 8px #0001");
+    btnCancel.onclick = () => {
+      overlay.remove();
+      if (onCancel) onCancel();
+    };
+
+    btnRow.appendChild(btnOk);
+    btnRow.appendChild(btnCancel);
+    modal.appendChild(msg);
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Focus automatico su OK
+    setTimeout(() => btnOk.focus(), 10);
+
+    // Chiudi con ESC
+    overlay.tabIndex = -1;
+    overlay.focus();
+    overlay.onkeydown = (e) => {
+      if (e.key === "Escape") {
+        overlay.remove();
+        if (onCancel) onCancel();
+      }
+    };
   }
 }
 

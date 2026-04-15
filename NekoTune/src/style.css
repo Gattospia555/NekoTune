@@ -3,25 +3,25 @@
    Premium Music Player — CSS Variables + Themes
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
 /* === Theme Variables === */
 :root {
   /* Colors */
-  --bg-primary: #FAF5ED;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F3EFE6;
-  --bg-elevated: #FFFFFF;
+  --bg-primary: #faf5ed;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3efe6;
+  --bg-elevated: #ffffff;
   --bg-hover: rgba(255, 159, 67, 0.1);
   --bg-active: rgba(255, 159, 67, 0.2);
 
-  --accent: #FF9F43;
-  --accent-hover: #FF8800;
-  --accent-secondary: #FFC07A;
+  --accent: #ff9f43;
+  --accent-hover: #ff8800;
+  --accent-secondary: #ffc07a;
   --accent-glow: rgba(255, 159, 67, 0.3);
-  --accent-gradient: linear-gradient(135deg, #FF9F43, #FFB142);
+  --accent-gradient: linear-gradient(135deg, #ff9f43, #ffb142);
 
-  --text-primary: #2D2D2D;
+  --text-primary: #2d2d2d;
   --text-secondary: #636e72;
   --text-tertiary: #a4b0be;
 
@@ -65,7 +65,7 @@
   --transition-slow: 400ms ease;
 
   /* Font */
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* === Reset === */
@@ -77,7 +77,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
 }
 html {
@@ -141,7 +142,9 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .win-btn:hover {
@@ -166,7 +169,9 @@ body.is-electron #app {
 }
 body.is-electron .queue-panel {
   top: 32px;
-  height: calc(100% - var(--player-height) - 32px); /* Correctly shrink height */
+  height: calc(
+    100% - var(--player-height) - 32px
+  ); /* Correctly shrink height */
 }
 body.is-electron .lyrics-panel {
   top: 32px;
@@ -236,7 +241,6 @@ body.is-electron .lyrics-panel {
 }
 
 @keyframes logoPulse {
-
   0%,
   100% {
     box-shadow: var(--shadow-glow);
@@ -315,23 +319,24 @@ body.is-electron .lyrics-panel {
 }
 
 .sidebar-section {
-  padding: 8px 12px;
-  margin-top: 4px;
+  padding: 10px 12px;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .sidebar-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
+  padding: 4px 4px 8px;
 }
 
 .sidebar-section-header h3 {
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: var(--text-tertiary);
+  font-weight: 700;
 }
 
 .playlist-list {
@@ -353,7 +358,7 @@ body.is-electron .lyrics-panel {
   flex-shrink: 0;
 }
 
-.playlist-list-item>span:not(.material-icons-round) {
+.playlist-list-item > span:not(.material-icons-round) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1056,7 +1061,6 @@ body.is-electron .lyrics-panel {
 }
 
 @keyframes playingBars {
-
   0%,
   100% {
     height: 40%;
@@ -1804,10 +1808,10 @@ body.is-electron .lyrics-panel {
   width: 24px;
   height: 24px;
   background-color: var(--accent);
-  -webkit-mask-image: url('./assets/paw.svg');
+  -webkit-mask-image: url("./assets/paw.svg");
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
-  mask-image: url('./assets/paw.svg');
+  mask-image: url("./assets/paw.svg");
   mask-size: contain;
   mask-repeat: no-repeat;
   border-radius: 0;
@@ -1862,10 +1866,10 @@ body.is-electron .lyrics-panel {
   width: 20px;
   height: 20px;
   background-color: var(--accent);
-  -webkit-mask-image: url('./assets/paw.svg');
+  -webkit-mask-image: url("./assets/paw.svg");
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
-  mask-image: url('./assets/paw.svg');
+  mask-image: url("./assets/paw.svg");
   mask-size: contain;
   mask-repeat: no-repeat;
   border-radius: 0;
@@ -2386,10 +2390,15 @@ body.mini-player .player-cover img {
 }
 
 body.mini-player .player-cover::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.2) 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.5) 40%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
   pointer-events: none;
 }
 
@@ -2406,7 +2415,7 @@ body.mini-player .player-track-name {
   font-weight: 800;
   color: white;
   margin-bottom: 4px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 body.mini-player .player-track-artist {
@@ -2434,7 +2443,7 @@ body.mini-player .player-progress {
 body.mini-player .player-time {
   color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 body.mini-player .player-buttons {
@@ -2592,9 +2601,9 @@ body.mini-player #btn-mini-player:hover {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -2608,7 +2617,9 @@ body.mini-player #btn-mini-player:hover {
   padding: 24px;
   width: 90%;
   max-width: 600px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  opacity: 1;
+  backdrop-filter: none;
 }
 
 .modal-header {
@@ -2626,9 +2637,13 @@ body.mini-player #btn-mini-player:hover {
 /* EQ Sliders */
 .eq-container {
   display: flex;
-  justify-content: space-between;
-  height: 200px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 20px 0;
   gap: 10px;
+  margin: 0 auto;
+  overflow-x: auto;
 }
 
 .eq-band {
@@ -2636,6 +2651,7 @@ body.mini-player #btn-mini-player:hover {
   flex-direction: column;
   align-items: center;
   flex: 1;
+  gap: 8px;
 }
 
 .eq-slider-wrapper {
@@ -2644,51 +2660,80 @@ body.mini-player #btn-mini-player:hover {
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+  height: 120px;
+  margin-top: 20px;
 }
 
-.eq-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-full);
+/* Vertical Slider Styling */
+.eq-slider-vertical {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  width: 32px;
+  height: 120px;
+  background: linear-gradient(to top, var(--accent-glow), transparent);
+  border-radius: 16px;
   outline: none;
-  width: 150px;
-  height: 6px;
-  margin: 0;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-90deg);
+  cursor: pointer;
+  accent-color: var(--accent);
 }
 
-.eq-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 24px;
-  height: 24px;
-  background-color: var(--accent);
-  -webkit-mask-image: url('./assets/paw-eq.svg');
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-image: url('./assets/paw-eq.svg');
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  border-radius: 0;
+.eq-slider-vertical::-webkit-slider-runnable-track {
+  background: var(--bg-tertiary);
+  height: 6px;
+  border-radius: 3px;
+}
+
+.eq-slider-vertical::-webkit-slider-thumb {
+  -webkit-appearance: slider-thumb;
+  appearance: slider-thumb;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
   cursor: pointer;
-  filter: drop-shadow(0 0 8px var(--accent-glow));
+  box-shadow: 0 0 12px var(--accent-glow);
+  border: 2px solid var(--bg-secondary);
+}
+
+.eq-slider-vertical::-moz-range-track {
+  background: var(--bg-tertiary);
+  height: 6px;
+  border-radius: 3px;
+}
+
+.eq-slider-vertical::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 12px var(--accent-glow);
+  border: 2px solid var(--bg-secondary);
+}
+
+.eq-value-display {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+  height: 16px;
+  transition: color 0.1s;
 }
 
 .eq-label {
-  margin-top: 12px;
-  font-size: 0.75rem;
+  margin-top: 4px;
+  font-size: 0.7rem;
   color: var(--text-tertiary);
   text-align: center;
+  width: 100%;
 }
 
 /* EQ Custom Dropdown */
 .custom-dropdown {
   position: relative;
-  background: var(--bg-tertiary);
+  background: rgba(100, 120, 150, 0.4);
   border-radius: var(--radius-md);
   padding: 8px 16px;
   min-width: 180px;
@@ -2699,28 +2744,34 @@ body.mini-player #btn-mini-player:hover {
   user-select: none;
   font-size: 14px;
   color: var(--text-primary);
-  border: 1px solid transparent;
+  border: 2px solid var(--accent);
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
 }
 .custom-dropdown:hover {
-  background: var(--bg-hover);
+  background: rgba(100, 120, 150, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-color: var(--accent-hover);
 }
 .custom-dropdown.active {
-  border-color: var(--border);
-  background: var(--bg-secondary);
+  border-color: var(--accent);
+  background: rgba(100, 120, 150, 0.7);
+  box-shadow: 0 6px 20px rgba(255, 159, 67, 0.3);
 }
 .dropdown-options {
   position: absolute;
   top: Calc(100% + 4px);
   left: 0;
   right: 0;
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 8px 0;
   max-height: 250px;
   overflow-y: auto;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   z-index: 100;
   opacity: 0;
   pointer-events: none;
@@ -2906,7 +2957,9 @@ body.mini-player #btn-mini-player:hover {
   border-radius: 30px;
   font-weight: 600;
   box-shadow: var(--shadow-lg);
-  transition: bottom 0.4s cubic-bezier(0.3, 0, 0, 1), opacity 0.4s;
+  transition:
+    bottom 0.4s cubic-bezier(0.3, 0, 0, 1),
+    opacity 0.4s;
   z-index: 10000;
   opacity: 0;
   pointer-events: none;
@@ -3067,12 +3120,12 @@ body.mini-player #btn-mini-player:hover {
 }
 
 .import-card-icon.spotify-icon {
-  color: #1DB954;
+  color: #1db954;
   background: rgba(29, 185, 84, 0.1);
 }
 
 .import-card-icon.youtube-icon {
-  color: #FF0000;
+  color: #ff0000;
   background: rgba(255, 0, 0, 0.1);
 }
 
@@ -3109,7 +3162,9 @@ body.mini-player #btn-mini-player:hover {
   color: var(--text-primary);
   font-family: var(--font);
   font-size: 1rem;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
 }
 
 .import-input:focus {
@@ -3156,7 +3211,9 @@ body.mini-player #btn-mini-player:hover {
   box-shadow: var(--shadow-xl);
   border-radius: var(--radius-2xl);
   overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s;
+  transition:
+    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s;
   cursor: grab;
 }
 
@@ -3278,7 +3335,6 @@ body.mini-player #btn-mini-player:hover {
 }
 
 @keyframes lyrics-pulse {
-
   0%,
   100% {
     opacity: 0.4;
@@ -3679,7 +3735,9 @@ body.mini-player #btn-mini-player:hover {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  transition: transform var(--transition), background var(--transition);
+  transition:
+    transform var(--transition),
+    background var(--transition);
 }
 
 .wrapped-artist-card:hover {
@@ -3772,11 +3830,26 @@ body.mini-player #btn-mini-player:hover {
 }
 
 .eq-label {
+  margin-top: 12px;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
+.eq-value-label {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* EQ Custom Dropdown */
 .custom-dropdown {
   position: relative;
   min-width: 180px;
@@ -3791,7 +3864,7 @@ body.mini-player #btn-mini-player:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.9rem;
 }
 
@@ -3814,7 +3887,7 @@ body.mini-player #btn-mini-player:hover {
   left: 0;
   right: 0;
   background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   max-height: 200px;
   overflow-y: auto;
@@ -3823,7 +3896,7 @@ body.mini-player #btn-mini-player:hover {
   transform: translateY(-10px);
   transition: all 0.2s ease;
   z-index: 10;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .custom-dropdown.active .dropdown-options {
@@ -3877,8 +3950,14 @@ body.mini-player {
 }
 
 @keyframes miniPlayerFadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .mini-player-drag-region {
@@ -3896,8 +3975,9 @@ body.mini-player {
   height: 160px;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
-              0 0 60px rgba(108, 92, 231, 0.15);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(108, 92, 231, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3907,8 +3987,16 @@ body.mini-player {
 }
 
 @keyframes miniCoverPulse {
-  from { box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 40px rgba(108, 92, 231, 0.1); }
-  to   { box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 80px rgba(108, 92, 231, 0.25); }
+  from {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      0 0 40px rgba(108, 92, 231, 0.1);
+  }
+  to {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      0 0 80px rgba(108, 92, 231, 0.25);
+  }
 }
 
 .mini-player-cover img {
@@ -3949,7 +4037,7 @@ body.mini-player {
 .mini-player-progress {
   width: 80%;
   height: 4px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
@@ -3989,7 +4077,7 @@ body.mini-player {
 
 .mini-btn:hover {
   color: var(--text-primary);
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .mini-btn .material-icons-round {
