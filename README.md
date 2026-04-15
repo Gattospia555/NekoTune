@@ -1,68 +1,68 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/Gattospia555/NekoTune/main/NekoTune/src/assets/nekotune_logo.png" width="200" alt="NekoTune Logo"/>
   <h1>NekoTune 🐾</h1>
-  <p><em>Un'alternativa musicale dal design mozzafiato, 100% gratuita. Potenza di YouTube, UI di Spotify.</em></p>
+  <p><em>A breathtaking music player alternative, 100% free. The power of YouTube with the UI of Spotify.</em></p>
 </div>
 
 <hr/>
 
-## 🐱 Cos'è NekoTune?
-**NekoTune** è un player musicale desktop e web-app che unisce l'immenso database di **YouTube e YouTube Music** con una UI/UX moderna, fluida e simile a Spotify Premium. Nessuna pubblicità, nessuna interruzione, audio in alta qualità e tante feature interattive per i creatori e ascoltatori.
+## 🐱 What is NekoTune?
+**NekoTune** is a desktop and web music player that combines the massive databases of **YouTube and YouTube Music** with a modern, fluid, Spotify Premium-like UI/UX. No ads, no interruptions, high-quality audio, and tons of interactive features for creators and listeners alike.
 
-## ✨ Caratteristiche Principali
+## ✨ Key Features
 
-- 🎵 **Libreria Musicale Illimitata**: Grazie all'integrazione di `ytmusic-api`, puoi cercare e ascoltare milioni di brani, remix, copertine e podcast senza limitazioni.
-- 🎨 **Design Moderno (Glassmorphism)**: Interfaccia utente stupenda dotata di effetti blur, animazioni CSS fluide e transizioni reattive.
-- 📶 **Riproduzione Offline in Cache**: Gestione intelligente e caching dei brani con IndexedDB per poter ascoltare i tuoi brani off-grid.
-- 🧑‍🎤 **Profili e Segui Artisti**: Proprio come le piattaforme Major, puoi visitare i profili degli artisti, scoprire i Top Tracks, album e seguire i tuoi preferiti!
-- 🎧 **Qualità Audio Flessibile**: Riduci i consumi o ascolta al massimo della qualità tramite il sistema Audio Settings intelligente basato su `youtube-dl-exec`.
-- 🎚️ **Equalizzatore Completo e 8D Audio**: Personalizza il tuo suono grazie allo Spatial Audio 8D e vari preset (Bass Boost, Pop, Flat, ecc.).
-- 🤝 **Riproduzione Sincronizzata (Listen Together)**: Ascolta musica in simultanea con gli amici in una stanza virtuale.
+- 🎵 **Unlimited Music Library**: Thanks to the integration of `ytmusic-api`, you can search and listen to millions of songs, remixes, covers, and podcasts without limits.
+- 🎨 **Modern Design (Glassmorphism)**: Gorgeous user interface featuring blur effects, smooth CSS animations, and reactive transitions.
+- 📶 **Offline Cache Playback**: Smart track caching and management via IndexedDB so you can listen to your favorite songs off the grid.
+- 🧑‍🎤 **Artist Profiles & Following**: Just like major platforms, you can visit artist profiles, discover their Top Tracks, explore albums, and follow your favorites!
+- 🎧 **Flexible Audio Quality**: Save bandwidth or listen at maximum quality through the smart Audio Settings system powered by `youtube-dl-exec`.
+- 🎚️ **Full Equalizer & 8D Audio**: Customize your sound with Spatial Audio 8D and various built-in presets (Bass Boost, Pop, Flat, etc.).
+- 🤝 **Synchronized Playback (Listen Together)**: Listen to music simultaneously with your friends in a virtual room.
 
-## 🛠️ Tecnologie Utilizzate
+## 🛠️ Technologies Used
 
-Il progetto è costruito su uno Stack moderno ibrido:
-- **Frontend Core**: HTML Vanilla, CSS Moderno, e JavaScript (ES6+).
-- **Bundler e Build**: [Vite](https://vitejs.dev/) - per un HMR fulmineo ed espandibilità.
-- **Backend / Wrapper**: [Electron](https://www.electronjs.org/) - Trasforma l'App Web in un veloce applicativo Windows/Mac nativo con IPC bridge per il filesystem locale.`
-- **Mobile Crossover**: [CapacitorJS](https://capacitorjs.com/) (In Arrivo) - Per compilare la codebase su piattaforma Android!
-- **Data Engine**: `ytmusic-api` e `youtube-dl-exec`.
+The project is built on a modern hybrid stack:
+- **Core Frontend**: Vanilla HTML, Modern CSS, and JavaScript (ES6+).
+- **Bundler & Build**: [Vite](https://vitejs.dev/) - for lightning-fast HMR and scalability.
+- **Backend / Wrapper**: [Electron](https://www.electronjs.org/) - Transforms the Web App into a fast, native Windows/Mac application with an IPC bridge for local filesystem operations.
+- **Mobile Crossover**: [CapacitorJS](https://capacitorjs.com/) (Coming Soon) - To compile the codebase for Android platforms!
+- **Data Engine**: `ytmusic-api` and `youtube-dl-exec`.
 
-## 🚀 Come avviare lo sviluppo locale
+## 🚀 Getting Started Locally
 
-1. **Clona la Repository**
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/Gattospia555/NekoTune.git
    cd NekoTune
    cd NekoTune
    ```
 
-2. **Installa le dipendenze**
-   Dovrai avere [Node.js](https://nodejs.org) installato nel tuo PC. 
+2. **Install Dependencies**
+   You will need to have [Node.js](https://nodejs.org) installed on your PC. 
    ```bash
    npm install
    ```
 
-3. **Avvia la modalità Sviluppo (Electron + Vite)**
+3. **Start Development Mode (Electron + Vite)**
    ```bash
    npm run dev
    ```
 
-4. **Compila in EXE per PC (Windows)**
-   Questo script preparerà sia il frontend Vite sia Electron-builder in un pacchetto.
+4. **Build as PC Executable (Windows)**
+   This script will prepare and bundle both the Vite frontend and Electron-builder.
    ```bash
    npm run build
    ```
-   *L'eseguibile sarà pronto nella directory `dist/win-unpacked/`.*
+   *The executable will be ready in the `dist/win-unpacked/` directory.*
 
-## 📋 Prossimi Obiettivi (Roadmap)
-- [x] Connettere gli stream audio ad un proxy locale in alta qualità
-- [x] Profili Artista e Playlist personali
-- [x] Impostazioni qualità e svuotamento cache
-- [ ] Porting e compilazione Mobile Android tramite **CapacitorJS**
-- [ ] Aggiungere testi sincronizzati dinamici (Lyrics)
+## 📋 Roadmap
+- [x] Connect audio streams to a local proxy in high quality
+- [x] Artist Profiles and Personal Playlists
+- [x] Quality settings and cache clearing
+- [ ] Mobile Android porting and compilation via **CapacitorJS**
+- [ ] Add dynamic synchronized Lyrics
 
 ---
 <div align="center">
-  <i>Sviluppato con Passione e Code ❤️.</i>
+  <i>Developed with Passion and Code ❤️.</i>
 </div>
