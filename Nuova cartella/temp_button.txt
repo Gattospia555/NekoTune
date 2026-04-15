@@ -1,0 +1,3 @@
+              <button class="dropdown-item" id="btn-dropdown-login" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="document.getElementById('profile-dropdown').style.display='none'; document.getElementById('auth-modal').style.display='flex'">
+                <span class="material-icons-round" style="font-size: 18px;">login</span> Accedi
+              </button>

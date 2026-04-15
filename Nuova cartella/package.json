@@ -1,14 +1,97 @@
 {
-  "name": "nuova-cartella",
-  "version": "0.0.0",
+  "name": "nekotune",
+  "productName": "NekoTune",
+  "version": "1.0.0",
+  "description": "Premium Music Experience",
+  "author": "NekoTune",
   "private": true,
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "server": "node server/server.js",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview",
+    "cap": "cap"
   },
   "devDependencies": {
-    "vite": "^8.0.1"
+    "electron": "^41.0.4",
+    "electron-builder": "^26.8.1",
+    "esbuild": "^0.27.4",
+    "vite": "^8.0.1",
+    "vite-plugin-electron": "^0.29.1",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@distube/ytdl-core": "^4.16.12",
+    "@supabase/supabase-js": "^2.101.1",
+    "cors": "^2.8.6",
+    "discord-rpc": "^4.0.1",
+    "express": "^5.2.1",
+    "play-dl": "^1.9.7",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "spotify-url-info": "^3.3.0",
+    "youtube-dl-exec": "^3.1.4",
+    "youtube-ext": "^1.1.25",
+    "yt-search": "^2.13.1",
+    "ytmusic-api": "^5.3.1"
+  },
+  "build": {
+    "appId": "com.nekotune.app",
+    "productName": "NekoTune",
+    "asar": false,
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.exe",
+      "!dist/**/*.7z",
+      "!dist/win-unpacked/**",
+      "dist-electron/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.ts",
+      "!node_modules/**/*.md",
+      "!node_modules/**/LICENSE*",
+      "!node_modules/**/CHANGELOG*",
+      "!node_modules/**/test/**",
+      "!node_modules/**/tests/**",
+      "!node_modules/**/__tests__/**",
+      "!node_modules/**/.github/**",
+      "!node_modules/**/docs/**",
+      "!node_modules/**/doc/**",
+      "!node_modules/**/example/**",
+      "!node_modules/**/examples/**",
+      "!node_modules/@capacitor/**",
+      "!node_modules/esbuild/**",
+      "!node_modules/vite/**",
+      "!node_modules/vite-plugin-*/**",
+      "!node_modules/electron/**",
+      "!node_modules/electron-builder/**",
+      "!node_modules/app-builder-*/**",
+      "!node_modules/@electron/rebuild/**",
+      "!node_modules/builder-util*/**",
+      "!node_modules/dmg-builder/**",
+      "!node_modules/@distube/**",
+      "!node_modules/play-dl/**",
+      "!node_modules/youtube-ext/**",
+      "!node_modules/yt-search/**",
+      "!node_modules/@types/**",
+      "!node_modules/typescript/**",
+      "!src/**",
+      "!server/**",
+      "!public/**"
+    ],
+    "extraResources": [
+      "server/**/*"
+    ],
+    "extraFiles": [
+      "icon.ico"
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "icon.ico"
+    }
   }
 }

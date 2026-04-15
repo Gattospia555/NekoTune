@@ -1,5 +1,7 @@
-// SonicWave — Playlist Management
-import { DEMO_TRACKS, DEFAULT_PLAYLISTS, generateId, generateCoverGradient } from './data.js';
+// Nekotune — Playlist Management
+import { DEMO_TRACKS, DEFAULT_PLAYLISTS, generateId, generateCoverGradient, resolveTracks, resolveTrack } from './data.js';
+import { storage } from './storage.js';
+import socketManager from './socket.js';
 
 class PlaylistManager {
   constructor(player, app) {
@@ -9,6 +11,17 @@ class PlaylistManager {
     this.favorites = JSON.parse(localStorage.getItem('sw_favorites') || '[]');
     this.recentlyPlayed = JSON.parse(localStorage.getItem('sw_recent') || '[]');
     this.currentPlaylistId = null;
+    this.isFavManageMode = false;
+    
+    // Collaborative Playlists Remote Sync
+    this.socket = socketManager.getSocket();
+    this.socket.on('collab_sync_playlist', (data) => this.handleCollabMessage({ type: 'SYNC_PLAYLIST', ...data }));
+    this.socket.on('collab_request_playlist', (data) => this.handleCollabMessage({ type: 'REQUEST_PLAYLIST', ...data }));
+    
+    // Join rooms for all collaborative playlists we already have
+    this.playlists.filter(p => p.isCollaborative && p.shareCode).forEach(p => {
+      this.socket.emit('join_session', { sessionCode: 'collab_' + p.shareCode, user: { name: 'peer' } });
+    });
 
     this.initEvents();
     this.renderSidebarPlaylists();
@@ -30,6 +43,15 @@ class PlaylistManager {
     localStorage.setItem('sw_favorites', JSON.stringify(this.favorites));
   }
 
+  updateFavRemoveButton() {
+    const selectedCount = document.querySelectorAll('#favorites-list .track-item .track-checkbox:checked').length;
+    const btn = document.getElementById('btn-fav-remove-selected');
+    if (btn) {
+      btn.textContent = `Rimuovi (${selectedCount})`;
+      btn.disabled = selectedCount === 0;
+    }
+  }
+
   saveRecent() {
     localStorage.setItem('sw_recent', JSON.stringify(this.recentlyPlayed));
   }
@@ -48,14 +70,89 @@ class PlaylistManager {
     document.querySelectorAll('.btn-close-modal').forEach(btn => {
       btn.addEventListener('click', () => {
         document.getElementById('create-playlist-modal').classList.add('hidden');
+        document.getElementById('join-playlist-modal').classList.add('hidden');
       });
     });
+
+    // Join collab playlist UI
+    const btnJoinUI = document.getElementById('btn-join-collab-playlist');
+    if (btnJoinUI) {
+      btnJoinUI.addEventListener('click', () => {
+        document.getElementById('join-playlist-code').value = '';
+        document.getElementById('join-playlist-modal').classList.remove('hidden');
+      });
+    }
+
+    const btnConfirmJoin = document.getElementById('btn-confirm-join-playlist');
+    if (btnConfirmJoin) {
+      btnConfirmJoin.addEventListener('click', () => {
+        const code = document.getElementById('join-playlist-code').value.trim().toUpperCase();
+        if (code) {
+          this.joinCollaborativePlaylist(code);
+          document.getElementById('join-playlist-modal').classList.add('hidden');
+        }
+      });
+    }
 
     // Favorite current track
     document.getElementById('btn-favorite-current').addEventListener('click', () => {
       if (this.player.currentTrack) {
-        this.toggleFavorite(this.player.currentTrack.id);
+        this.toggleFavorite(this.player.currentTrack);
       }
+    });
+
+    // Bulk favorites management
+    document.getElementById('btn-manage-favorites')?.addEventListener('click', () => {
+      this.isFavManageMode = true;
+      document.getElementById('btn-manage-favorites').style.display = 'none';
+      document.getElementById('favorites-bulk-actions').classList.remove('hidden');
+      document.getElementById('btn-fav-select-all').style.display = 'inline-block';
+      document.getElementById('btn-fav-deselect-all').style.display = 'none';
+      this.showFavorites();
+    });
+
+    document.getElementById('btn-fav-cancel-manage')?.addEventListener('click', () => {
+      this.isFavManageMode = false;
+      document.getElementById('btn-manage-favorites').style.display = 'flex';
+      document.getElementById('favorites-bulk-actions').classList.add('hidden');
+      this.showFavorites();
+    });
+
+    document.getElementById('btn-fav-select-all')?.addEventListener('click', () => {
+      document.querySelectorAll('#favorites-list .track-item .track-checkbox').forEach(cb => {
+        cb.checked = true;
+      });
+      document.getElementById('btn-fav-select-all').style.display = 'none';
+      document.getElementById('btn-fav-deselect-all').style.display = 'inline-block';
+      this.updateFavRemoveButton();
+    });
+
+    document.getElementById('btn-fav-deselect-all')?.addEventListener('click', () => {
+      document.querySelectorAll('#favorites-list .track-item .track-checkbox').forEach(cb => {
+        cb.checked = false;
+      });
+      document.getElementById('btn-fav-select-all').style.display = 'inline-block';
+      document.getElementById('btn-fav-deselect-all').style.display = 'none';
+      this.updateFavRemoveButton();
+    });
+
+    document.getElementById('btn-fav-remove-selected')?.addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('#favorites-list .track-item .track-checkbox:checked'));
+      if (selected.length === 0) return;
+      
+      const idsToRemove = selected.map(cb => cb.dataset.trackId);
+      this.favorites = this.favorites.filter(t => !idsToRemove.includes(typeof t === 'string' ? t : t.id));
+      this.saveFavorites();
+      
+      document.getElementById('favorites-count').textContent =
+        `${this.favorites.length} bran${this.favorites.length !== 1 ? 'i' : 'o'}`;
+      
+      this.isFavManageMode = false;
+      document.getElementById('btn-manage-favorites').style.display = 'flex';
+      document.getElementById('favorites-bulk-actions').classList.add('hidden');
+      
+      this.showFavorites();
+      this.player.updateFavoriteButton();
     });
 
     // Playlist detail actions
@@ -77,7 +174,7 @@ class PlaylistManager {
 
     // Track recently played
     this.player.onTrackChange = (track) => {
-      this.addToRecent(track.id);
+      this.addToRecent(track);
       this.player.updateFavoriteButton();
       // Notify app for lyrics update etc.
       if (this.app.onTrackChange) this.app.onTrackChange(track);
@@ -101,22 +198,88 @@ class PlaylistManager {
       return null;
     }
 
+    const isCollab = document.getElementById('new-playlist-collab')?.checked;
+
     const colors = ['#6c5ce7', '#00b894', '#e17055', '#fdcb6e', '#74b9ff', '#a29bfe', '#ff7675', '#55efc4'];
     const playlist = {
       id: generateId(),
       name: inputName,
       description: inputDesc,
       tracks: [],
-      color: colors[Math.floor(Math.random() * colors.length)]
+      color: colors[Math.floor(Math.random() * colors.length)],
+      isCollaborative: !!isCollab,
+      shareCode: isCollab ? Math.random().toString(36).substring(2, 8).toUpperCase() : null
     };
+
+    if (playlist.isCollaborative) {
+      this.app.showToast(`Playlist collaborativa creata! Codice: ${playlist.shareCode}`);
+      this.broadcastPlaylist(playlist);
+    } else {
+      this.app.showToast(`Playlist "${inputName}" creata!`);
+    }
 
     this.playlists.push(playlist);
     this.savePlaylists();
     this.renderSidebarPlaylists();
 
     document.getElementById('create-playlist-modal').classList.add('hidden');
-    this.app.showToast(`Playlist "${inputName}" creata!`);
     return playlist;
+  }
+  handleCollabMessage(data) {
+    if (data.type === 'SYNC_PLAYLIST') {
+      const pData = data.playlist;
+      const idx = this.playlists.findIndex(p => p.shareCode === pData.shareCode);
+      if (idx !== -1) {
+        // Merge or overwrite (simple overwrite for now)
+        this.playlists[idx].tracks = pData.tracks;
+        this.playlists[idx].name = pData.name;
+        this.playlists[idx].description = pData.description;
+        this.savePlaylists();
+        if (this.currentPlaylistId === this.playlists[idx].id) {
+          this.showPlaylistDetail(this.playlists[idx].id);
+        }
+        this.app.showToast(`La playlist "${pData.name}" è stata aggiornata da remoto.`);
+      } else {
+        // We received a playlist we requested
+        this.playlists.push(pData);
+        this.savePlaylists();
+        this.renderSidebarPlaylists();
+        this.app.showToast(`Unito alla playlist collaborativa "${pData.name}"!`);
+      }
+    } else if (data.type === 'REQUEST_PLAYLIST') {
+      const p = this.playlists.find(pl => pl.shareCode === data.shareCode);
+      if (p) {
+        this.broadcastPlaylist(p);
+      }
+    }
+  }
+
+  joinCollaborativePlaylist(code) {
+    if (this.playlists.some(p => p.shareCode === code)) {
+      this.app.showToast('Possiedi già questa playlist!');
+      return;
+    }
+    this.socket.emit('join_session', { sessionCode: 'collab_' + code, user: { name: 'requester' } });
+    
+    // Delay request slightly to ensure we joined the room
+    setTimeout(() => {
+      this.socket.emit('session_chat', {
+        sessionCode: 'collab_' + code,
+        user: { id: 'sys' },
+        time: Date.now(),
+        text: 'REQUEST_PLAYLIST:' + code
+      });
+      this.app.showToast('Attesa del creatore della playlist...');
+    }, 200);
+  }
+
+  broadcastPlaylist(playlist) {
+    if (playlist.isCollaborative && playlist.shareCode) {
+      this.socket.emit('collab_sync_broadcast', {
+        sessionCode: 'collab_' + playlist.shareCode,
+        playlist: playlist
+      });
+    }
   }
 
   deleteCurrentPlaylist() {
@@ -124,13 +287,19 @@ class PlaylistManager {
     const playlist = this.playlists.find(p => p.id === this.currentPlaylistId);
     if (!playlist) return;
 
-    if (confirm(`Vuoi davvero eliminare la playlist "${playlist.name}"?`)) {
-      this.playlists = this.playlists.filter(p => p.id !== this.currentPlaylistId);
-      this.savePlaylists();
-      this.renderSidebarPlaylists();
-      this.app.navigateTo('home');
-      this.app.showToast('Playlist eliminata');
-    }
+    this.app.showConfirm(
+      'Elimina Playlist',
+      `Vuoi davvero eliminare la playlist "${playlist.name}"? Questa azione è irreversibile.`,
+      'Elimina',
+      true,
+      () => {
+        this.playlists = this.playlists.filter(p => p.id !== this.currentPlaylistId);
+        this.savePlaylists();
+        this.renderSidebarPlaylists();
+        this.app.navigateTo('home');
+        this.app.showToast('Playlist eliminata');
+      }
+    );
   }
 
   editCurrentPlaylist() {
@@ -163,7 +332,7 @@ class PlaylistManager {
     const playlist = this.playlists.find(p => p.id === this.currentPlaylistId);
     if (!playlist || playlist.tracks.length === 0) return;
 
-    const tracks = playlist.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+    const tracks = resolveTracks(playlist.tracks);
     this.player.playTrackList(tracks, startIndex);
   }
 
@@ -171,7 +340,7 @@ class PlaylistManager {
     const playlist = this.playlists.find(p => p.id === this.currentPlaylistId);
     if (!playlist || playlist.tracks.length === 0) return;
 
-    const tracks = playlist.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+    const tracks = resolveTracks(playlist.tracks);
     // Shuffle
     for (let i = tracks.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -190,6 +359,7 @@ class PlaylistManager {
       if (this.currentPlaylistId === playlistId) {
         this.showPlaylistDetail(playlistId);
       }
+      this.broadcastPlaylist(playlist);
     }
   }
 
@@ -201,24 +371,27 @@ class PlaylistManager {
     if (this.currentPlaylistId === playlistId) {
       this.showPlaylistDetail(playlistId);
     }
+    this.broadcastPlaylist(playlist);
   }
 
-  toggleFavorite(trackId) {
-    const idx = this.favorites.indexOf(trackId);
+  toggleFavorite(track) {
+    if (!track || !track.id) return;
+    const idx = this.favorites.findIndex(t => (typeof t === 'string' ? t : t.id) === track.id);
     if (idx > -1) {
       this.favorites.splice(idx, 1);
       this.app.showToast('Rimosso dai preferiti');
     } else {
-      this.favorites.push(trackId);
+      this.favorites.push(track);
       this.app.showToast('Aggiunto ai preferiti ❤️');
     }
     this.saveFavorites();
     this.player.updateFavoriteButton();
   }
 
-  addToRecent(trackId) {
-    this.recentlyPlayed = this.recentlyPlayed.filter(id => id !== trackId);
-    this.recentlyPlayed.unshift(trackId);
+  addToRecent(track) {
+    if (!track || !track.id) return;
+    this.recentlyPlayed = this.recentlyPlayed.filter(t => (typeof t === 'string' ? t : t.id) !== track.id);
+    this.recentlyPlayed.unshift(track);
     if (this.recentlyPlayed.length > 50) this.recentlyPlayed.pop();
     this.saveRecent();
   }
@@ -265,9 +438,12 @@ class PlaylistManager {
     document.getElementById('playlist-detail-desc').contentEditable = 'false';
     document.getElementById('btn-edit-playlist').querySelector('.material-icons-round').textContent = 'edit';
 
-    const tracks = playlist.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
-    document.getElementById('playlist-detail-meta').textContent =
-      `${tracks.length} bran${tracks.length !== 1 ? 'i' : 'o'}`;
+    const tracks = resolveTracks(playlist.tracks);
+    let metaText = `${tracks.length} bran${tracks.length !== 1 ? 'i' : 'o'}`;
+    if (playlist.isCollaborative && playlist.shareCode) {
+      metaText += ` &nbsp;&bull;&nbsp; <span class="collab-badge" style="color: var(--accent); cursor: pointer;" onclick="navigator.clipboard.writeText('${playlist.shareCode}').then(()=>alert('Codice copiato!'))">Codice Collab: ${playlist.shareCode} 📋</span>`;
+    }
+    document.getElementById('playlist-detail-meta').innerHTML = metaText;
 
     this.renderTrackList('playlist-detail-tracks', tracks, {
       showActions: true,
@@ -280,23 +456,24 @@ class PlaylistManager {
 
   showFavorites() {
     const tracks = this.favorites
-      .map(id => DEMO_TRACKS.find(t => t.id === id))
+      .map(t => typeof t === 'string' ? resolveTrack(t) : t)
       .filter(Boolean);
 
     document.getElementById('favorites-count').textContent =
       `${tracks.length} bran${tracks.length !== 1 ? 'i' : 'o'}`;
 
     this.renderTrackList('favorites-list', tracks, {
-      showActions: true,
+      showActions: !this.isFavManageMode,
+      selectable: this.isFavManageMode,
       onPlay: (index) => {
-        this.player.playTrackList(tracks, index);
+        if (!this.isFavManageMode) this.player.playTrackList(tracks, index);
       }
     });
   }
 
   showRecent() {
     const tracks = this.recentlyPlayed
-      .map(id => DEMO_TRACKS.find(t => t.id === id))
+      .map(t => typeof t === 'string' ? resolveTrack(t) : t)
       .filter(Boolean);
 
     this.renderTrackList('recent-list', tracks, {
@@ -326,7 +503,7 @@ class PlaylistManager {
     const header = document.createElement('div');
     header.className = 'track-list-header';
     header.innerHTML = `
-      <span>#</span>
+      ${options.selectable ? '<span style="width: 32px"></span>' : '<span>#</span>'}
       <span>Titolo</span>
       <span>Album</span>
       <span>Durata</span>
@@ -335,22 +512,31 @@ class PlaylistManager {
     container.appendChild(header);
 
     tracks.forEach((track, index) => {
+      const isActive = this.player.currentTrack?.id === track.id;
+      const isPlaying = isActive && this.player.isPlaying;
+
       const item = document.createElement('div');
-      item.className = `track-item${this.player.currentTrack?.id === track.id ? ' playing' : ''}`;
+      item.className = `track-item${isActive ? ' active' : ''}${isPlaying ? ' playing' : ''}`;
       item.draggable = options.playlistId ? true : false;
       item.dataset.trackId = track.id;
       item.dataset.index = index;
 
-      const isFav = this.favorites.includes(track.id);
+      const isFav = this.isFavorite(track.id);
       const cover = this.player.getTrackCover(track);
-      const isPlaying = this.player.currentTrack?.id === track.id && this.player.isPlaying;
 
       item.innerHTML = `
-        <div class="track-number">
-          ${isPlaying ?
-            '<div class="playing-indicator"><span></span><span></span><span></span><span></span></div>' :
-            (index + 1)}
+        ${options.selectable ? `
+        <div style="display: flex; align-items: center; justify-content: center; width: 32px; padding: 0 8px;">
+          <input type="checkbox" class="track-checkbox" data-track-id="${track.id}" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent);">
         </div>
+        ` : `
+        <div class="track-number-wrapper">
+          <span class="number">${index + 1}</span>
+          <span class="material-icons-round action-icon play-icon">play_arrow</span>
+          <span class="material-icons-round action-icon pause-icon">pause</span>
+          <div class="playing-indicator"><span></span><span></span><span></span><span></span></div>
+        </div>
+        `}
         <div class="track-info">
           <div class="track-cover-small">
             <img src="${cover}" alt="${track.title}" />
@@ -363,6 +549,9 @@ class PlaylistManager {
         <div class="track-album-name">${track.album}</div>
         <div class="track-duration">${formatDuration(track.duration)}</div>
         <div class="track-actions">
+          <button class="btn-icon btn-download" data-track-id="${track.id}" title="Scarica offline">
+            <span class="material-icons-round">download</span>
+          </button>
           <button class="btn-icon btn-favorite ${isFav ? 'is-favorite' : ''}" data-track-id="${track.id}">
             <span class="material-icons-round">${isFav ? 'favorite' : 'favorite_border'}</span>
           </button>
@@ -378,29 +567,94 @@ class PlaylistManager {
         </div>
       `;
 
-      // Play on double click
-      item.addEventListener('dblclick', () => {
-        if (options.onPlay) options.onPlay(index);
-      });
-
-      // Single click selects
+      // Single click to play (like mobile apps) and select
       item.addEventListener('click', (e) => {
         if (e.target.closest('.btn-icon')) return;
-        // Just visual selection
+        
+        if (options.selectable) {
+          const cb = item.querySelector('.track-checkbox');
+          if (cb && e.target !== cb) cb.checked = !cb.checked;
+          if (this.updateFavRemoveButton && containerId === 'favorites-list') {
+            this.updateFavRemoveButton();
+            // Automatically switch back to "Select All" if not everything is checked
+            const allChecked = document.querySelectorAll('#favorites-list .track-item .track-checkbox:not(:checked)').length === 0;
+            if (allChecked) {
+              document.getElementById('btn-fav-select-all').style.display = 'none';
+              document.getElementById('btn-fav-deselect-all').style.display = 'inline-block';
+            } else {
+              document.getElementById('btn-fav-select-all').style.display = 'inline-block';
+              document.getElementById('btn-fav-deselect-all').style.display = 'none';
+            }
+          }
+          return;
+        }
+        
+        // Visual selection
         container.querySelectorAll('.track-item').forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
+        
+        // Start playback immediately on single click
+        if (options.onPlay) options.onPlay(index);
       });
 
       // Favorite button
       const favBtn = item.querySelector('.btn-favorite');
-      favBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleFavorite(track.id);
-        const icon = favBtn.querySelector('.material-icons-round');
-        const nowFav = this.favorites.includes(track.id);
-        favBtn.classList.toggle('is-favorite', nowFav);
-        icon.textContent = nowFav ? 'favorite' : 'favorite_border';
-      });
+      if (favBtn) {
+        favBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleFavorite(track);
+          const icon = favBtn.querySelector('.material-icons-round');
+          const nowFav = this.isFavorite(track.id);
+          favBtn.classList.toggle('is-favorite', nowFav);
+          icon.textContent = nowFav ? 'favorite' : 'favorite_border';
+        });
+      }
+
+      // Download button
+      const dlBtn = item.querySelector('.btn-download');
+      if (dlBtn) {
+        storage.hasTrack(track.id).then(has => {
+          if (has) {
+            dlBtn.classList.add('downloaded');
+            dlBtn.querySelector('.material-icons-round').textContent = 'offline_pin';
+          }
+        });
+
+        dlBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const isDownloaded = dlBtn.classList.contains('downloaded');
+          const icon = dlBtn.querySelector('.material-icons-round');
+
+          if (isDownloaded) {
+            await storage.deleteTrack(track.id);
+            dlBtn.classList.remove('downloaded');
+            icon.textContent = 'download';
+            this.app.showToast('Rimosso dai download');
+          } else {
+            icon.textContent = 'sync';
+            dlBtn.classList.add('spinning-fast');
+            try {
+              let downloadUrl = track.src;
+              if (track.isYoutube && window.electronAPI && window.electronAPI.getStreamUrl) {
+                downloadUrl = await window.electronAPI.getStreamUrl(track.videoId);
+                if (!downloadUrl) throw new Error("Link streaming YouTube non elaborabile.");
+              }
+              const res = await fetch(downloadUrl);
+              const blob = await res.blob();
+              await storage.saveTrack(track, blob);
+              dlBtn.classList.remove('spinning-fast');
+              dlBtn.classList.add('downloaded');
+              icon.textContent = 'offline_pin';
+              this.app.showToast('Brano scaricato offline');
+            } catch (err) {
+              console.error(err);
+              dlBtn.classList.remove('spinning-fast');
+              icon.textContent = 'error';
+              this.app.showToast('Errore nel download');
+            }
+          }
+        });
+      }
 
       // Remove from playlist
       const removeBtn = item.querySelector('.btn-remove-track');
@@ -471,7 +725,7 @@ class PlaylistManager {
   }
 
   isFavorite(trackId) {
-    return this.favorites.includes(trackId);
+    return this.favorites.some(t => (typeof t === 'string' ? t : t.id) === trackId);
   }
 }
 

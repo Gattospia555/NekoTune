@@ -1,18 +1,30 @@
-// SonicWave — Main Application
+// Nekotune — Main Application
 import './style.css';
-import { DEMO_TRACKS, DEMO_ARTISTS, DEMO_ALBUMS, generateCoverGradient } from './js/data.js';
+import './profile-styles.css';
+import { DEMO_TRACKS, DEMO_ARTISTS, DEMO_ALBUMS, generateCoverGradient, resolveTracks } from './js/data.js';
 import Player from './js/player.js';
 import PlaylistManager from './js/playlists.js';
 import LyricsManager from './js/lyrics.js';
 import ThemeManager from './js/themes.js';
 import ImportManager from './js/import.js';
 import GroupSession from './js/group.js';
-
-class SonicWaveApp {
+import { LocalFileManager } from './js/local-files.js';
+import { AiDiscovery } from './js/ai-discovery.js';
+import StatsManager from './js/stats.js';
+import SmartRadio from './js/smart-radio.js';
+import { OfflineManager } from './js/offline-manager.js';
+import { AuthManager } from './js/auth.js';
+import { ProfileManager } from './js/profile.js';
+class NekotuneApp {
   constructor() {
     this.currentSection = 'home';
     this.navigationHistory = ['home'];
     this.navigationIndex = 0;
+    
+    this.authManager = new AuthManager();
+    this.profileManager = new ProfileManager(this);
+    // Initialize modules
+
     this.sleepTimerId = null;
     this.sleepTimerRemaining = 0;
 
@@ -23,6 +35,14 @@ class SonicWaveApp {
     this.themes = new ThemeManager(this);
     this.importer = new ImportManager(this, this.playlists);
     this.group = new GroupSession(this, this.player);
+    this.localManager = new LocalFileManager(this);
+    this.discovery = new AiDiscovery(this);
+    this.stats = new StatsManager(this, this.player);
+    this.radio = new SmartRadio(this, this.player);
+    this.offline = new OfflineManager(this);
+
+    // Initialize Electron features if available
+    this.initElectron();
 
     // cross module callback
     this.onTrackChange = (track) => {
@@ -31,19 +51,60 @@ class SonicWaveApp {
         this.group.updateGroupNowPlaying();
       }
       this.updateTrackHighlight();
+      this.profileManager.updateCurrentlyPlaying(track);
     };
 
     this.initNavigation();
     this.initSearch();
     this.initQueue();
     this.initSleepTimer();
-    this.initMiniPlayer();
     this.initKeyboardShortcuts();
     this.initSidebarMobile();
 
     // Render initial content
     this.renderHome();
     this.updateGreeting();
+    
+    // Check initial network state
+    this.initNetworkMonitoring();
+  }
+
+  // === Network Monitoring ===
+  initNetworkMonitoring() {
+    const handleNetworkChange = () => {
+      if (!navigator.onLine) {
+        document.getElementById('offline-alert').style.display = 'flex';
+        this.showToast('Sei offline. Modalità aereo attivata.', true);
+        // Force navigate to offline view
+        this.navigateTo('offline');
+        
+        // Disable online-only features
+        document.getElementById('nav-search').style.pointerEvents = 'none';
+        document.getElementById('nav-search').style.opacity = '0.5';
+        document.getElementById('nav-discovery').style.pointerEvents = 'none';
+        document.getElementById('nav-discovery').style.opacity = '0.5';
+        document.getElementById('nav-group').style.pointerEvents = 'none';
+        document.getElementById('nav-group').style.opacity = '0.5';
+      } else {
+        document.getElementById('offline-alert').style.display = 'none';
+        this.showToast('Connessione ripristinata!');
+        
+        // Re-enable
+        document.getElementById('nav-search').style.pointerEvents = 'auto';
+        document.getElementById('nav-search').style.opacity = '1';
+        document.getElementById('nav-discovery').style.pointerEvents = 'auto';
+        document.getElementById('nav-discovery').style.opacity = '1';
+        document.getElementById('nav-group').style.pointerEvents = 'auto';
+        document.getElementById('nav-group').style.opacity = '1';
+      }
+    };
+
+    window.addEventListener('online', handleNetworkChange);
+    window.addEventListener('offline', handleNetworkChange);
+    // Initial check
+    if (!navigator.onLine) {
+      setTimeout(handleNetworkChange, 500);
+    }
   }
 
   // === Navigation ===
@@ -54,6 +115,15 @@ class SonicWaveApp {
         const section = item.dataset.section;
         this.navigateTo(section);
       });
+    });
+
+    document.getElementById('btn-dropdown-profile')?.addEventListener('click', () => {
+      this.navigateTo('profile');
+      document.getElementById('profile-dropdown').style.display = 'none';
+      if (!this.navigationHistory.includes('profile')) {
+          this.navigationHistory.push('profile');
+          this.navigationIndex = this.navigationHistory.length - 1;
+      }
     });
 
     document.getElementById('btn-back').addEventListener('click', () => {
@@ -71,6 +141,36 @@ class SonicWaveApp {
     });
   }
 
+  initElectron() {
+    if (window.electronAPI) {
+      document.body.classList.add('is-electron');
+      
+      const titlebar = document.getElementById('electron-titlebar');
+      if (titlebar) {
+        titlebar.style.display = 'flex';
+      }
+
+      const btnMin = document.getElementById('btn-win-min');
+      const btnMax = document.getElementById('btn-win-max');
+      const btnClose = document.getElementById('btn-win-close');
+
+      if (btnMin) btnMin.addEventListener('click', () => window.electronAPI.windowMinimize());
+      if (btnMax) btnMax.addEventListener('click', () => window.electronAPI.windowMaximize());
+      if (btnClose) btnClose.addEventListener('click', () => window.electronAPI.windowClose());
+      
+      // Hook media keys
+      if (window.electronAPI.onMediaPlayPause) {
+        window.electronAPI.onMediaPlayPause(() => this.player.togglePlay());
+      }
+      if (window.electronAPI.onMediaNextTrack) {
+        window.electronAPI.onMediaNextTrack(() => this.player.next());
+      }
+      if (window.electronAPI.onMediaPrevTrack) {
+        window.electronAPI.onMediaPrevTrack(() => this.player.previous());
+      }
+    }
+  }
+
   navigateTo(section) {
     // Trim forward history
     this.navigationHistory = this.navigationHistory.slice(0, this.navigationIndex + 1);
@@ -80,6 +180,9 @@ class SonicWaveApp {
   }
 
   showSection(section, updateNav = true) {
+    if (this.currentSection === 'discovery' && section !== 'discovery') {
+      this.discovery.onSectionLeave();
+    }
     this.currentSection = section;
 
     // Hide all sections
@@ -115,6 +218,21 @@ class SonicWaveApp {
         if (this.group.isActive) {
           this.group.updateGroupNowPlaying();
         }
+        break;
+      case 'local':
+        this.localManager.renderLocalList();
+        break;
+      case 'discovery':
+        this.discovery.onSectionEnter();
+        break;
+      case 'wrapped':
+        this.stats.onSectionVisible();
+        break;
+      case 'offline':
+        this.offline.refreshOfflineView();
+        break;
+      case 'profile':
+        this.profileManager.render();
         break;
     }
 
@@ -169,6 +287,15 @@ class SonicWaveApp {
     const container = document.getElementById('recommended-tracks');
     container.innerHTML = '';
 
+    if (DEMO_TRACKS.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 20px; color: var(--text-secondary); grid-column: 1 / -1; text-align: center;">
+          <span class="material-icons-round" style="font-size: 48px; margin-bottom: 10px; opacity: 0.5;">library_music</span>
+          <p>La tua libreria è vuota, cerca un brano o importalo per riempirla!</p>
+        </div>`;
+      return;
+    }
+
     // Shuffle and pick 6
     const shuffled = [...DEMO_TRACKS].sort(() => Math.random() - 0.5).slice(0, 6);
     shuffled.forEach(track => {
@@ -179,6 +306,14 @@ class SonicWaveApp {
   renderPopularArtists() {
     const container = document.getElementById('popular-artists');
     container.innerHTML = '';
+
+    if (DEMO_ARTISTS.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 20px; color: var(--text-secondary); grid-column: 1 / -1; text-align: center;">
+          <p>Nessun artista recente disponibile.</p>
+        </div>`;
+      return;
+    }
 
     DEMO_ARTISTS.forEach(artist => {
       const card = document.createElement('div');
@@ -191,7 +326,7 @@ class SonicWaveApp {
         <div class="card-subtitle">Artista</div>
       `;
       card.addEventListener('click', () => {
-        const tracks = artist.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+        const tracks = resolveTracks(artist.tracks);
         this.player.playTrackList(tracks, 0);
       });
       container.appendChild(card);
@@ -201,6 +336,14 @@ class SonicWaveApp {
   renderFeaturedAlbums() {
     const container = document.getElementById('featured-albums');
     container.innerHTML = '';
+
+    if (DEMO_ALBUMS.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 20px; color: var(--text-secondary); grid-column: 1 / -1; text-align: center;">
+          <p>Nessun album in evidenza al momento.</p>
+        </div>`;
+      return;
+    }
 
     DEMO_ALBUMS.slice(0, 6).forEach(album => {
       const cover = generateCoverGradient(album.color);
@@ -220,12 +363,12 @@ class SonicWaveApp {
       const playBtn = card.querySelector('.card-play-btn');
       playBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const tracks = album.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+        const tracks = resolveTracks(album.tracks);
         this.player.playTrackList(tracks, 0);
       });
 
       card.addEventListener('click', () => {
-        const tracks = album.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+        const tracks = resolveTracks(album.tracks);
         this.player.playTrackList(tracks, 0);
       });
 
@@ -267,6 +410,9 @@ class SonicWaveApp {
     let debounce;
 
     input.addEventListener('input', () => {
+      if (this.currentSection !== 'search' && input.value.trim() !== '') {
+        this.navigateTo('search');
+      }
       clearTimeout(debounce);
       debounce = setTimeout(() => {
         this.performSearch(input.value.trim());
@@ -280,7 +426,7 @@ class SonicWaveApp {
     });
   }
 
-  performSearch(query) {
+  async performSearch(query) {
     const results = document.getElementById('search-results');
 
     if (!query) {
@@ -293,26 +439,49 @@ class SonicWaveApp {
       return;
     }
 
+    results.innerHTML = `
+      <div class="search-empty">
+        <span class="material-icons-round" style="animation: logoPulse 2s infinite">sync</span>
+        <p>Ricerca in corso per "${query}"...</p>
+      </div>
+    `;
+
     const q = query.toLowerCase();
 
-    const tracks = DEMO_TRACKS.filter(t =>
+    // 1. Local Demo Search
+    const localTracks = DEMO_TRACKS.filter(t =>
       t.title.toLowerCase().includes(q) ||
       t.artist.toLowerCase().includes(q) ||
       t.album.toLowerCase().includes(q)
     );
+    const artists = DEMO_ARTISTS.filter(a => a.name.toLowerCase().includes(q));
+    const albums = DEMO_ALBUMS.filter(a => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q));
 
-    const artists = DEMO_ARTISTS.filter(a =>
-      a.name.toLowerCase().includes(q)
-    );
-
-    const albums = DEMO_ALBUMS.filter(a =>
-      a.title.toLowerCase().includes(q) ||
-      a.artist.toLowerCase().includes(q)
-    );
+    // 2. YouTube Search (if in Electron)
+    let ytResults = [];
+    if (window.electronAPI && window.electronAPI.searchYoutube) {
+      try {
+        const videos = await window.electronAPI.searchYoutube(query);
+        ytResults = videos.map(v => ({
+          id: 'yt_' + v.id,
+          title: v.title,
+          artist: v.artist,
+          album: 'YouTube',
+          duration: v.duration,
+          color: '#ff2a2a', // Youtube Red
+          cover: v.cover,
+          isYoutube: true,
+          videoId: v.id,
+          src: '' // Will be resolved dynamically
+        }));
+      } catch (e) {
+        console.error("YT Search failed in UI", e);
+      }
+    }
 
     results.innerHTML = '';
 
-    if (tracks.length === 0 && artists.length === 0 && albums.length === 0) {
+    if (localTracks.length === 0 && artists.length === 0 && albums.length === 0 && ytResults.length === 0) {
       results.innerHTML = `
         <div class="search-empty">
           <span class="material-icons-round">search_off</span>
@@ -326,7 +495,7 @@ class SonicWaveApp {
     if (artists.length > 0) {
       const section = document.createElement('div');
       section.className = 'content-section';
-      section.innerHTML = '<h3 class="section-title">Artisti</h3>';
+      section.innerHTML = '<h3 class="section-title">Artisti Locali</h3>';
       const grid = document.createElement('div');
       grid.className = 'cards-grid';
 
@@ -341,12 +510,11 @@ class SonicWaveApp {
           <div class="card-subtitle">Artista</div>
         `;
         card.addEventListener('click', () => {
-          const artistTracks = artist.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+          const artistTracks = resolveTracks(artist.tracks);
           this.player.playTrackList(artistTracks, 0);
         });
         grid.appendChild(card);
       });
-
       section.appendChild(grid);
       results.appendChild(section);
     }
@@ -355,7 +523,7 @@ class SonicWaveApp {
     if (albums.length > 0) {
       const section = document.createElement('div');
       section.className = 'content-section';
-      section.innerHTML = '<h3 class="section-title">Album</h3>';
+      section.innerHTML = '<h3 class="section-title">Album Locali</h3>';
       const grid = document.createElement('div');
       grid.className = 'cards-grid';
 
@@ -371,40 +539,88 @@ class SonicWaveApp {
           <div class="card-subtitle">${album.artist}</div>
         `;
         card.addEventListener('click', () => {
-          const albumTracks = album.tracks.map(id => DEMO_TRACKS.find(t => t.id === id)).filter(Boolean);
+          const albumTracks = resolveTracks(album.tracks);
           this.player.playTrackList(albumTracks, 0);
         });
         grid.appendChild(card);
       });
-
       section.appendChild(grid);
       results.appendChild(section);
     }
 
-    // Tracks
-    if (tracks.length > 0) {
-      const section = document.createElement('div');
-      section.className = 'content-section';
-      section.innerHTML = '<h3 class="section-title">Brani</h3>';
-      const trackList = document.createElement('div');
-      trackList.className = 'track-list';
-      trackList.style.padding = '0';
+    // 3. Spotify-Style Spotify-Style Top Result & Tracks
+    const allTracks = [...ytResults, ...localTracks];
+    const topResultMatch = artists[0] || allTracks[0] || albums[0];
 
-      this.playlists.renderTrackList(null, tracks, {
-        showActions: true,
-        onPlay: (index) => {
-          this.player.playTrackList(tracks, index);
+    if (topResultMatch) {
+      const topGridDiv = document.createElement('div');
+      topGridDiv.className = 'search-top-grid';
+      
+      // Top Result
+      const topResultDiv = document.createElement('div');
+      topResultDiv.className = 'search-top-result';
+      topResultDiv.innerHTML = '<h3 class="section-title">Risultato più rilevante</h3>';
+      
+      const isArtist = !!topResultMatch.name; // Artists have 'name', tracks/albums have 'title'
+      const isAlbum = !!(topResultMatch.title && !topResultMatch.src && !topResultMatch.videoId); // Albums don't have src
+      
+      let topTitle = topResultMatch.title || topResultMatch.name;
+      let topSubtitle = isArtist ? 'Artista' : (isAlbum ? 'Album' : `Brano • ${topResultMatch.artist}`);
+      let topCover = topResultMatch.cover || (isArtist ? generateCoverGradient(topResultMatch.color) : generateCoverGradient(topResultMatch.color));
+      if (!isArtist && !topResultMatch.cover) topCover = this.player.getTrackCover(topResultMatch);
+
+      const topCard = document.createElement('div');
+      topCard.className = `top-result-card ${isArtist ? 'is-artist' : ''}`;
+      topCard.innerHTML = `
+        <img src="${topCover}" alt="${topTitle}">
+        <div class="top-result-title">${topTitle}</div>
+        <div class="top-result-type-badge">${isArtist ? 'Artista' : (isAlbum ? 'Album' : 'Brano')}</div>
+        <button class="btn-play-top"><span class="material-icons-round">play_arrow</span></button>
+      `;
+
+      topCard.addEventListener('click', () => {
+        if (isArtist) {
+          const artistTracks = resolveTracks(topResultMatch.tracks);
+          if(artistTracks.length) this.player.playTrackList(artistTracks, 0);
+        } else if (isAlbum) {
+          const albumTracks = resolveTracks(topResultMatch.tracks);
+          if(albumTracks.length) this.player.playTrackList(albumTracks, 0);
+        } else {
+          this.player.playTrackList(allTracks, 0);
         }
       });
+      topResultDiv.appendChild(topCard);
 
-      // Manually render tracks for search
-      tracks.forEach((track, index) => {
-        const item = this.createSearchTrackItem(track, index, tracks);
-        trackList.appendChild(item);
+      // Top Tracks (Brani)
+      const topTracksDiv = document.createElement('div');
+      topTracksDiv.className = 'search-top-tracks';
+      topTracksDiv.innerHTML = '<h3 class="section-title">Brani</h3>';
+      
+      const trackListDiv = document.createElement('div');
+      trackListDiv.className = 'track-list top-tracks-list';
+      
+      // Only show up to 4 tracks next to the top result
+      const top4Tracks = allTracks.slice(0, 4);
+      
+      // Make them playable without rerendering the whole queue
+      this.playlists.renderTrackList(null, allTracks, {
+        showActions: true,
+        onPlay: (index) => {
+          this.player.playTrackList(allTracks, index);
+        }
       });
-
-      section.appendChild(trackList);
-      results.appendChild(section);
+      
+      top4Tracks.forEach((track, index) => {
+        const item = this.createSearchTrackItem(track, index, allTracks);
+        trackListDiv.appendChild(item);
+      });
+      
+      topTracksDiv.appendChild(trackListDiv);
+      
+      topGridDiv.appendChild(topResultDiv);
+      topGridDiv.appendChild(topTracksDiv);
+      
+      results.appendChild(topGridDiv);
     }
   }
 
@@ -620,15 +836,6 @@ class SonicWaveApp {
     document.getElementById('btn-sleep-timer').classList.remove('active');
   }
 
-  // === Mini Player ===
-  initMiniPlayer() {
-    document.getElementById('btn-mini-player').addEventListener('click', () => {
-      document.body.classList.toggle('mini-player');
-      const btn = document.getElementById('btn-mini-player');
-      btn.classList.toggle('active');
-    });
-  }
-
   // === Keyboard Shortcuts ===
   initKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
@@ -721,13 +928,44 @@ class SonicWaveApp {
     toast.textContent = message;
     toast.classList.remove('visible');
     // Force reflow
-    toast.offsetHeight;
+    void toast.offsetWidth;
     toast.classList.add('visible');
 
     clearTimeout(this.toastTimeout);
     this.toastTimeout = setTimeout(() => {
       toast.classList.remove('visible');
     }, 3000);
+  }
+
+  showConfirm(title, message, confirmText, isDanger, onConfirm) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <h3>${title}</h3>
+        <p>${message}</p>
+        <div class="modal-actions">
+          <button class="btn-cancel">Annulla</button>
+          <button class="btn-confirm" style="background: ${isDanger ? 'var(--danger)' : 'var(--accent)'}">${confirmText}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Animate in
+    requestAnimationFrame(() => modal.classList.add('visible'));
+
+    const close = () => {
+      modal.classList.remove('visible');
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    modal.querySelector('.btn-cancel').onclick = close;
+    modal.querySelector('.btn-confirm').onclick = () => {
+      onConfirm();
+      close();
+    };
   }
 }
 
@@ -739,5 +977,5 @@ function formatDuration(seconds) {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-  window.sonicwave = new SonicWaveApp();
+  window.nekotune = new NekotuneApp();
 });

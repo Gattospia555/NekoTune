@@ -1,5 +1,16 @@
-// SonicWave — Group Listening Session
-import { DEMO_USERS, DEMO_CHAT_MESSAGES } from './data.js';
+// Nekotune Group Listening Session (WebSocket Remote Sync)
+import socketManager from './socket.js';
+
+function getMyUser() {
+  const profile = JSON.parse(localStorage.getItem('sw_user_profile') || '{}');
+  const colors = ['#6c5ce7', '#00b894', '#e17055', '#fdcb6e', '#74b9ff', '#a29bfe'];
+  return {
+    id: 'user_' + Date.now().toString(36),
+    name: profile.username || 'Utente',
+    color: colors[Math.floor(Math.random() * colors.length)],
+    isHost: false
+  };
+}
 
 class GroupSession {
   constructor(app, player) {
@@ -10,59 +21,154 @@ class GroupSession {
     this.sessionCode = '';
     this.participants = [];
     this.chatMessages = [];
-    this.chatSimInterval = null;
+    
+    // My Identity from profile
+    this.myUser = getMyUser();
+    
+    // WebSockets Server
+    this.socket = socketManager.getSocket();
+    this.setupSocketListeners();
 
     this.initEvents();
-  }
+    
+    // Sync triggers for Host
+    this.player.onPlayStateChange = (playing) => {
+      if (this.isActive && this.isHost) {
+        this.socket.emit('session_sync_playstate', {
+          sessionCode: this.sessionCode,
+          playing: playing,
+          time: this.player.getCurrentTime()
+        });
+      }
+    };
 
-  initEvents() {
-    document.getElementById('btn-create-session').addEventListener('click', () => {
-      this.createSession();
-    });
-
-    document.getElementById('btn-join-session').addEventListener('click', () => {
-      this.joinSession();
-    });
-
-    document.getElementById('btn-leave-session').addEventListener('click', () => {
-      this.leaveSession();
-    });
-
-    document.getElementById('btn-send-chat').addEventListener('click', () => {
-      this.sendMessage();
-    });
-
-    document.getElementById('chat-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.sendMessage();
-    });
-
-    document.getElementById('join-code').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.joinSession();
-    });
+    // Periodic time sync (host to clients)
+    setInterval(() => {
+      if (this.isActive && this.isHost && this.player.isPlaying) {
+        this.socket.emit('session_sync_time', {
+          sessionCode: this.sessionCode,
+          time: this.player.getCurrentTime()
+        });
+      }
+    }, 5000);
   }
 
   generateCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  setupSocketListeners() {
+    this.socket.on('peer_join_request', (data) => {
+      if (this.isHost && data.sessionCode === this.sessionCode) {
+        this.participants.push(data.user);
+        this.renderParticipants();
+        this.app.showToast(`${data.user.name} si è unito alla sessione!`);
+        
+        // Accept user
+        this.socket.emit('session_host_accept', {
+          sessionCode: this.sessionCode,
+          toSocketId: data.socketId,
+          participants: this.participants
+        });
+        
+        // Push current track and time
+        setTimeout(() => {
+          this.socket.emit('session_sync_track', {
+            sessionCode: this.sessionCode,
+            track: this.player.currentTrack,
+            playing: this.player.isPlaying
+          });
+          this.socket.emit('session_sync_playstate', {
+            sessionCode: this.sessionCode,
+            playing: this.player.isPlaying,
+            time: this.player.getCurrentTime()
+          });
+        }, 500);
+      }
+    });
+
+    this.socket.on('peer_join_accept', (data) => {
+      this.participants = data.participants;
+      this.isActive = true;
+      this.app.showToast(`Unito con successo!`);
+      this.showSession();
+    });
+
+    this.socket.on('peer_participant_update', (data) => {
+      this.participants = data.participants;
+      this.renderParticipants();
+    });
+
+    this.socket.on('peer_participant_leave', (data) => {
+      this.participants = this.participants.filter(p => p.id !== data.senderId);
+      this.renderParticipants();
+    });
+
+    this.socket.on('peer_chat', (data) => {
+      this.addChatMessage(data.user, data.text, data.time);
+    });
+
+    this.socket.on('peer_sync_track', (data) => {
+      if (!this.isHost && data.track) {
+        this.player.loadTrack(data.track, data.playing);
+        this.updateGroupNowPlaying();
+      }
+    });
+
+    this.socket.on('peer_sync_playstate', (data) => {
+      if (!this.isHost) {
+        if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
+           this.player.seekTo(data.time);
+        }
+        if (data.playing) this.player.play();
+        else this.player.pause();
+      }
+    });
+
+    this.socket.on('peer_sync_time', (data) => {
+      if (!this.isHost) {
+         if (Math.abs(this.player.getCurrentTime() - data.time) > 2) {
+           this.player.seekTo(data.time);
+         }
+      }
+    });
+
+    this.socket.on('peer_dj_propose', (data) => {
+      if (this.isHost) {
+        this.app.showToast(`${data.user.name} propone: ${data.track.title}`);
+        if (confirm(`${data.user.name} vorrebbe aggiungere "${data.track.title}" in coda. Accetti?`)) {
+          this.player.addToQueue(data.track);
+          this.app.showToast(`Aggiunto: ${data.track.title}`);
+        }
+      }
+    });
+  }
+
+  initEvents() {
+    document.getElementById('btn-create-session').addEventListener('click', () => this.createSession());
+    document.getElementById('btn-join-session').addEventListener('click', () => this.joinSession());
+    document.getElementById('btn-leave-session').addEventListener('click', () => this.leaveSession());
+    document.getElementById('btn-send-chat').addEventListener('click', () => this.sendMessage());
+    document.getElementById('btn-dj-propose').addEventListener('click', () => this.proposeTrack());
+    
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.sendMessage();
+    });
   }
 
   createSession() {
     this.sessionCode = this.generateCode();
     this.isHost = true;
     this.isActive = true;
+    
+    // I am the host
+    this.myUser.isHost = true;
+    this.participants = [ this.myUser ];
 
-    // Host + random participants
-    this.participants = [
-      DEMO_USERS[0],
-      ...DEMO_USERS.slice(1, 3 + Math.floor(Math.random() * 3))
-    ];
+    // Let the server know we have "joined" our own room
+    this.socket.emit('join_session', { sessionCode: this.sessionCode, user: this.myUser });
 
     this.showSession();
-    this.startChatSimulation();
     this.app.showToast(`Sessione creata! Codice: ${this.sessionCode}`);
   }
 
@@ -72,33 +178,31 @@ class GroupSession {
       this.app.showToast('Inserisci un codice valido');
       return;
     }
-
+    
     this.sessionCode = code;
-    this.isHost = false;
-    this.isActive = true;
-
-    this.participants = [
-      { ...DEMO_USERS[0], isHost: false },
-      { ...DEMO_USERS[1], isHost: true },
-      ...DEMO_USERS.slice(2, 4)
-    ];
-
-    this.showSession();
-    this.startChatSimulation();
-    this.app.showToast('Ti sei unito alla sessione!');
+    this.myUser.isHost = false;
+    
+    // Send join request to server
+    this.socket.emit('join_session', { sessionCode: this.sessionCode, user: this.myUser });
+    
+    this.app.showToast('Ricerca host in corso...');
+    setTimeout(() => {
+      if (!this.isActive) {
+        this.app.showToast('Impossibile trovare la sessione o host offline.');
+      }
+    }, 5000);
   }
 
   leaveSession() {
+    if (this.isActive) {
+      this.socket.emit('session_leave', { sessionCode: this.sessionCode, user: this.myUser });
+    }
+    
     this.isActive = false;
     this.isHost = false;
     this.sessionCode = '';
     this.participants = [];
     this.chatMessages = [];
-
-    if (this.chatSimInterval) {
-      clearInterval(this.chatSimInterval);
-      this.chatSimInterval = null;
-    }
 
     document.getElementById('group-lobby').classList.remove('hidden');
     document.getElementById('group-session').classList.add('hidden');
@@ -111,21 +215,12 @@ class GroupSession {
     document.getElementById('group-lobby').classList.add('hidden');
     document.getElementById('group-session').classList.remove('hidden');
 
-    // Session code
     document.getElementById('session-code').textContent = this.sessionCode;
-
-    // Participants
     this.renderParticipants();
-
-    // Update now playing
     this.updateGroupNowPlaying();
 
-    // Chat
     this.chatMessages = [];
     document.getElementById('chat-messages').innerHTML = '';
-
-    // Add initial messages with delay
-    this.addInitialMessages();
   }
 
   renderParticipants() {
@@ -137,11 +232,11 @@ class GroupSession {
       const el = document.createElement('div');
       el.className = 'participant';
       el.innerHTML = `
-        <div class="participant-avatar" style="background: ${user.color}">
+        <div class="participant-avatar" style="background: ${user.color || '#333'}">
           ${user.name.charAt(0).toUpperCase()}
         </div>
         <div>
-          <div class="participant-name">${user.name}</div>
+          <div class="participant-name">${user.name} ${user.id === this.myUser.id ? '(Tu)' : ''}</div>
           ${user.isHost ? '<div class="participant-host">Host</div>' : ''}
         </div>
       `;
@@ -167,56 +262,25 @@ class GroupSession {
         <span>Nessun brano in riproduzione</span>
       `;
     }
-  }
-
-  async addInitialMessages() {
-    for (const msg of DEMO_CHAT_MESSAGES) {
-      await this.delay(800 + Math.random() * 1200);
-      if (!this.isActive) return;
-      this.addChatMessage(msg.userId, msg.text, msg.time);
+    
+    // Broadcast track change if host
+    if (this.isActive && this.isHost) {
+      this.socket.emit('session_sync_track', {
+        sessionCode: this.sessionCode,
+        track: track,
+        playing: this.player.isPlaying
+      });
     }
   }
 
-  startChatSimulation() {
-    const messages = [
-      'Le canzoni sono fantastiche! 🎶',
-      'Mi piace molto questa vibe ✨',
-      'Prossima canzone?',
-      'Alziamo il volume! 🔊',
-      'Questa mi ricorda l\'estate scorsa ☀️',
-      'Che bel beat 🥁',
-      'Aggiungiamola alla playlist del gruppo',
-      'Chi ha scelto questa? È bellissima!',
-      'Vibe perfetta per la serata 🌙',
-      'Qualcuno la conosce? 🤔'
-    ];
-
-    this.chatSimInterval = setInterval(() => {
-      if (!this.isActive) {
-        clearInterval(this.chatSimInterval);
-        return;
-      }
-
-      const randomUser = DEMO_USERS[1 + Math.floor(Math.random() * (DEMO_USERS.length - 1))];
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-      const now = new Date();
-      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-      this.addChatMessage(randomUser.id, randomMsg, time);
-    }, 8000 + Math.random() * 12000);
-  }
-
-  addChatMessage(userId, text, time) {
-    const user = DEMO_USERS.find(u => u.id === userId);
-    if (!user) return;
-
-    this.chatMessages.push({ userId, text, time });
+  addChatMessage(user, text, time) {
+    this.chatMessages.push({ user, text, time });
 
     const container = document.getElementById('chat-messages');
     const el = document.createElement('div');
     el.className = 'chat-message';
     el.innerHTML = `
-      <div class="chat-msg-avatar" style="background: ${user.color}">
+      <div class="chat-msg-avatar" style="background: ${user.color || '#333'}">
         ${user.name.charAt(0).toUpperCase()}
       </div>
       <div class="chat-msg-content">
@@ -229,19 +293,76 @@ class GroupSession {
     container.scrollTop = container.scrollHeight;
   }
 
+  async proposeTrack() {
+    if (!this.isActive) return;
+    
+    const query = window.prompt("Cerca il brano che vuoi proporre all'host:");
+    if (!query) return;
+
+    this.app.showToast('Ricerca brano...');
+    if (window.electronAPI && window.electronAPI.searchYoutube) {
+      try {
+        const vids = await window.electronAPI.searchYoutube(query, 1);
+        if (vids && vids.length > 0) {
+          const v = vids[0];
+          const track = {
+            id: 'dj_' + v.id,
+            title: v.title,
+            artist: v.artist || 'YouTube',
+            album: '',
+            duration: v.duration,
+            color: '#6c5ce7',
+            cover: v.cover,
+            isYoutube: true,
+            videoId: v.id,
+            src: '',
+            source: 'Proposta DJ'
+          };
+          
+          if (this.isHost) {
+            this.player.addToQueue(track);
+            this.app.showToast(`Brano aggiunto: ${track.title}`);
+          } else {
+            this.socket.emit('session_dj_propose', {
+              sessionCode: this.sessionCode,
+              user: this.myUser,
+              track: track
+            });
+            this.app.showToast(`Proposta inviata all'host: ${track.title}`);
+          }
+        } else {
+          this.app.showToast('Nessun brano trovato.');
+        }
+      } catch (e) {
+        console.error(e);
+        this.app.showToast('Errore durante la ricerca.');
+      }
+    } else {
+      this.app.showToast('Ricerca online non disponibile nel browser limitato.');
+    }
+  }
+
   sendMessage() {
+    if (!this.isActive) return;
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
 
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    this.addChatMessage('u1', text, time);
+    
+    // Show locally
+    this.addChatMessage(this.myUser, text, time);
+    
+    // Broadcast
+    this.socket.emit('session_chat', {
+       sessionCode: this.sessionCode,
+       user: this.myUser,
+       text: text,
+       time: time
+    });
+    
     input.value = '';
-  }
-
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

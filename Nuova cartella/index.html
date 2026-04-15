@@ -3,23 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SonicWave — Il tuo music player premium con playlist, lyrics in tempo reale, temi personalizzati e sessioni di gruppo." />
-  <title>SonicWave — Premium Music Experience</title>
+  <meta name="description" content="Nekotune — Il tuo music player premium con playlist, lyrics in tempo reale, temi personalizzati e sessioni di gruppo." />
+  <title>Nekotune — Premium Music Experience</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
   <link rel="stylesheet" href="/src/style.css" />
+  <script>
+    window.addEventListener('error', function(e) {
+      const err = document.createElement('div');
+      err.style.cssText = 'color:red; background:#111; position:fixed; z-index:999999; top:0; left:0; width:100%; height:100%; white-space:pre-wrap; padding: 20px; font-family:monospace; font-size: 16px; overflow:auto;';
+      err.textContent = "FRONTEND CRASH LOG:\n" + (e.error ? e.error.stack : e.message);
+      document.body.appendChild(err);
+    });
+  </script>
 </head>
 <body>
+  <!-- Custom Titlebar for Electron -->
+  <div id="electron-titlebar" class="titlebar" style="display: none;">
+    <div class="titlebar-drag-region"></div>
+    <div class="titlebar-title">Nekotune</div>
+    <div class="titlebar-controls">
+      <button id="btn-win-min" class="win-btn"><span class="material-icons-round" style="font-size: 16px;">remove</span></button>
+      <button id="btn-win-max" class="win-btn"><span class="material-icons-round" style="font-size: 14px;">crop_square</span></button>
+      <button id="btn-win-close" class="win-btn win-btn-close"><span class="material-icons-round" style="font-size: 16px;">close</span></button>
+    </div>
+  </div>
+
   <div id="app">
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">
-          <span class="material-icons-round">graphic_eq</span>
-        </div>
-        <h1 class="logo-text">SonicWave</h1>
+        <img src="./src/assets/nekotune_logo.png" alt="Nekotune Logo" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: var(--shadow-md);" />
+        <h1 class="logo-text">Nekotune</h1>
       </div>
 
       <nav class="sidebar-nav">
@@ -39,11 +56,18 @@
           <span class="material-icons-round">history</span>
           <span>Recenti</span>
         </a>
+        <a href="#" class="nav-item" data-section="offline" id="nav-offline">
+          <span class="material-icons-round">offline_pin</span>
+          <span>I Miei Download</span>
+        </a>
       </nav>
 
       <div class="sidebar-section">
         <div class="sidebar-section-header">
           <h3>Le tue Playlist</h3>
+          <button class="btn-icon" id="btn-join-collab-playlist" title="Unisciti a playlist">
+            <span class="material-icons-round">group_add</span>
+          </button>
           <button class="btn-icon" id="btn-create-playlist" title="Crea playlist">
             <span class="material-icons-round">add</span>
           </button>
@@ -57,6 +81,14 @@
         <div class="sidebar-section-header">
           <h3>Strumenti</h3>
         </div>
+        <a href="#" class="nav-item" data-section="discovery" id="nav-discovery">
+          <span class="material-icons-round">explore</span>
+          <span>Discovery AI</span>
+        </a>
+        <a href="#" class="nav-item" data-section="local" id="nav-local">
+          <span class="material-icons-round">library_music</span>
+          <span>Libreria Locale</span>
+        </a>
         <a href="#" class="nav-item" data-section="import" id="nav-import">
           <span class="material-icons-round">download</span>
           <span>Importa Playlist</span>
@@ -64,6 +96,10 @@
         <a href="#" class="nav-item" data-section="group" id="nav-group">
           <span class="material-icons-round">group</span>
           <span>Sessione Gruppo</span>
+        </a>
+        <a href="#" class="nav-item" data-section="wrapped" id="nav-wrapped">
+          <span class="material-icons-round">insights</span>
+          <span>Wrapped</span>
         </a>
         <a href="#" class="nav-item" data-section="themes" id="nav-themes">
           <span class="material-icons-round">palette</span>
@@ -102,8 +138,28 @@
           <button class="btn-icon" id="btn-queue" title="Coda di riproduzione">
             <span class="material-icons-round">queue_music</span>
           </button>
-          <div class="user-avatar" id="user-avatar">
-            <span class="material-icons-round">person</span>
+          <div class="user-avatar-container" style="position: relative;">
+            <div class="user-avatar" id="user-avatar" style="cursor: pointer;" onclick="document.getElementById('profile-dropdown').style.display = document.getElementById('profile-dropdown').style.display === 'none' ? 'block' : 'none'; event.stopPropagation();">
+              <span class="material-icons-round">person</span>
+            </div>
+            <!-- Profile Dropdown Menu -->
+            <div id="profile-dropdown" class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 120%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; width: 180px; padding: 8px; z-index: 1000; box-shadow: 0 8px 16px rgba(0,0,0,0.4);">
+              <div id="dropdown-user-info" style="padding: 8px 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border); display: none;">
+                <p id="dropdown-username" style="font-weight: 600; font-size: 0.9rem; margin: 0; color: var(--text-primary);">User</p>
+              </div>
+              <button class="dropdown-item" id="btn-dropdown-login" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons-round" style="font-size: 18px;">login</span> Accedi
+              </button>
+              <button class="dropdown-item" id="btn-dropdown-profile" style="display: none; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons-round" style="font-size: 18px;">account_circle</span> Il mio Profilo
+              </button>
+              <button class="dropdown-item" id="btn-dropdown-settings" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons-round" style="font-size: 18px;">settings</span> Impostazioni
+              </button>
+              <button class="dropdown-item" id="btn-dropdown-logout" style="display: none; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--error, #ff4d4d); cursor: pointer; border-radius: 4px; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons-round" style="font-size: 18px;">logout</span> Esci
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -164,13 +220,25 @@
             <div class="playlist-header-gradient"></div>
             <div class="playlist-header-content">
               <span class="material-icons-round playlist-header-icon">favorite</span>
-              <div>
+              <div style="flex: 1;">
                 <p class="playlist-type-label">Playlist</p>
                 <h2>Brani Preferiti</h2>
                 <p class="playlist-meta" id="favorites-count">0 brani</p>
               </div>
+              <button id="btn-manage-favorites" class="btn-secondary" style="margin-left: 16px;">
+                <span class="material-icons-round">edit</span> Gestisci
+              </button>
             </div>
           </div>
+          
+          <div id="favorites-bulk-actions" class="hidden" style="display: flex; gap: 10px; margin: 0 40px 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; align-items: center;">
+            <button id="btn-fav-select-all" class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">Seleziona Tutti</button>
+            <button id="btn-fav-deselect-all" class="btn-secondary hidden" style="font-size: 0.85rem; padding: 6px 12px;">Deseleziona Tutti</button>
+            <button id="btn-fav-remove-selected" class="btn-primary" style="font-size: 0.85rem; padding: 6px 12px; background: var(--error);" disabled>Rimuovi (0)</button>
+            <span style="flex:1;"></span>
+            <button id="btn-fav-cancel-manage" class="btn-icon" title="Annulla"><span class="material-icons-round">close</span></button>
+          </div>
+          
           <div id="favorites-list" class="track-list">
             <!-- Favorites tracks -->
           </div>
@@ -181,6 +249,45 @@
           <h2 class="section-header-title">Ascoltati di Recente</h2>
           <div id="recent-list" class="track-list">
             <!-- Recent tracks -->
+          </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="section-profile" class="section">
+          <!-- Handled by ProfileManager -->
+        </section>
+
+        <!-- Offline Downloads Section -->
+        <section id="section-offline" class="section">
+          <div class="playlist-header-banner offline-banner" style="background: linear-gradient(135deg, #00b894 0%, transparent 70%);">
+            <div class="playlist-header-content">
+              <div class="playlist-cover" style="background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                <span class="material-icons-round" style="font-size: 80px;">offline_pin</span>
+              </div>
+              <div>
+                <p class="playlist-type-label">Memoria Locale</p>
+                <h2>I Miei Download</h2>
+                <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                  <p class="playlist-meta" id="offline-count">0 brani scaricati</p>
+                  <p class="playlist-meta" id="offline-size" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">0 MB utilizzati</p>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                   <button class="btn-primary" id="btn-play-offline">
+                     <span class="material-icons-round">play_arrow</span> Riproduci
+                   </button>
+                   <button id="btn-clear-offline" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 24px; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                     <span class="material-icons-round">delete_sweep</span> Libera Spazio
+                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="offline-alert" class="search-empty" style="display: none; padding: 20px; background: rgba(255,0,0,0.1); border-radius: 8px; margin: 20px;">
+            <span class="material-icons-round" style="color: #ff7675;">wifi_off</span>
+            <p>Sei Offline. L'app funziona in modalità aereo e mostra solo i brani scaricati localmente.</p>
+          </div>
+          <div id="offline-list" class="track-list">
+            <!-- Offline tracks -->
           </div>
         </section>
 
@@ -220,7 +327,72 @@
           </div>
         </section>
 
-        <!-- Import Section -->
+        <!-- Local Library Section -->
+        <section id="section-local" class="section">
+          <div class="playlist-header-banner">
+            <div class="playlist-header-gradient" style="background: linear-gradient(135deg, var(--accent) 0%, transparent 70%)"></div>
+            <div class="playlist-header-content">
+              <div class="playlist-cover" style="background: var(--accent); display: flex; align-items: center; justify-content: center;">
+                <span class="material-icons-round" style="font-size: 80px;">folder_music</span>
+              </div>
+              <div>
+                <h2>Libreria Locale</h2>
+                <p class="playlist-description">Ascolta i file MP3 e FLAC dal tuo dispositivo</p>
+                <p class="playlist-meta" id="local-count">0 brani scansionati</p>
+              </div>
+            </div>
+            <div class="playlist-actions">
+              <button class="btn-primary" id="btn-scan-local">
+                <span class="material-icons-round">folder_open</span>
+                Aggiungi Cartella
+              </button>
+              <button class="btn-danger hidden" id="btn-clear-local" style="margin-left:8px;">Svuota</button>
+            </div>
+          </div>
+          <div id="local-tracks-list" class="track-list">
+            <div class="search-empty" style="padding: 40px;">
+              <span class="material-icons-round">snippet_folder</span>
+              <p>Nessuna cartella scansionata. Inizia aggiungendo la tua musica.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Discovery Section -->
+        <section id="section-discovery" class="section">
+          <h2 class="section-header-title">Smart Discovery AI</h2>
+          <!-- Generator -->
+          <div style="padding: 0 32px 20px;">
+            <div class="card" style="display:flex; gap:16px; align-items:center; cursor:default; max-width:600px;">
+              <div class="card-cover" style="width:80px; height:80px; margin:0;"><span class="material-icons-round">auto_awesome</span></div>
+              <div style="flex:1;">
+                <h3 style="margin-bottom:8px;">AI Playlist Generator</h3>
+                <div class="search-bar" style="margin-bottom:8px;">
+                  <span class="material-icons-round">psychology</span>
+                  <input type="text" id="ai-prompt" placeholder='Es. "Canzoni per studiare sotto la pioggia al buio"'>
+                </div>
+                <button class="btn-primary" id="btn-generate-ai">Genera Magia</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tinder Style Discovery -->
+          <h3 style="padding: 0 32px; margin-bottom:16px;">Music Swipe - Scopri Nuovi Brani</h3>
+          <div style="padding: 0 32px; display:flex; justify-content:center;">
+             <div class="swipe-card" id="swipe-card" style="width:300px; height:480px; background:var(--bg-elevated); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); position:relative; overflow:hidden; display:flex; flex-direction:column; transition: transform 0.3s ease, opacity 0.3s ease;">
+               <img id="swipe-cover" src="" style="width:100%; height:300px; object-fit:cover;">
+               <div style="padding:16px; text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center;">
+                 <h3 id="swipe-title" style="margin-bottom:4px; font-size:1.1rem;">Cargando...</h3>
+                 <p id="swipe-artist" style="color:var(--text-secondary); font-size:0.9rem;">Attendere</p>
+               </div>
+               <div style="display:flex; justify-content:space-around; align-items:center; padding:16px; background:var(--bg-tertiary);">
+                 <button class="btn-icon-lg" id="btn-swipe-left" style="color:var(--danger); background:rgba(225,112,85,0.1);"><span class="material-icons-round" style="font-size:32px;">close</span></button>
+                 <button class="btn-icon-lg" id="btn-swipe-play" style="color:white; background:var(--accent); width:50px; height:50px;"><span class="material-icons-round" style="font-size:28px;">play_arrow</span></button>
+                 <button class="btn-icon-lg" id="btn-swipe-right" style="color:var(--success); background:rgba(0,184,148,0.1);"><span class="material-icons-round" style="font-size:32px;">favorite</span></button>
+               </div>
+             </div>
+          </div>
+        </section>
+
         <section id="section-import" class="section">
           <h2 class="section-header-title">Importa Playlist</h2>
           <div class="import-container">
@@ -229,9 +401,9 @@
                 <svg viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
               </div>
               <h3>Importa da Spotify</h3>
-              <p>Incolla il link della tua playlist Spotify</p>
+              <p>Incolla il link di un brano, album o playlist Spotify</p>
               <div class="import-input-group">
-                <input type="text" id="spotify-url" placeholder="https://open.spotify.com/playlist/..." class="import-input" />
+                <input type="text" id="spotify-url" placeholder="https://open.spotify.com/track/... o /playlist/... o /album/..." class="import-input" />
                 <button class="btn-primary" id="btn-import-spotify">Importa</button>
               </div>
             </div>
@@ -244,6 +416,21 @@
               <div class="import-input-group">
                 <input type="text" id="youtube-url" placeholder="https://youtube.com/playlist?list=..." class="import-input" />
                 <button class="btn-primary" id="btn-import-youtube">Importa</button>
+              </div>
+            </div>
+            <div class="import-card" id="import-spotify-private" style="border-color: #1DB954;">
+              <div class="import-card-icon spotify-icon" style="color: #1DB954;">
+                <span class="material-icons-round" style="font-size: 48px;">lock_open</span>
+              </div>
+              <h3>Importa Playlist Private Spotify</h3>
+              <p>Accedi al tuo account Spotify per importare playlist private e brani preferiti</p>
+              <button class="btn-primary" id="btn-spotify-auth" style="background: #1DB954; width: 100%;">
+                <span class="material-icons-round">login</span>
+                Accedi con Spotify
+              </button>
+              <div id="spotify-private-playlists" class="hidden" style="margin-top: 16px;">
+                <h4 style="margin-bottom: 8px;">Le tue Playlist</h4>
+                <div id="spotify-playlists-list" style="max-height: 300px; overflow-y: auto;"></div>
               </div>
             </div>
           </div>
@@ -259,6 +446,10 @@
             <button class="btn-primary" id="btn-save-imported">
               <span class="material-icons-round">playlist_add</span>
               Salva come Playlist
+            </button>
+            <button class="btn-secondary" id="btn-save-imported-favorites" style="margin-left:8px;">
+              <span class="material-icons-round">favorite</span>
+              Aggiungi ai Preferiti
             </button>
           </div>
         </section>
@@ -310,6 +501,11 @@
                 <div id="group-current-track" class="group-track-info">
                   <span class="material-icons-round">music_note</span>
                   <span>Nessun brano in riproduzione</span>
+                </div>
+                <div class="dj-queue-actions" style="margin-top: 1rem;">
+                  <button class="btn-secondary" id="btn-dj-propose" style="width: 100%; border-radius: 8px;">
+                    <span class="material-icons-round">queue_music</span> Proponi Brano
+                  </button>
                 </div>
               </div>
             </div>
@@ -394,6 +590,11 @@
             </div>
           </div>
         </section>
+
+        <!-- Wrapped Section -->
+        <section id="section-wrapped" class="section">
+          <!-- Content rendered dynamically by stats.js -->
+        </section>
       </div>
     </main>
 
@@ -452,6 +653,29 @@
       </div>
     </div>
 
+    <!-- Join Playlist Modal -->
+    <div id="join-playlist-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Unisciti a Playlist Collaborativa</h3>
+          <button class="btn-icon btn-close-modal">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Codice Condivisione</label>
+            <input type="text" id="join-playlist-code" placeholder="Es. X7Y9Z" class="import-input" style="text-transform: uppercase;" />
+            <small style="color: var(--text-secondary); display:block; margin-top: 4px;">Inserisci il codice fornito dal creatore della playlist.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary btn-close-modal">Annulla</button>
+          <button class="btn-primary" id="btn-confirm-join-playlist">Unisciti</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Create Playlist Modal -->
     <div id="create-playlist-modal" class="modal hidden">
       <div class="modal-content">
@@ -469,6 +693,16 @@
           <div class="form-group">
             <label>Descrizione (opzionale)</label>
             <textarea id="new-playlist-desc" placeholder="Descrivi la tua playlist..." class="import-input"></textarea>
+          </div>
+          <div class="form-group" style="flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <div style="flex:1">
+              <label style="margin:0;">Playlist Collaborativa</label>
+              <small style="color: var(--text-secondary); display:block; margin-top: 4px;">Genera un codice per permettere ad altri di aggiungere brani.</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="new-playlist-collab" />
+              <span class="slider round"></span>
+            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -514,19 +748,32 @@
           <span class="player-time" id="player-time-current">0:00</span>
           <div class="progress-bar-container" id="progress-bar-container">
             <div class="progress-bar" id="progress-bar">
-              <div class="progress-bar-fill" id="progress-bar-fill"></div>
-              <div class="progress-bar-handle" id="progress-bar-handle"></div>
+              <div class="progress-bar-fill" id="progress-bar-fill">
+                <div class="progress-bar-handle" id="progress-bar-handle"></div>
+              </div>
             </div>
           </div>
           <span class="player-time" id="player-time-total">0:00</span>
         </div>
       </div>
       <div class="player-controls-right">
+        <button class="btn-icon" id="btn-radio" title="Smart Radio (Coda Infinita)">
+          <span class="material-icons-round">podcasts</span>
+        </button>
         <button class="btn-icon" id="btn-lyrics-toggle" title="Mostra testi">
           <span class="material-icons-round">lyrics</span>
         </button>
         <button class="btn-icon" id="btn-mini-player" title="Mini player">
           <span class="material-icons-round">picture_in_picture_alt</span>
+        </button>
+        <button class="btn-icon" id="btn-eq" title="Equalizzatore">
+          <span class="material-icons-round">tune</span>
+        </button>
+        <button class="btn-icon" id="btn-karaoke" title="Modalità Karaoke (Rimuovi Voce)">
+          <span class="material-icons-round">mic_external_on</span>
+        </button>
+        <button class="btn-icon" id="btn-8d-audio" title="8D Audio (Spaziale)">
+          <span class="material-icons-round">360</span>
         </button>
         <div class="volume-control">
           <button class="btn-icon" id="btn-volume" title="Volume">
@@ -534,8 +781,9 @@
           </button>
           <div class="volume-slider-container">
             <div class="volume-slider" id="volume-slider">
-              <div class="volume-slider-fill" id="volume-slider-fill"></div>
-              <div class="volume-slider-handle" id="volume-slider-handle"></div>
+              <div class="volume-slider-fill" id="volume-slider-fill">
+                <div class="volume-slider-handle" id="volume-slider-handle"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -544,8 +792,273 @@
     </footer>
   </div>
 
+  <!-- EQ Modal -->
+  <div class="modal-overlay" id="eq-modal" style="display: none;">
+    <div class="modal-content" style="min-width: 500px;">
+      <div class="modal-header">
+        <h3>Equalizzatore Grafico</h3>
+        <button class="btn-icon" id="btn-close-eq"><span class="material-icons-round">close</span></button>
+      </div>
+      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <label style="font-weight: 600; color: var(--text-secondary);">Preset:</label>
+        
+        <div class="custom-dropdown" id="eq-custom-dropdown">
+          <div class="dropdown-selected" id="eq-dropdown-selected">Flat</div>
+          <span class="material-icons-round dropdown-icon">expand_more</span>
+          
+          <div class="dropdown-options" id="eq-dropdown-options">
+            <div class="dropdown-option" data-value="flat">Flat</div>
+            <div class="dropdown-option" data-value="custom" hidden>Modificato</div>
+            <div class="dropdown-option" data-value="acoustic">Acoustic</div>
+            <div class="dropdown-option" data-value="bass_booster">Bass Booster</div>
+            <div class="dropdown-option" data-value="bass_reducer">Bass Reducer</div>
+            <div class="dropdown-option" data-value="classical">Classical</div>
+            <div class="dropdown-option" data-value="dance">Dance</div>
+            <div class="dropdown-option" data-value="electronic">Electronic</div>
+            <div class="dropdown-option" data-value="hiphop">Hip-Hop</div>
+            <div class="dropdown-option" data-value="jazz">Jazz</div>
+      <div class="queue-now-playing" id="queue-now-playing"></div>
+      <h4 class="queue-next-label">Prossimi brani</h4>
+      <div id="queue-list" class="queue-list"></div>
+    </div>
+
+    <!-- Sleep Timer Modal -->
+    <div id="sleep-timer-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Sleep Timer</h3>
+          <button class="btn-icon" id="btn-close-sleep-timer">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="sleep-timer-options">
+          <button class="sleep-option" data-minutes="5">5 min</button>
+          <button class="sleep-option" data-minutes="10">10 min</button>
+          <button class="sleep-option" data-minutes="15">15 min</button>
+          <button class="sleep-option" data-minutes="30">30 min</button>
+          <button class="sleep-option" data-minutes="45">45 min</button>
+          <button class="sleep-option" data-minutes="60">1 ora</button>
+          <button class="sleep-option" data-minutes="90">1.5 ore</button>
+          <button class="sleep-option" data-minutes="120">2 ore</button>
+        </div>
+        <div id="sleep-timer-active" class="sleep-timer-active hidden">
+          <p>Il player si fermerà tra <span id="sleep-timer-remaining">--:--</span></p>
+          <button class="btn-danger" id="btn-cancel-sleep-timer">Annulla Timer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Join Playlist Modal -->
+    <div id="join-playlist-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Unisciti a Playlist Collaborativa</h3>
+          <button class="btn-icon btn-close-modal">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Codice Condivisione</label>
+            <input type="text" id="join-playlist-code" placeholder="Es. X7Y9Z" class="import-input" style="text-transform: uppercase;" />
+            <small style="color: var(--text-secondary); display:block; margin-top: 4px;">Inserisci il codice fornito dal creatore della playlist.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary btn-close-modal">Annulla</button>
+          <button class="btn-primary" id="btn-confirm-join-playlist">Unisciti</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Playlist Modal -->
+    <div id="create-playlist-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Crea Nuova Playlist</h3>
+          <button class="btn-icon btn-close-modal">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nome Playlist</label>
+            <input type="text" id="new-playlist-name" placeholder="La mia playlist..." class="import-input" />
+          </div>
+          <div class="form-group">
+            <label>Descrizione (opzionale)</label>
+            <textarea id="new-playlist-desc" placeholder="Descrivi la tua playlist..." class="import-input"></textarea>
+          </div>
+          <div class="form-group" style="flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <div style="flex:1">
+              <label style="margin:0;">Playlist Collaborativa</label>
+              <small style="color: var(--text-secondary); display:block; margin-top: 4px;">Genera un codice per permettere ad altri di aggiungere brani.</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="new-playlist-collab" />
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary btn-close-modal">Annulla</button>
+          <button class="btn-primary" id="btn-confirm-create-playlist">Crea</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Player Bar -->
+    <footer id="player-bar" class="player-bar">
+      <div class="player-track-info">
+        <div class="player-cover" id="player-cover">
+          <span class="material-icons-round">music_note</span>
+        </div>
+        <div class="player-track-text">
+          <p class="player-track-name" id="player-track-name">Nessun brano</p>
+          <p class="player-track-artist" id="player-track-artist">—</p>
+        </div>
+        <button class="btn-icon btn-favorite" id="btn-favorite-current" title="Aggiungi ai preferiti">
+          <span class="material-icons-round">favorite_border</span>
+        </button>
+      </div>
+      <div class="player-controls-center">
+        <div class="player-buttons">
+          <button class="btn-icon" id="btn-shuffle" title="Riproduzione casuale">
+            <span class="material-icons-round">shuffle</span>
+          </button>
+          <button class="btn-icon" id="btn-prev" title="Brano precedente">
+            <span class="material-icons-round">skip_previous</span>
+          </button>
+          <button class="btn-icon btn-play-main" id="btn-play" title="Riproduci">
+            <span class="material-icons-round">play_arrow</span>
+          </button>
+          <button class="btn-icon" id="btn-next" title="Prossimo brano">
+            <span class="material-icons-round">skip_next</span>
+          </button>
+          <button class="btn-icon" id="btn-repeat" title="Ripeti">
+            <span class="material-icons-round">repeat</span>
+          </button>
+        </div>
+        <div class="player-progress">
+          <span class="player-time" id="player-time-current">0:00</span>
+          <div class="progress-bar-container" id="progress-bar-container">
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress-bar-fill" id="progress-bar-fill">
+                <div class="progress-bar-handle" id="progress-bar-handle"></div>
+              </div>
+            </div>
+          </div>
+          <span class="player-time" id="player-time-total">0:00</span>
+        </div>
+      </div>
+      <div class="player-controls-right">
+        <button class="btn-icon" id="btn-radio" title="Smart Radio (Coda Infinita)">
+          <span class="material-icons-round">podcasts</span>
+        </button>
+        <button class="btn-icon" id="btn-lyrics-toggle" title="Mostra testi">
+          <span class="material-icons-round">lyrics</span>
+        </button>
+        <button class="btn-icon" id="btn-mini-player" title="Mini player">
+          <span class="material-icons-round">picture_in_picture_alt</span>
+        </button>
+        <button class="btn-icon" id="btn-eq" title="Equalizzatore">
+          <span class="material-icons-round">tune</span>
+        </button>
+        <button class="btn-icon" id="btn-karaoke" title="Modalità Karaoke (Rimuovi Voce)">
+          <span class="material-icons-round">mic_external_on</span>
+        </button>
+        <button class="btn-icon" id="btn-8d-audio" title="8D Audio (Spaziale)">
+          <span class="material-icons-round">360</span>
+        </button>
+        <div class="volume-control">
+          <button class="btn-icon" id="btn-volume" title="Volume">
+            <span class="material-icons-round">volume_up</span>
+          </button>
+          <div class="volume-slider-container">
+            <div class="volume-slider" id="volume-slider">
+              <div class="volume-slider-fill" id="volume-slider-fill">
+                <div class="volume-slider-handle" id="volume-slider-handle"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <canvas id="equalizer-canvas" class="equalizer-canvas" width="80" height="32"></canvas>
+      </div>
+    </footer>
+  </div>
+
+  <!-- EQ Modal -->
+  <div class="modal-overlay" id="eq-modal" style="display: none;">
+    <div class="modal-content" style="min-width: 500px;">
+      <div class="modal-header">
+        <h3>Equalizzatore Grafico</h3>
+        <button class="btn-icon" id="btn-close-eq"><span class="material-icons-round">close</span></button>
+      </div>
+      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <label style="font-weight: 600; color: var(--text-secondary);">Preset:</label>
+        
+        <div class="custom-dropdown" id="eq-custom-dropdown">
+          <div class="dropdown-selected" id="eq-dropdown-selected">Flat</div>
+          <span class="material-icons-round dropdown-icon">expand_more</span>
+          
+          <div class="dropdown-options" id="eq-dropdown-options">
+            <div class="dropdown-option" data-value="flat">Flat</div>
+            <div class="dropdown-option" data-value="custom" hidden>Modificato</div>
+            <div class="dropdown-option" data-value="acoustic">Acoustic</div>
+            <div class="dropdown-option" data-value="bass_booster">Bass Booster</div>
+            <div class="dropdown-option" data-value="bass_reducer">Bass Reducer</div>
+            <div class="dropdown-option" data-value="classical">Classical</div>
+            <div class="dropdown-option" data-value="dance">Dance</div>
+            <div class="dropdown-option" data-value="electronic">Electronic</div>
+            <div class="dropdown-option" data-value="hiphop">Hip-Hop</div>
+            <div class="dropdown-option" data-value="jazz">Jazz</div>
+            <div class="dropdown-option" data-value="pop">Pop</div>
+            <div class="dropdown-option" data-value="rock">Rock</div>
+            <div class="dropdown-option" data-value="vocal_booster">Vocal Booster</div>
+          </div>
+        </div>
+      </div>
+      <div class="eq-container" id="eq-container">
+        <!-- Sliders injected securely via JS -->
+      </div>
+      <div style="margin-top:24px; text-align:right;">
+        <button class="btn-secondary" id="btn-reset-eq" style="padding: 8px 16px; border-radius: var(--radius-lg);">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mini Player Overlay (PiP Mode) -->
+  <div id="mini-player-overlay" class="mini-player-overlay" style="display: none;">
+    <div class="mini-player-drag-region"></div>
+    <div class="mini-player-cover" id="mini-player-cover">
+      <span class="material-icons-round">music_note</span>
+    </div>
+    <div class="mini-player-info">
+      <div class="mini-player-title" id="mini-player-title">Nessun brano</div>
+      <div class="mini-player-artist" id="mini-player-artist">—</div>
+    </div>
+    <div class="mini-player-progress" id="mini-player-progress-container">
+      <div class="mini-player-progress-fill" id="mini-player-progress-fill"></div>
+    </div>
+    <div class="mini-player-controls">
+      <button class="mini-btn" id="mini-btn-prev">
+        <span class="material-icons-round">skip_previous</span>
+      </button>
+      <button class="mini-btn mini-btn-play" id="mini-btn-play">
+        <span class="material-icons-round">play_arrow</span>
+      </button>
+      <button class="mini-btn" id="mini-btn-next">
+        <span class="material-icons-round">skip_next</span>
+      </button>
+      <button class="mini-btn mini-btn-close" id="mini-btn-close" title="Torna alla finestra intera">
+        <span class="material-icons-round">close_fullscreen</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Audio Element -->
-  <audio id="audio-player" preload="auto"></audio>
+  <audio id="audio-player" crossorigin="anonymous" preload="auto"></audio>
+
 
   <script type="module" src="/src/main.js"></script>
 </body>

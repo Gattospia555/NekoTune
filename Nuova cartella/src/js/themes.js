@@ -1,10 +1,10 @@
-// SonicWave — Theme Manager
+// Nekotune — Theme Manager
 import { THEME_PRESETS } from './data.js';
 
 class ThemeManager {
   constructor(app) {
     this.app = app;
-    this.currentTheme = localStorage.getItem('sw_theme') || 'dark';
+    this.currentTheme = localStorage.getItem('sw_theme') || 'nekotune-cream';
     this.customThemes = JSON.parse(localStorage.getItem('sw_custom_themes') || '[]');
 
     this.applyTheme(this.currentTheme);
@@ -68,7 +68,7 @@ class ThemeManager {
     root.style.setProperty('--bg-active', 'rgba(255, 255, 255, 0.08)');
 
     // Light theme adjustments
-    if (themeId === 'light') {
+    if (theme.id === 'nekotune-cream' || themeId === 'light') {
       root.style.setProperty('--bg-hover', 'rgba(0, 0, 0, 0.04)');
       root.style.setProperty('--bg-active', 'rgba(0, 0, 0, 0.08)');
       root.style.setProperty('--border', 'rgba(0, 0, 0, 0.08)');
@@ -230,7 +230,7 @@ class ThemeManager {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sonicwave-theme-${name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.download = `nekotune-theme-${name.toLowerCase().replace(/\s+/g, '-')}.json`;
     a.click();
     URL.revokeObjectURL(url);
     this.app.showToast('Tema esportato!');

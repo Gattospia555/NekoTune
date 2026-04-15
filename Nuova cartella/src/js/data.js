@@ -1,206 +1,34 @@
-// SonicWave — Demo Data
+// Nekotune — Demo Data
 // Sample tracks using royalty-free audio from various sources
 
-export const DEMO_TRACKS = [
-  {
-    id: 't1',
-    title: 'Midnight Groove',
-    artist: 'Luna Nova',
-    album: 'Neon Dreams',
-    duration: 215,
-    cover: null,
-    color: '#6c5ce7',
-    // Free sample audio
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't2',
-    title: 'Electric Sunset',
-    artist: 'The Voltage',
-    album: 'Pulse',
-    duration: 188,
-    cover: null,
-    color: '#e17055',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't3',
-    title: 'Crystal Waters',
-    artist: 'Aqua Dreams',
-    album: 'Deep Blue',
-    duration: 243,
-    cover: null,
-    color: '#00b894',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't4',
-    title: 'Purple Rain Falls',
-    artist: 'Luna Nova',
-    album: 'Neon Dreams',
-    duration: 197,
-    cover: null,
-    color: '#a29bfe',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-    hasLyrics: false
-  },
-  {
-    id: 't5',
-    title: 'Downtown Lights',
-    artist: 'City Pulse',
-    album: 'Urban Echoes',
-    duration: 234,
-    cover: null,
-    color: '#fdcb6e',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't6',
-    title: 'Starlight Serenade',
-    artist: 'Astral',
-    album: 'Cosmos',
-    duration: 260,
-    cover: null,
-    color: '#74b9ff',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't7',
-    title: 'Forest Whispers',
-    artist: 'Nature Sound',
-    album: 'Earth Songs',
-    duration: 301,
-    cover: null,
-    color: '#00b894',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
-    hasLyrics: false
-  },
-  {
-    id: 't8',
-    title: 'Velocity',
-    artist: 'The Voltage',
-    album: 'Pulse',
-    duration: 178,
-    cover: null,
-    color: '#e17055',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't9',
-    title: 'Morning Dew',
-    artist: 'Aqua Dreams',
-    album: 'Deep Blue',
-    duration: 210,
-    cover: null,
-    color: '#55efc4',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
-    hasLyrics: false
-  },
-  {
-    id: 't10',
-    title: 'Neon Boulevard',
-    artist: 'City Pulse',
-    album: 'Urban Echoes',
-    duration: 226,
-    cover: null,
-    color: '#ff7675',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't11',
-    title: 'Gravity Pull',
-    artist: 'Astral',
-    album: 'Cosmos',
-    duration: 245,
-    cover: null,
-    color: '#0984e3',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't12',
-    title: 'Summer Memories',
-    artist: 'Luna Nova',
-    album: 'Golden Hour',
-    duration: 192,
-    cover: null,
-    color: '#ffeaa7',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't13',
-    title: 'Waves of Time',
-    artist: 'Nature Sound',
-    album: 'Earth Songs',
-    duration: 278,
-    cover: null,
-    color: '#81ecec',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3',
-    hasLyrics: false
-  },
-  {
-    id: 't14',
-    title: 'Digital Love',
-    artist: 'The Voltage',
-    album: 'Circuit',
-    duration: 205,
-    cover: null,
-    color: '#fd79a8',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't15',
-    title: 'Aurora Borealis',
-    artist: 'Astral',
-    album: 'Cosmos',
-    duration: 312,
-    cover: null,
-    color: '#a29bfe',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3',
-    hasLyrics: true
-  },
-  {
-    id: 't16',
-    title: 'Echoes in the Dark',
-    artist: 'City Pulse',
-    album: 'Nightlife',
-    duration: 199,
-    cover: null,
-    color: '#636e72',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3',
-    hasLyrics: false
+export const DEMO_TRACKS = [];
+export const DEMO_ARTISTS = [];
+export const DEMO_ALBUMS = [];
+
+// Dynamic Library: single source of truth for all imported/searched tracks
+export function getAllTracks() {
+  return JSON.parse(localStorage.getItem('sw_imported_tracks') || '[]');
+}
+
+// Resolve a track ID to a full track object — checks in-memory first, then localStorage
+export function resolveTrack(id) {
+  // Check in-memory DEMO_TRACKS first (fastest)
+  let track = DEMO_TRACKS.find(t => t.id === id);
+  if (track) return track;
+  // Fall back to localStorage
+  const stored = getAllTracks();
+  track = stored.find(t => t.id === id);
+  if (track) {
+    // Also hydrate into DEMO_TRACKS so future lookups are instant
+    DEMO_TRACKS.push(track);
   }
-];
+  return track || null;
+}
 
-export const DEMO_ARTISTS = [
-  { id: 'a1', name: 'Luna Nova', color: '#6c5ce7', tracks: ['t1', 't4', 't12'] },
-  { id: 'a2', name: 'The Voltage', color: '#e17055', tracks: ['t2', 't8', 't14'] },
-  { id: 'a3', name: 'Aqua Dreams', color: '#00b894', tracks: ['t3', 't9'] },
-  { id: 'a4', name: 'City Pulse', color: '#fdcb6e', tracks: ['t5', 't10', 't16'] },
-  { id: 'a5', name: 'Astral', color: '#74b9ff', tracks: ['t6', 't11', 't15'] },
-  { id: 'a6', name: 'Nature Sound', color: '#55efc4', tracks: ['t7', 't13'] }
-];
-
-export const DEMO_ALBUMS = [
-  { id: 'al1', title: 'Neon Dreams', artist: 'Luna Nova', color: '#6c5ce7', tracks: ['t1', 't4'] },
-  { id: 'al2', title: 'Pulse', artist: 'The Voltage', color: '#e17055', tracks: ['t2', 't8'] },
-  { id: 'al3', title: 'Deep Blue', artist: 'Aqua Dreams', color: '#00b894', tracks: ['t3', 't9'] },
-  { id: 'al4', title: 'Urban Echoes', artist: 'City Pulse', color: '#fdcb6e', tracks: ['t5', 't10'] },
-  { id: 'al5', title: 'Cosmos', artist: 'Astral', color: '#74b9ff', tracks: ['t6', 't11', 't15'] },
-  { id: 'al6', title: 'Earth Songs', artist: 'Nature Sound', color: '#55efc4', tracks: ['t7', 't13'] },
-  { id: 'al7', title: 'Golden Hour', artist: 'Luna Nova', color: '#ffeaa7', tracks: ['t12'] },
-  { id: 'al8', title: 'Circuit', artist: 'The Voltage', color: '#fd79a8', tracks: ['t14'] },
-  { id: 'al9', title: 'Nightlife', artist: 'City Pulse', color: '#636e72', tracks: ['t16'] }
-];
+// Resolve an array of track IDs to track objects
+export function resolveTracks(ids) {
+  return ids.map(id => resolveTrack(id)).filter(Boolean);
+}
 
 // Simulated time-synced lyrics (time in seconds)
 export const DEMO_LYRICS = {
@@ -431,37 +259,37 @@ export const DEFAULT_PLAYLISTS = [
 // Theme presets
 export const THEME_PRESETS = [
   {
-    id: 'dark',
-    name: 'Oscuro',
+    id: 'nekotune-cream',
+    name: 'Nekotune Cream',
     colors: {
-      '--bg-primary': '#0a0a0f',
-      '--bg-secondary': '#12121a',
-      '--bg-tertiary': '#1a1a2e',
-      '--bg-elevated': '#1e1e32',
-      '--accent': '#6c5ce7',
-      '--accent-hover': '#7c6ff0',
-      '--accent-secondary': '#a29bfe',
-      '--accent-glow': 'rgba(108, 92, 231, 0.3)',
-      '--text-primary': '#ffffff',
-      '--text-secondary': '#8b8b9e',
-      '--text-tertiary': '#5a5a6e'
+      '--bg-primary': '#F2EAE0',
+      '--bg-secondary': '#FAF6F0',
+      '--bg-tertiary': '#E8DFCD',
+      '--bg-elevated': '#FAF6F0',
+      '--accent': '#F2A365',
+      '--accent-hover': '#E58B4C',
+      '--accent-secondary': '#FFC288',
+      '--accent-glow': 'rgba(242, 163, 101, 0.4)',
+      '--text-primary': '#4C433C',
+      '--text-secondary': '#7A6E62',
+      '--text-tertiary': '#A89F93'
     }
   },
   {
-    id: 'light',
-    name: 'Chiaro',
+    id: 'nekotune-dark',
+    name: 'Nekotune Night',
     colors: {
-      '--bg-primary': '#f5f5f7',
-      '--bg-secondary': '#ffffff',
-      '--bg-tertiary': '#e8e8ed',
-      '--bg-elevated': '#d8d8e0',
-      '--accent': '#6c5ce7',
-      '--accent-hover': '#5b4bd5',
-      '--accent-secondary': '#8578e8',
-      '--accent-glow': 'rgba(108, 92, 231, 0.2)',
-      '--text-primary': '#1a1a2e',
-      '--text-secondary': '#5a5a6e',
-      '--text-tertiary': '#8b8b9e'
+      '--bg-primary': '#1A1820',
+      '--bg-secondary': '#22202A',
+      '--bg-tertiary': '#2C2A35',
+      '--bg-elevated': '#383542',
+      '--accent': '#FF9F43',
+      '--accent-hover': '#FFB142',
+      '--accent-secondary': '#FFC07A',
+      '--accent-glow': 'rgba(255, 159, 67, 0.3)',
+      '--text-primary': '#F0EDF5',
+      '--text-secondary': '#A9A6B2',
+      '--text-tertiary': '#767480'
     }
   },
   {
@@ -629,3 +457,26 @@ export function formatTime(seconds) {
 export function generateId() {
   return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 }
+
+// ===== TRACK PERSISTENCE =====
+// On startup, restore any previously imported tracks from localStorage
+(function hydrateImportedTracks() {
+  try {
+    const saved = localStorage.getItem('sw_imported_tracks');
+    if (saved) {
+      const importedTracks = JSON.parse(saved);
+      importedTracks.forEach(track => {
+        if (!DEMO_TRACKS.find(t => t.id === track.id)) {
+          DEMO_TRACKS.push(track);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to hydrate imported tracks:', e);
+  }
+})();
+
+export function saveImportedTracks() {
+  localStorage.setItem('sw_imported_tracks', JSON.stringify(DEMO_TRACKS));
+}
+

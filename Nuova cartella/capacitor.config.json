@@ -1,0 +1,6 @@
+{
+  "appId": "com.nekotune.app",
+  "appName": "NekoTune",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
