@@ -73,19 +73,34 @@ i.on("window-all-closed", () => {
 				id: e.videoId,
 				title: e.name,
 				artist: e.artist ? e.artist.name : e.artists ? e.artists.map((e) => e.name).join(", ") : "Sconosciuto",
+				artistId: e.artist?.artistId || e.artists?.[0]?.artistId || null,
 				duration: e.duration,
 				cover: e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""
 			}));
 		} catch (e) {
 			return console.error("YTMusic Search Error:", e), [];
 		}
-	}), o.handle("get-stream-url", async (e, t) => {
+	}), o.handle("get-artist-details", async (e, t) => {
 		try {
-			let e = await import("youtube-dl-exec"), n = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
+			let { default: e } = await import("ytmusic-api"), n = new e();
+			return await n.initialize(), await n.getArtist(t);
+		} catch (e) {
+			return console.error("YTMusic Get Artist Error:", e), null;
+		}
+	}), o.handle("search-artists", async (e, t, n = 5) => {
+		try {
+			let { default: e } = await import("ytmusic-api"), r = new e();
+			return await r.initialize(), (await r.searchArtists(t)).slice(0, n);
+		} catch (e) {
+			return console.error("YTMusic Search Artists Error:", e), [];
+		}
+	}), o.handle("get-stream-url", async (e, t, n = "bestaudio") => {
+		try {
+			let e = await import("youtube-dl-exec"), r = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
 				getUrl: !0,
-				format: "bestaudio"
+				format: n
 			});
-			return (typeof n == "string" ? n : String(n)).trim().split("\n").pop().trim();
+			return (typeof r == "string" ? r : String(r)).trim().split("\n").pop().trim();
 		} catch (e) {
 			return console.error("Youtube-dl Error:", e), null;
 		}

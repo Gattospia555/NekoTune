@@ -149,6 +149,7 @@ app.whenReady().then(() => {
         title: v.name,
         // ytmusic returns v.artist object for songs, and v.artists array for other types
         artist: v.artist ? v.artist.name : (v.artists ? v.artists.map(a => a.name).join(', ') : 'Sconosciuto'),
+        artistId: v.artist?.artistId || (v.artists?.[0]?.artistId) || null,
         duration: v.duration, // in seconds from ytmusic-api
         cover: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url : ''
       }));
@@ -158,13 +159,39 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('get-stream-url', async (event, videoId) => {
+  ipcMain.handle('get-artist-details', async (event, artistId) => {
+    try {
+      const { default: YTMusic } = await import('ytmusic-api');
+      const ytmusic = new YTMusic();
+      await ytmusic.initialize();
+      const artist = await ytmusic.getArtist(artistId);
+      return artist;
+    } catch (e) {
+      console.error('YTMusic Get Artist Error:', e);
+      return null;
+    }
+  });
+
+  ipcMain.handle('search-artists', async (event, query, limit = 5) => {
+    try {
+      const { default: YTMusic } = await import('ytmusic-api');
+      const ytmusic = new YTMusic();
+      await ytmusic.initialize();
+      const artists = await ytmusic.searchArtists(query);
+      return artists.slice(0, limit);
+    } catch (e) {
+      console.error('YTMusic Search Artists Error:', e);
+      return [];
+    }
+  });
+
+  ipcMain.handle('get-stream-url', async (event, videoId, quality = 'bestaudio') => {
     try {
       const ytdlModule = await import('youtube-dl-exec');
       const youtubedl = ytdlModule.default || ytdlModule;
       const url = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
         getUrl: true,
-        format: 'bestaudio'
+        format: quality
       });
       const urlString = typeof url === 'string' ? url : String(url);
       const cleanUrl = urlString.trim().split('\n').pop().trim();

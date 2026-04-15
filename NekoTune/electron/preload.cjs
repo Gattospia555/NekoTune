@@ -10,8 +10,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Real Audio API
   searchYoutube: (query, limit = 10) => ipcRenderer.invoke('search-youtube', query, limit),
-  getStreamUrl: (videoId) => ipcRenderer.invoke('get-stream-url', videoId),
+  getStreamUrl: (videoId, quality) => ipcRenderer.invoke('get-stream-url', videoId, quality),
   parseSpotifyUrl: (url) => ipcRenderer.invoke('parse-spotify-url', url),
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   
   // Spotify OAuth
   spotifyAuth: () => ipcRenderer.invoke('spotify-auth'),

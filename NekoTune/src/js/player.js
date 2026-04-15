@@ -563,7 +563,8 @@ class Player {
       try {
         let streamUrl = this.streamCache.get(track.videoId);
         if (!streamUrl) {
-          streamUrl = await window.electronAPI.getStreamUrl(track.videoId);
+          const quality = localStorage.getItem('sw_settings_quality') || 'bestaudio';
+          streamUrl = await window.electronAPI.getStreamUrl(track.videoId, quality);
         }
         if (streamUrl) {
           track.src = streamUrl;

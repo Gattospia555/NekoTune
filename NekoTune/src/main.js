@@ -6,6 +6,8 @@ import Player from './js/player.js';
 import PlaylistManager from './js/playlists.js';
 import LyricsManager from './js/lyrics.js';
 import ThemeManager from './js/themes.js';
+import { SettingsManager } from './js/settings.js';
+import { ArtistManager } from './js/artist.js';
 import ImportManager from './js/import.js';
 import GroupSession from './js/group.js';
 import { LocalFileManager } from './js/local-files.js';
@@ -40,6 +42,9 @@ class NekotuneApp {
     this.stats = new StatsManager(this, this.player);
     this.radio = new SmartRadio(this, this.player);
     this.offline = new OfflineManager(this);
+
+    SettingsManager.init();
+    ArtistManager.init(this);
 
     // Initialize Electron features if available
     this.initElectron();

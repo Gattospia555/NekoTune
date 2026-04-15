@@ -153,7 +153,7 @@
               <button class="dropdown-item" id="btn-dropdown-profile" style="display: none; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
                 <span class="material-icons-round" style="font-size: 18px;">account_circle</span> Il mio Profilo
               </button>
-              <button class="dropdown-item" id="btn-dropdown-settings" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+              <button class="dropdown-item nav-item" id="btn-dropdown-settings" data-section="settings" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
                 <span class="material-icons-round" style="font-size: 18px;">settings</span> Impostazioni
               </button>
               <button class="dropdown-item" id="btn-dropdown-logout" style="display: none; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: var(--error, #ff4d4d); cursor: pointer; border-radius: 4px; align-items: center; gap: 10px;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
@@ -586,14 +586,86 @@
               <h3>I Tuoi Temi</h3>
               <div id="custom-themes-grid" class="theme-presets-grid">
                 <!-- Custom themes -->
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- Wrapped Section -->
         <section id="section-wrapped" class="section">
           <!-- Content rendered dynamically by stats.js -->
+        </section>
+
+        <!-- Artist Profile Section -->
+        <section id="section-artist" class="section">
+          <div class="playlist-header-banner" id="artist-detail-banner" style="min-height: 350px; background-size: cover; background-position: center; position: relative;">
+            <div class="playlist-header-gradient" style="background: linear-gradient(to top, var(--bg-primary) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);"></div>
+            <div class="playlist-header-content" style="align-items: flex-end; padding-bottom: 20px;">
+              <div>
+                <h1 id="artist-detail-name" style="font-size: 4rem; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.5);">Artist Name</h1>
+                <p class="playlist-meta" id="artist-detail-followers" style="font-size: 1.1rem; opacity: 0.9;">0 ascoltatori mensili</p>
+              </div>
+            </div>
+          </div>
+          <div style="padding: 24px; position: relative; z-index: 2;">
+            <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 30px;">
+              <button id="btn-play-artist" class="btn-play-large" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
+                <span class="material-icons-round" style="font-size: 32px; padding-left: 4px;">play_arrow</span>
+              </button>
+              <button id="btn-follow-artist" class="btn-secondary" style="border-radius: 20px; padding: 6px 16px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">
+                Segui
+              </button>
+            </div>
+            
+            <h3 class="section-title">Popolari</h3>
+            <div id="artist-popular-list" class="track-list" style="margin-bottom: 40px;"></div>
+            
+            <h3 class="section-title">Brani Preferiti di quest'artista</h3>
+            <div id="artist-favorites-list" class="track-list" style="margin-bottom: 40px; display: none;"></div>
+            
+            <h3 class="section-title">Album e Singoli</h3>
+            <div id="artist-albums-grid" class="cards-grid"></div>
+          </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="section-settings" class="section">
+          <div class="playlist-header-banner" style="background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 100%); padding: 40px;">
+            <h1 style="font-size: 2.5rem; font-weight: 700;">Impostazioni</h1>
+          </div>
+          <div style="padding: 30px 40px; max-width: 800px;">
+            <div class="settings-group" style="margin-bottom: 40px;">
+              <h3 style="border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; font-weight: 600;">Audio e Riproduzione</h3>
+              
+              <div class="settings-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                  <h4 style="margin: 0 0 4px 0; font-size: 1rem;">Qualità Audio</h4>
+                  <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Seleziona la qualità dello streaming. La qualità alta richiede più banda.</p>
+                </div>
+                <select id="settings-audio-quality" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; font-family: inherit; cursor: pointer;">
+                  <option value="bestaudio">Alta (Migliore disponibile)</option>
+                  <option value="worstaudio">Media (Risparmio dati)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="settings-group" style="margin-bottom: 40px;">
+              <h3 style="border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; font-weight: 600;">Aspetto</h3>
+              <div class="settings-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                  <h4 style="margin: 0 0 4px 0; font-size: 1rem;">Temi Personalizzati</h4>
+                  <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Personalizza i colori e l'aspetto di NekoTune.</p>
+                </div>
+                <button class="btn-secondary" onclick="document.getElementById('nav-themes').click()">Gestisci Temi</button>
+              </div>
+            </div>
+
+            <div class="settings-group" style="margin-bottom: 40px;">
+              <h3 style="border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; font-weight: 600;">Database e Memoria</h3>
+              <div class="settings-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                  <h4 style="margin: 0 0 4px 0; font-size: 1rem;">Ripristina App</h4>
+                  <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">Elimina le tue impostazioni, storico e cache. (Non elimina i brani scaricati)</p>
+                </div>
+                <button id="btn-settings-reset" class="btn-primary" style="background: var(--error);">Svuota Dati</button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
