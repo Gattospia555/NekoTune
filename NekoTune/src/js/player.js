@@ -114,6 +114,7 @@ class Player {
     const btnEQ = document.getElementById("btn-eq");
     const modal = document.getElementById("eq-modal");
     const btnClose = document.getElementById("btn-close-eq");
+    const btnCloseModal = document.getElementById("btn-close-eq-modal");
     const btnReset = document.getElementById("btn-reset-eq");
     const container = document.getElementById("eq-container");
     const presetDropdown = document.getElementById("eq-custom-dropdown");
@@ -183,26 +184,33 @@ class Player {
         this.currentEQPreset.slice(1);
     });
 
-    btnClose.addEventListener("click", () => {
+    const closeEQModal = () => {
       modal.classList.remove("visible");
       setTimeout(() => {
         modal.style.display = "none";
       }, 300);
-    });
+    };
+
+    if (btnClose) {
+      btnClose.addEventListener("click", closeEQModal);
+    }
+
+    if (btnCloseModal) {
+      btnCloseModal.addEventListener("click", closeEQModal);
+    }
 
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
-        modal.classList.remove("visible");
-        setTimeout(() => {
-          modal.style.display = "none";
-        }, 300);
+        closeEQModal();
       }
     });
 
-    btnReset.addEventListener("click", () => {
-      this.applyEQPreset("flat");
-      presetSelected.textContent = "Flat";
-    });
+    if (btnReset) {
+      btnReset.addEventListener("click", () => {
+        this.applyEQPreset("flat");
+        presetSelected.textContent = "Flat";
+      });
+    }
 
     // Setup Save Custom EQ Modal
     this.setupSaveEQModal();
@@ -1346,109 +1354,46 @@ class Player {
 
     const overlay = document.createElement("div");
     overlay.id = "nt-confirm-modal";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(20, 24, 38, 0.82);
-      backdrop-filter: blur(6px);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.22s cubic-bezier(.4,1.4,.6,1);
-    `;
+    overlay.className = "modal-overlay nt-eq-confirm";
 
     const modal = document.createElement("div");
-    modal.style.cssText = `
-      background: var(--modal-bg, #232946);
-      color: var(--text-primary, #fff);
-      border-radius: 22px;
-      box-shadow: 0 8px 40px #000a, 0 1.5px 8px #0004;
-      padding: 38px 34px 28px 34px;
-      min-width: 340px;
-      max-width: 92vw;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      animation: popIn 0.22s cubic-bezier(.4,1.4,.6,1);
-      border: 1.5px solid var(--accent, #6c5ce7);
-    `;
+    modal.className = "modal-content nt-eq-confirm-content";
+
+    const title = document.createElement("h3");
+    title.textContent = "Elimina preset";
 
     const msg = document.createElement("div");
+    msg.className = "nt-eq-confirm-message";
     msg.textContent = message;
-    msg.style.cssText = `font-size: 1.18rem; text-align: center; margin-bottom: 8px; font-weight: 500; letter-spacing: 0.01em;`;
 
     const btnRow = document.createElement("div");
-    btnRow.style.cssText = `display: flex; gap: 22px; margin-top: 8px; justify-content: center; width: 100%;`;
-
-    const btnOk = document.createElement("button");
-    btnOk.textContent = "OK";
-    btnOk.className = "btn btn-danger";
-    btnOk.style.cssText = `
-      min-width: 110px;
-      font-weight: 700;
-      font-size: 1.05rem;
-      border-radius: 100px;
-      padding: 10px 0;
-      background: var(--danger, #e74c3c);
-      color: #fff;
-      border: none;
-      box-shadow: 0 2px 8px #e74c3c22;
-      transition: background 0.18s, box-shadow 0.18s;
-      outline: none;
-      cursor: pointer;
-    `;
-    btnOk.onmouseenter = () => (btnOk.style.background = "#ff5a36");
-    btnOk.onmouseleave = () =>
-      (btnOk.style.background = "var(--danger, #e74c3c)");
-    btnOk.onfocus = () =>
-      (btnOk.style.boxShadow = "0 0 0 2px #fff5, 0 2px 8px #e74c3c22");
-    btnOk.onblur = () => (btnOk.style.boxShadow = "0 2px 8px #e74c3c22");
-    btnOk.onclick = () => {
-      overlay.remove();
-      if (onConfirm) onConfirm();
-    };
+    btnRow.className = "modal-actions nt-eq-confirm-actions";
 
     const btnCancel = document.createElement("button");
     btnCancel.textContent = "Annulla";
-    btnCancel.className = "btn";
-    btnCancel.style.cssText = `
-      min-width: 110px;
-      font-weight: 600;
-      font-size: 1.05rem;
-      border-radius: 100px;
-      padding: 10px 0;
-      background: #fff;
-      color: var(--accent, #6c5ce7);
-      border: none;
-      box-shadow: 0 2px 8px #0001;
-      transition: background 0.18s, color 0.18s;
-      outline: none;
-      cursor: pointer;
-    `;
-    btnCancel.onmouseenter = () => {
-      btnCancel.style.background = "#f3f3fa";
-      btnCancel.style.color = "#232946";
-    };
-    btnCancel.onmouseleave = () => {
-      btnCancel.style.background = "#fff";
-      btnCancel.style.color = "var(--accent, #6c5ce7)";
-    };
-    btnCancel.onfocus = () =>
-      (btnCancel.style.boxShadow = "0 0 0 2px #6c5ce755, 0 2px 8px #0001");
-    btnCancel.onblur = () => (btnCancel.style.boxShadow = "0 2px 8px #0001");
+    btnCancel.className = "btn-cancel nt-eq-confirm-cancel";
     btnCancel.onclick = () => {
       overlay.remove();
       if (onCancel) onCancel();
     };
 
-    btnRow.appendChild(btnOk);
+    const btnOk = document.createElement("button");
+    btnOk.textContent = "OK";
+    btnOk.className = "btn-confirm nt-eq-confirm-ok";
+    btnOk.onclick = () => {
+      overlay.remove();
+      if (onConfirm) onConfirm();
+    };
+
     btnRow.appendChild(btnCancel);
+    btnRow.appendChild(btnOk);
+    modal.appendChild(title);
     modal.appendChild(msg);
     modal.appendChild(btnRow);
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => overlay.classList.add("visible"));
 
     // Focus automatico su OK
     setTimeout(() => btnOk.focus(), 10);
