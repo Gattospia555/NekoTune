@@ -4,7 +4,13 @@ import { storage } from './storage.js';
 
 class Player {
   constructor() {
-    this.audio = document.getElementById('audio-player');
+    this.audioA = document.getElementById('audio-player');
+    this.audioB = new Audio();
+    this.audioB.crossOrigin = 'anonymous';
+    this.audio = this.audioA;
+    
+    this.fadeIntervalA = null;
+    this.fadeIntervalB = null;
     this.currentTrack = null;
     this.currentIndex = -1;
     this.queue = [];
@@ -43,30 +49,146 @@ class Player {
     this.initEqualizer();
   }
 
-  initAudio() {
-    this.audio.volume = this.volume;
+  togglePiP() {
+    this.isPiP = !this.isPiP;
+    const btn = document.getElementById('btn-mini-player');
+    if (btn) btn.classList.toggle('active', this.isPiP);
 
-    this.audio.addEventListener('timeupdate', () => {
+    const overlay = document.getElementById('mini-player-overlay');
+
+    if (window.electronAPI && window.electronAPI.togglePiP) {
+       window.electronAPI.togglePiP(this.isPiP);
+    }
+    
+    if (this.isPiP) {
+       if (overlay) overlay.style.display = 'flex';
+       document.body.classList.add('pip-mode');
+       this.updateMiniPlayerInfo();
+    } else {
+       if (overlay) overlay.style.display = 'none';
+       document.body.classList.remove('pip-mode');
+    }
+  }
+
+  updateMiniPlayerInfo() {
+    const track = this.currentTrack;
+    const titleEl = document.getElementById('mini-player-title');
+    const artistEl = document.getElementById('mini-player-artist');
+    const coverEl = document.getElementById('mini-player-cover');
+    const playBtn = document.getElementById('mini-btn-play');
+
+    if (titleEl) titleEl.textContent = track ? track.title : 'Nessun brano';
+    if (artistEl) artistEl.textContent = track ? track.artist : '\u2014';
+    
+    if (coverEl && track) {
+      const coverUrl = this.getTrackCover(track);
+      coverEl.innerHTML = `<img src="${coverUrl}" alt="${track.title}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+    }
+
+    if (playBtn) {
+      playBtn.querySelector('.material-icons-round').textContent = this.isPlaying ? 'pause' : 'play_arrow';
+    }
+  }
+
+  updateMiniPlayerProgress() {
+    if (!this.isPiP) return;
+    const fill = document.getElementById('mini-player-progress-fill');
+    if (fill && this.audio && this.audio.duration) {
+      const pct = (this.audio.currentTime / this.audio.duration) * 100;
+      fill.style.width = `${pct}%`;
+    }
+    // Also keep play button in sync
+    const playBtn = document.getElementById('mini-btn-play');
+    if (playBtn) {
+      playBtn.querySelector('.material-icons-round').textContent = this.isPlaying ? 'pause' : 'play_arrow';
+    }
+  }
+
+  attachAudioListeners(audioEl) {
+    audioEl.addEventListener('timeupdate', () => {
+      if (this.audio !== audioEl) return; // Ignore background fading out audio
+      
       this.updateProgressBar();
       this.updateMiniPlayerProgress();
-      if (this.onTimeUpdate) this.onTimeUpdate(this.audio.currentTime, this.audio.duration);
+      if (this.onTimeUpdate) this.onTimeUpdate(audioEl.currentTime, audioEl.duration);
+
+      // Check crossfade trigger
+      const crossTime = window.SettingsManager ? window.SettingsManager.getCrossfadeTime() : 5;
+      if (!this.crossfading && crossTime > 0 && audioEl.duration > crossTime * 2) {
+         const timeLeft = audioEl.duration - audioEl.currentTime;
+         if (timeLeft > 0 && timeLeft <= crossTime && this.queue.length > 0 && this.currentIndex < this.queue.length - 1) {
+             this.crossfading = true;
+             this.triggerCrossfadeNext(crossTime);
+         }
+      }
     });
 
-    this.audio.addEventListener('ended', () => {
-      this.handleTrackEnd();
+    audioEl.addEventListener('ended', () => {
+      if (this.audio === audioEl && !this.crossfading) {
+        this.handleTrackEnd();
+      }
     });
 
-    this.audio.addEventListener('loadedmetadata', () => {
-      document.getElementById('player-time-total').textContent = formatTime(this.audio.duration);
+    audioEl.addEventListener('loadedmetadata', () => {
+      if (this.audio === audioEl) {
+        document.getElementById('player-time-total').textContent = formatTime(audioEl.duration);
+      }
     });
 
-    this.audio.addEventListener('error', () => {
-      // If audio fails to load, still allow UI interaction
-      console.warn('Audio failed to load, using fallback');
+    audioEl.addEventListener('error', () => {
+      if (this.audio === audioEl) console.warn('Audio failed to load');
     });
   }
 
+  triggerCrossfadeNext(fadeTime) {
+      // Manual next to prep second audio
+      this.currentIndex = (this.currentIndex + 1) % this.queue.length;
+      
+      const outgoingAudio = this.audio;
+      // Swap audio
+      this.audio = (this.audio === this.audioA) ? this.audioB : this.audioA;
+      
+      const incomingAudio = this.audio;
+      const targetVolume = this.volume;
+      incomingAudio.volume = 0;
+      
+      // Load and play incoming track silently
+      this.loadTrack(this.queue[this.currentIndex], true, true);
+      
+      // Execute the volume transition linearly over 50 steps
+      const steps = 50;
+      const intervalMs = (fadeTime * 1000) / steps;
+      let currentStep = 0;
+      
+      if(this.fadeInterval) clearInterval(this.fadeInterval);
+      this.fadeInterval = setInterval(() => {
+          currentStep++;
+          const ratio = currentStep / steps; // 0 to 1
+          
+          if (!this.isMuted) {
+             try {
+                outgoingAudio.volume = Math.max(0, targetVolume * (1 - ratio));
+                incomingAudio.volume = Math.min(targetVolume, targetVolume * ratio);
+             } catch(e) {}
+          }
+          
+          if (currentStep >= steps) {
+             clearInterval(this.fadeInterval);
+             outgoingAudio.pause();
+             outgoingAudio.currentTime = 0;
+             
+          }
+      }, intervalMs);
+  }
+
+
+  initAudio() {
+    this.attachAudioListeners(this.audioA);
+    this.attachAudioListeners(this.audioB);
+  }
+
   initControls() {
+
     document.getElementById('btn-play').addEventListener('click', () => this.togglePlay());
     document.getElementById('btn-prev').addEventListener('click', () => this.previous());
     document.getElementById('btn-next').addEventListener('click', () => this.next());
@@ -409,7 +531,8 @@ class Player {
       this.volume = percent;
       this.isMuted = false;
       this.audio.volume = percent;
-      this.audio.muted = false;
+      this.audioA.muted = false;
+      this.audioB.muted = false;
       this.updateVolumeUI();
     };
 
@@ -597,7 +720,8 @@ class Player {
             const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             this.volume = pct;
             this.audio.volume = pct;
-            this.audio.muted = false;
+            this.audioA.muted = false;
+      this.audioB.muted = false;
             this.isMuted = false;
             this.updateVolumeUI();
             document.getElementById('mini-volume-fill').style.width = (pct * 100) + '%';
@@ -790,7 +914,7 @@ class Player {
     if (window.nekotune && window.nekotune.lyrics) {
       const lm = window.nekotune.lyrics;
       if (lm.currentLyrics && lm.currentLyrics.length > 0) {
-        // Synced lyrics are loaded — the updateHighlight function will handle live updates
+        // Synced lyrics are loaded Ã¢â‚¬â€ the updateHighlight function will handle live updates
         if (lm.activeLine >= 0 && lm.currentLyrics[lm.activeLine]) {
           content.innerHTML = `<div class="lyrics-line active">${lm.currentLyrics[lm.activeLine].text}</div>`;
         } else {
@@ -887,7 +1011,7 @@ class Player {
     return this.coverCache[track.id];
   }
 
-  async loadTrack(track, autoplay = true) {
+  async loadTrack(track, autoplay = true, isCrossfade = false) {
     this.currentTrack = track;
     
     // Resolve YouTube streams at playback time so the URL doesn't expire
@@ -903,7 +1027,7 @@ class Player {
         } else {
           console.error("YTDL returned null stream");
           if (window.nekotune && window.nekotune.showToast) {
-            window.nekotune.showToast('Brano bloccato per limiti d\'età o non disponibile.', true);
+            window.nekotune.showToast('Brano bloccato per limiti d\'etÃƒÂ  o non disponibile.', true);
           }
           this.pause();
           setTimeout(() => this.next(), 2000);
@@ -931,7 +1055,7 @@ class Player {
       } else {
         if (!navigator.onLine) {
           if (window.nekotune && window.nekotune.showToast) {
-            window.nekotune.showToast('Impossibile riprodurre: questo brano non è scaricato e sei offline.', true);
+            window.nekotune.showToast('Impossibile riprodurre: questo brano non ÃƒÂ¨ scaricato e sei offline.', true);
           }
           return;
         }
@@ -952,7 +1076,7 @@ class Player {
     document.getElementById('player-track-artist').textContent = track.artist;
 
     // Update document title
-    document.title = `${track.title} — ${track.artist} | Nekotune`;
+    document.title = `${track.title} Ã¢â‚¬â€ ${track.artist} | Nekotune`;
 
     // Update favorite button
     this.updateFavoriteButton();
@@ -1025,6 +1149,8 @@ class Player {
     }
     this.isPlaying = true;
     document.getElementById('btn-play').querySelector('.material-icons-round').textContent = 'pause';
+    const pipPlay = document.getElementById('btn-pip-play');
+    if(pipPlay) pipPlay.querySelector('.material-icons-round').textContent = 'pause';
     this.syncMiniPlayer();
     if (this.onPlayStateChange) this.onPlayStateChange(true);
     this.notifyDiscord();
@@ -1034,6 +1160,8 @@ class Player {
     this.audio.pause();
     this.isPlaying = false;
     document.getElementById('btn-play').querySelector('.material-icons-round').textContent = 'play_arrow';
+    const pipPlay = document.getElementById('btn-pip-play');
+    if(pipPlay) pipPlay.querySelector('.material-icons-round').textContent = 'play_arrow';
     this.syncMiniPlayer();
     if (this.onPlayStateChange) this.onPlayStateChange(false);
     this.notifyDiscord();
@@ -1124,9 +1252,11 @@ class Player {
     this.isMuted = !this.isMuted;
     if (this.isMuted) {
       this.previousVolume = this.volume;
-      this.audio.muted = true;
+      this.audioA.muted = true;
+      this.audioB.muted = true;
     } else {
-      this.audio.muted = false;
+      this.audioA.muted = false;
+      this.audioB.muted = false;
     }
     this.updateVolumeUI();
   }
@@ -1239,8 +1369,4 @@ class Player {
 }
 
 export default Player;
-
-
-
-
 

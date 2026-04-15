@@ -1,263 +1,351 @@
-import { createRequire as e } from "node:module";
-import t from "node:path";
-import { fileURLToPath as n } from "node:url";
-import r from "discord-rpc";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import DiscordRPC from "discord-rpc";
 //#region electron/main.js
-var { app: i, BrowserWindow: a, ipcMain: o, globalShortcut: s } = e(import.meta.url)("electron"), c = "1490735964799369409", l, u = !1;
-function d() {
-	let e = () => {
-		l = new r.Client({ transport: "ipc" }), l.on("ready", () => {
-			u = !0, console.log("Discord RPC connesso con successo!"), f("Sfoglia la libreria", "Nekotune Desktop");
-		}), l.on("disconnected", () => {
-			u = !1, console.log("Discord RPC disconnesso, riprovo tra 15 secondi..."), setTimeout(e, 15e3);
-		}), l.login({ clientId: c }).catch((t) => {
-			u = !1, console.log("Discord RPC non connesso (forse Discord è chiuso). Riprovo in background..."), setTimeout(e, 15e3);
+var { app, BrowserWindow, ipcMain, globalShortcut } = createRequire(import.meta.url)("electron");
+var clientId = "1490735964799369409";
+var rpc;
+var rpcConnected = false;
+function initDiscordRPC() {
+	const tryConnect = () => {
+		rpc = new DiscordRPC.Client({ transport: "ipc" });
+		rpc.on("ready", () => {
+			rpcConnected = true;
+			console.log("Discord RPC connesso con successo!");
+			setDiscordActivity("Sfoglia la libreria", "Nekotune Desktop");
+		});
+		rpc.on("disconnected", () => {
+			rpcConnected = false;
+			console.log("Discord RPC disconnesso, riprovo tra 15 secondi...");
+			setTimeout(tryConnect, 15e3);
+		});
+		rpc.login({ clientId }).catch((e) => {
+			rpcConnected = false;
+			console.log("Discord RPC non connesso (forse Discord è chiuso). Riprovo in background...");
+			setTimeout(tryConnect, 15e3);
 		});
 	};
-	e();
+	tryConnect();
 }
-function f(e, t, n = !1, r = 0, i = 0, a = null) {
-	if (!l || !u) return;
-	let o = {
+function setDiscordActivity(details, state, playing = false, currentTimeSeconds = 0, totalDurationSeconds = 0, imageUrl = null) {
+	if (!rpc || !rpcConnected) return;
+	const activity = {
 		type: 2,
-		details: e?.substring(0, 128),
-		state: t?.substring(0, 128),
-		largeImageKey: a && a.startsWith("http") ? a.substring(0, 256) : "nekotune_logo",
+		details: details?.substring(0, 128),
+		state: state?.substring(0, 128),
+		largeImageKey: imageUrl && imageUrl.startsWith("http") ? imageUrl.substring(0, 256) : "nekotune_logo",
 		largeImageText: "Nekotune",
-		instance: !1
+		instance: false
 	};
-	if (n && i > 0) {
-		let e = Date.now();
-		o.startTimestamp = /* @__PURE__ */ new Date(e - r * 1e3), o.endTimestamp = new Date(e + (i - r) * 1e3);
+	if (playing && totalDurationSeconds > 0) {
+		const now = Date.now();
+		activity.startTimestamp = /* @__PURE__ */ new Date(now - currentTimeSeconds * 1e3);
+		activity.endTimestamp = new Date(now + (totalDurationSeconds - currentTimeSeconds) * 1e3);
 	}
-	l.setActivity(o).catch((e) => console.log("Errore setActivity Discord:", e.message));
+	rpc.setActivity(activity).catch((e) => console.log("Errore setActivity Discord:", e.message));
 }
-var p = n(import.meta.url), m = t.dirname(p);
-process.env.DIST = t.join(m, "../dist"), process.env.VITE_PUBLIC = i.isPackaged ? process.env.DIST : t.join(process.env.DIST, "../public");
-var h;
-function g() {
-	h = new a({
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path.dirname(__filename);
+process.env.DIST = path.join(__dirname, "../dist");
+process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
+var win;
+function createWindow() {
+	win = new BrowserWindow({
 		width: 1200,
 		height: 800,
 		minWidth: 900,
 		minHeight: 600,
-		frame: !1,
-		transparent: !0,
+		frame: false,
+		transparent: true,
 		backgroundColor: "#00000000",
-		hasShadow: !1,
-		thickFrame: !1,
-		icon: t.join(m, "../icon.ico"),
+		hasShadow: false,
+		thickFrame: false,
+		icon: path.join(__dirname, "../icon.ico"),
 		webPreferences: {
-			preload: t.join(m, "preload.cjs"),
-			webSecurity: !1
-		}
-	}), h.webContents.on("did-finish-load", () => {
-		h?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-	}), process.env.VITE_DEV_SERVER_URL ? h.loadURL(process.env.VITE_DEV_SERVER_URL) : h.loadFile(t.join(process.env.DIST, "index.html"));
-}
-i.on("window-all-closed", () => {
-	process.platform !== "darwin" && (i.quit(), h = null);
-}), i.whenReady().then(() => {
-	g(), d(), s.register("MediaPlayPause", () => {
-		h.webContents.send("media-play-pause");
-	}), s.register("MediaNextTrack", () => {
-		h.webContents.send("media-next-track");
-	}), s.register("MediaPreviousTrack", () => {
-		h.webContents.send("media-prev-track");
-	}), o.on("window-min", () => h.minimize()), o.on("window-max", () => {
-		h.isMaximized() ? h.restore() : h.maximize();
-	}), o.on("window-close", () => h.close()), o.on("update-discord", (e, { details: t, state: n, playing: r, currentTime: i, totalDuration: a, imageUrl: o }) => {
-		f(t, n, r, i, a, o);
-	}), o.on("toggle-pip", (e, t) => {
-		h && (t ? (h.setMinimumSize(300, 350), h.setAlwaysOnTop(!0, "screen-saver", 1), h.setSize(360, 420)) : (h.setAlwaysOnTop(!1), h.setMinimumSize(900, 600), h.setSize(1200, 800)));
-	}), o.on("resize-pip", (e, t, n) => {
-		h && h.isAlwaysOnTop() && h.setSize(t, n);
-	}), o.handle("search-youtube", async (e, t, n = 10) => {
-		try {
-			let { default: e } = await import("ytmusic-api"), r = new e();
-			return await r.initialize(), (await r.searchSongs(t)).slice(0, n).map((e) => ({
-				id: e.videoId,
-				title: e.name,
-				artist: e.artist ? e.artist.name : e.artists ? e.artists.map((e) => e.name).join(", ") : "Sconosciuto",
-				artistId: e.artist?.artistId || e.artists?.[0]?.artistId || null,
-				duration: e.duration,
-				cover: e.thumbnails && e.thumbnails.length > 0 ? e.thumbnails[e.thumbnails.length - 1].url : ""
-			}));
-		} catch (e) {
-			return console.error("YTMusic Search Error:", e), [];
-		}
-	}), o.handle("get-artist-details", async (e, t) => {
-		try {
-			let { default: e } = await import("ytmusic-api"), n = new e();
-			return await n.initialize(), await n.getArtist(t);
-		} catch (e) {
-			return console.error("YTMusic Get Artist Error:", e), null;
-		}
-	}), o.handle("search-artists", async (e, t, n = 5) => {
-		try {
-			let { default: e } = await import("ytmusic-api"), r = new e();
-			return await r.initialize(), (await r.searchArtists(t)).slice(0, n);
-		} catch (e) {
-			return console.error("YTMusic Search Artists Error:", e), [];
-		}
-	}), o.handle("get-stream-url", async (e, t, n = "bestaudio") => {
-		try {
-			let e = await import("youtube-dl-exec"), r = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
-				getUrl: !0,
-				format: n,
-				cookiesFromBrowser: "chrome"
-			});
-			return (typeof r == "string" ? r : String(r)).trim().split("\n").pop().trim();
-		} catch {
-			try {
-				let e = await import("youtube-dl-exec"), r = await (e.default || e)(`https://www.youtube.com/watch?v=${t}`, {
-					getUrl: !0,
-					format: n
-				});
-				return (typeof r == "string" ? r : String(r)).trim().split("\n").pop().trim();
-			} catch (e) {
-				return console.error("Youtube-dl Error:", e.message || e), null;
-			}
-		}
-	}), o.handle("parse-spotify-url", async (e, t) => {
-		try {
-			let e = await import("spotify-url-info"), n = await (e.default || e)(fetch).getDetails(t);
-			if (!n) return [];
-			if (n.type === "track" || !n.tracks && n.preview) return [{
-				title: n.title || n.preview?.title || "Unknown",
-				artist: n.artist || n.preview?.artist || "Unknown",
-				album: n.preview?.title || "Spotify",
-				duration: Math.floor((n.duration || n.duration_ms || 0) / 1e3),
-				cover: n.preview?.image || n.coverArt?.sources?.[0]?.url || ""
-			}];
-			if (!n.tracks || n.tracks.length === 0) return [];
-			let r = n.preview?.image || n.coverArt?.sources?.[0]?.url || "";
-			return n.tracks.slice(0, 50).map((e) => ({
-				title: e.name || e.title || "Unknown",
-				artist: e.artist || (e.artists ? e.artists.map((e) => e.name).join(", ") : "Sconosciuto"),
-				album: e.album?.name || n.preview?.title || "Spotify Import",
-				duration: Math.floor((e.duration || e.duration_ms || 0) / 1e3),
-				cover: e.coverArt?.sources?.[0]?.url || e.album?.images?.[0]?.url || r
-			}));
-		} catch (e) {
-			return console.error("Spotify import error:", e), [];
+			preload: path.join(__dirname, "preload.cjs"),
+			webSecurity: false
 		}
 	});
-	let e = "c8fc37223834481f9c7fd3637b821ba2", t = "https://gwpkfsnwrzzluxlekgms.supabase.co/auth/v1/callback";
-	function n(e) {
-		let t = "";
-		for (let n = 0; n < e; n++) t += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~".charAt(Math.floor(Math.random() * 66));
-		return t;
+	win.webContents.on("did-finish-load", () => {
+		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+	});
+	if (process.env.VITE_DEV_SERVER_URL) win.loadURL(process.env.VITE_DEV_SERVER_URL);
+	else win.loadFile(path.join(process.env.DIST, "index.html"));
+}
+app.on("window-all-closed", () => {
+	if (process.platform !== "darwin") {
+		app.quit();
+		win = null;
 	}
-	async function r(e) {
-		return (await import("node:crypto")).createHash("sha256").update(e).digest().toString("base64url");
+});
+app.whenReady().then(() => {
+	createWindow();
+	initDiscordRPC();
+	globalShortcut.register("MediaPlayPause", () => {
+		win.webContents.send("media-play-pause");
+	});
+	globalShortcut.register("MediaNextTrack", () => {
+		win.webContents.send("media-next-track");
+	});
+	globalShortcut.register("MediaPreviousTrack", () => {
+		win.webContents.send("media-prev-track");
+	});
+	ipcMain.on("window-min", () => win.minimize());
+	ipcMain.on("window-max", () => {
+		if (win.isMaximized()) win.restore();
+		else win.maximize();
+	});
+	ipcMain.on("window-close", () => win.close());
+	ipcMain.on("update-discord", (event, { details, state, playing, currentTime, totalDuration, imageUrl }) => {
+		setDiscordActivity(details, state, playing, currentTime, totalDuration, imageUrl);
+	});
+	ipcMain.on("toggle-pip", (event, enable) => {
+		if (!win) return;
+		if (enable) {
+			win.setMinimumSize(300, 350);
+			win.setAlwaysOnTop(true, "screen-saver", 1);
+			win.setSize(360, 420);
+		} else {
+			win.setAlwaysOnTop(false);
+			win.setMinimumSize(900, 600);
+			win.setSize(1200, 800);
+		}
+	});
+	ipcMain.on("resize-pip", (event, width, height) => {
+		if (!win) return;
+		if (win.isAlwaysOnTop()) win.setSize(width, height);
+	});
+	ipcMain.handle("search-youtube", async (event, query, limit = 10) => {
+		try {
+			const { default: YTMusic } = await import("ytmusic-api");
+			const ytmusic = new YTMusic();
+			await ytmusic.initialize();
+			return (await ytmusic.searchSongs(query)).slice(0, limit).map((v) => ({
+				id: v.videoId,
+				title: v.name,
+				artist: v.artist ? v.artist.name : v.artists ? v.artists.map((a) => a.name).join(", ") : "Sconosciuto",
+				artistId: v.artist?.artistId || v.artists?.[0]?.artistId || null,
+				duration: v.duration,
+				cover: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url : ""
+			}));
+		} catch (e) {
+			console.error("YTMusic Search Error:", e);
+			return [];
+		}
+	});
+	ipcMain.handle("get-artist-details", async (event, artistId) => {
+		try {
+			const { default: YTMusic } = await import("ytmusic-api");
+			const ytmusic = new YTMusic();
+			await ytmusic.initialize();
+			return await ytmusic.getArtist(artistId);
+		} catch (e) {
+			console.error("YTMusic Get Artist Error:", e);
+			return null;
+		}
+	});
+	ipcMain.handle("search-artists", async (event, query, limit = 5) => {
+		try {
+			const { default: YTMusic } = await import("ytmusic-api");
+			const ytmusic = new YTMusic();
+			await ytmusic.initialize();
+			return (await ytmusic.searchArtists(query)).slice(0, limit);
+		} catch (e) {
+			console.error("YTMusic Search Artists Error:", e);
+			return [];
+		}
+	});
+	ipcMain.handle("get-stream-url", async (event, videoId, quality = "bestaudio") => {
+		try {
+			const ytdlModule = await import("youtube-dl-exec");
+			const url = await (ytdlModule.default || ytdlModule)(`https://www.youtube.com/watch?v=${videoId}`, {
+				getUrl: true,
+				format: quality,
+				cookiesFromBrowser: "chrome"
+			});
+			return (typeof url === "string" ? url : String(url)).trim().split("\n").pop().trim();
+		} catch (e) {
+			try {
+				const ytdlModule = await import("youtube-dl-exec");
+				const url = await (ytdlModule.default || ytdlModule)(`https://www.youtube.com/watch?v=${videoId}`, {
+					getUrl: true,
+					format: quality
+				});
+				return (typeof url === "string" ? url : String(url)).trim().split("\n").pop().trim();
+			} catch (e2) {
+				console.error("Youtube-dl Error:", e2.message || e2);
+				return null;
+			}
+		}
+	});
+	ipcMain.handle("parse-spotify-url", async (event, url) => {
+		try {
+			const spotifyModule = await import("spotify-url-info");
+			const data = await (spotifyModule.default || spotifyModule)(fetch).getDetails(url);
+			if (!data) return [];
+			if (data.type === "track" || !data.tracks && data.preview) return [{
+				title: data.title || data.preview?.title || "Unknown",
+				artist: data.artist || data.preview?.artist || "Unknown",
+				album: data.preview?.title || "Spotify",
+				duration: Math.floor((data.duration || data.duration_ms || 0) / 1e3),
+				cover: data.preview?.image || data.coverArt?.sources?.[0]?.url || ""
+			}];
+			if (!data.tracks || data.tracks.length === 0) return [];
+			const albumCover = data.preview?.image || data.coverArt?.sources?.[0]?.url || "";
+			return data.tracks.slice(0, 50).map((t) => ({
+				title: t.name || t.title || "Unknown",
+				artist: t.artist || (t.artists ? t.artists.map((a) => a.name).join(", ") : "Sconosciuto"),
+				album: t.album?.name || data.preview?.title || "Spotify Import",
+				duration: Math.floor((t.duration || t.duration_ms || 0) / 1e3),
+				cover: t.coverArt?.sources?.[0]?.url || t.album?.images?.[0]?.url || albumCover
+			}));
+		} catch (e) {
+			console.error("Spotify import error:", e);
+			return [];
+		}
+	});
+	const SPOTIFY_CLIENT_ID = "c8fc37223834481f9c7fd3637b821ba2";
+	const SPOTIFY_REDIRECT_URI = "https://gwpkfsnwrzzluxlekgms.supabase.co/auth/v1/callback";
+	const SPOTIFY_SCOPES = "playlist-read-private playlist-read-collaborative user-library-read";
+	function generateRandomString(length) {
+		const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+		let text = "";
+		for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * 66));
+		return text;
 	}
-	o.handle("spotify-auth", async () => {
-		let i = n(128), o = await r(i);
-		return new Promise((n, r) => {
-			let s = `https://accounts.spotify.com/authorize?client_id=${e}&response_type=code&redirect_uri=https%3A%2F%2Fgwpkfsnwrzzluxlekgms.supabase.co%2Fauth%2Fv1%2Fcallback&scope=playlist-read-private%20playlist-read-collaborative%20user-library-read&code_challenge_method=S256&code_challenge=${o}&show_dialog=true`, c = new a({
+	async function generateCodeChallenge(verifier) {
+		return (await import("node:crypto")).createHash("sha256").update(verifier).digest().toString("base64url");
+	}
+	ipcMain.handle("spotify-auth", async () => {
+		const codeVerifier = generateRandomString(128);
+		const codeChallenge = await generateCodeChallenge(codeVerifier);
+		return new Promise((resolve, reject) => {
+			const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT_URI)}&scope=${encodeURIComponent(SPOTIFY_SCOPES)}&code_challenge_method=S256&code_challenge=${codeChallenge}&show_dialog=true`;
+			const authWin = new BrowserWindow({
 				width: 500,
 				height: 750,
-				show: !0,
-				parent: h,
-				modal: !0,
+				show: true,
+				parent: win,
+				modal: true,
 				webPreferences: {
-					nodeIntegration: !1,
-					contextIsolation: !0
+					nodeIntegration: false,
+					contextIsolation: true
 				}
-			}), l = !1;
-			c.loadURL(s), c.webContents.on("will-redirect", (e, t) => {
-				u(e, t);
-			}), c.webContents.on("will-navigate", (e, t) => {
-				u(e, t);
 			});
-			async function u(a, o) {
-				if (!o.startsWith(t) || l) return;
-				a.preventDefault(), l = !0;
-				let s = new URL(o), u = s.searchParams.get("code"), d = s.searchParams.get("error");
-				if (d) {
-					r(/* @__PURE__ */ Error(`Spotify auth error: ${d}`)), c.close();
+			let resolved = false;
+			authWin.loadURL(authUrl);
+			authWin.webContents.on("will-redirect", (event, url) => {
+				handleCallback(event, url);
+			});
+			authWin.webContents.on("will-navigate", (event, url) => {
+				handleCallback(event, url);
+			});
+			async function handleCallback(event, url) {
+				if (!url.startsWith(SPOTIFY_REDIRECT_URI) || resolved) return;
+				event.preventDefault();
+				resolved = true;
+				const urlObj = new URL(url);
+				const code = urlObj.searchParams.get("code");
+				const error = urlObj.searchParams.get("error");
+				if (error) {
+					reject(/* @__PURE__ */ new Error(`Spotify auth error: ${error}`));
+					authWin.close();
 					return;
 				}
-				if (!u) {
-					r(/* @__PURE__ */ Error("No authorization code received")), c.close();
+				if (!code) {
+					reject(/* @__PURE__ */ new Error("No authorization code received"));
+					authWin.close();
 					return;
 				}
 				try {
-					let a = await (await fetch("https://accounts.spotify.com/api/token", {
+					const tokenData = await (await fetch("https://accounts.spotify.com/api/token", {
 						method: "POST",
 						headers: { "Content-Type": "application/x-www-form-urlencoded" },
 						body: new URLSearchParams({
-							client_id: e,
+							client_id: SPOTIFY_CLIENT_ID,
 							grant_type: "authorization_code",
-							code: u,
-							redirect_uri: t,
-							code_verifier: i
+							code,
+							redirect_uri: SPOTIFY_REDIRECT_URI,
+							code_verifier: codeVerifier
 						})
 					})).json();
-					a.access_token ? n(a.access_token) : r(Error(a.error_description || "Token exchange failed"));
+					if (tokenData.access_token) resolve(tokenData.access_token);
+					else reject(new Error(tokenData.error_description || "Token exchange failed"));
 				} catch (e) {
-					r(/* @__PURE__ */ Error("Token exchange failed: " + e.message));
+					reject(/* @__PURE__ */ new Error("Token exchange failed: " + e.message));
 				}
-				c.close();
+				authWin.close();
 			}
-			c.on("closed", () => {
-				l || r(/* @__PURE__ */ Error("Auth window was closed"));
+			authWin.on("closed", () => {
+				if (!resolved) reject(/* @__PURE__ */ new Error("Auth window was closed"));
 			});
 		});
-	}), o.handle("spotify-get-playlists", async (e, t) => {
+	});
+	ipcMain.handle("spotify-get-playlists", async (event, token) => {
 		try {
-			let e = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", { headers: { Authorization: `Bearer ${t}` } });
-			if (!e.ok) throw Error(`Spotify API error: ${e.status}`);
-			return ((await e.json()).items || []).map((e) => ({
-				id: e.id,
-				name: e.name,
-				description: e.description || "",
-				trackCount: e.tracks?.total || 0,
-				cover: e.images?.[0]?.url || "",
-				owner: e.owner?.display_name || "Unknown",
-				isPublic: e.public
+			const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", { headers: { "Authorization": `Bearer ${token}` } });
+			if (!res.ok) throw new Error(`Spotify API error: ${res.status}`);
+			return ((await res.json()).items || []).map((p) => ({
+				id: p.id,
+				name: p.name,
+				description: p.description || "",
+				trackCount: p.tracks?.total || 0,
+				cover: p.images?.[0]?.url || "",
+				owner: p.owner?.display_name || "Unknown",
+				isPublic: p.public
 			}));
 		} catch (e) {
-			return console.error("Spotify get playlists error:", e), [];
+			console.error("Spotify get playlists error:", e);
+			return [];
 		}
-	}), o.handle("spotify-get-playlist-tracks", async (e, t, n) => {
+	});
+	ipcMain.handle("spotify-get-playlist-tracks", async (event, token, playlistId) => {
 		try {
-			let e = [], r = `https://api.spotify.com/v1/playlists/${n}/tracks?limit=100`;
-			for (; r;) {
-				let n = await fetch(r, { headers: { Authorization: `Bearer ${t}` } });
-				if (!n.ok) throw Error(`Spotify API error: ${n.status}`);
-				let i = await n.json(), a = (i.items || []).filter((e) => e.track && e.track.type === "track").map((e) => ({
-					title: e.track.name,
-					artist: e.track.artists?.map((e) => e.name).join(", ") || "Sconosciuto",
-					album: e.track.album?.name || "Unknown",
-					duration: Math.floor((e.track.duration_ms || 0) / 1e3),
-					cover: e.track.album?.images?.[0]?.url || ""
+			let allTracks = [];
+			let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+			while (url) {
+				const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+				if (!res.ok) throw new Error(`Spotify API error: ${res.status}`);
+				const data = await res.json();
+				const tracks = (data.items || []).filter((item) => item.track && item.track.type === "track").map((item) => ({
+					title: item.track.name,
+					artist: item.track.artists?.map((a) => a.name).join(", ") || "Sconosciuto",
+					album: item.track.album?.name || "Unknown",
+					duration: Math.floor((item.track.duration_ms || 0) / 1e3),
+					cover: item.track.album?.images?.[0]?.url || ""
 				}));
-				e = e.concat(a), r = i.next;
+				allTracks = allTracks.concat(tracks);
+				url = data.next;
 			}
-			return e;
+			return allTracks;
 		} catch (e) {
-			return console.error("Spotify get playlist tracks error:", e), [];
+			console.error("Spotify get playlist tracks error:", e);
+			return [];
 		}
-	}), o.handle("spotify-get-liked-songs", async (e, t) => {
+	});
+	ipcMain.handle("spotify-get-liked-songs", async (event, token) => {
 		try {
-			let e = [], n = "https://api.spotify.com/v1/me/tracks?limit=50";
-			for (; n;) {
-				let r = await fetch(n, { headers: { Authorization: `Bearer ${t}` } });
-				if (!r.ok) throw Error(`Spotify API error: ${r.status}`);
-				let i = await r.json(), a = (i.items || []).filter((e) => e.track).map((e) => ({
-					title: e.track.name,
-					artist: e.track.artists?.map((e) => e.name).join(", ") || "Sconosciuto",
-					album: e.track.album?.name || "Unknown",
-					duration: Math.floor((e.track.duration_ms || 0) / 1e3),
-					cover: e.track.album?.images?.[0]?.url || ""
+			let allTracks = [];
+			let url = "https://api.spotify.com/v1/me/tracks?limit=50";
+			while (url) {
+				const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+				if (!res.ok) throw new Error(`Spotify API error: ${res.status}`);
+				const data = await res.json();
+				const tracks = (data.items || []).filter((item) => item.track).map((item) => ({
+					title: item.track.name,
+					artist: item.track.artists?.map((a) => a.name).join(", ") || "Sconosciuto",
+					album: item.track.album?.name || "Unknown",
+					duration: Math.floor((item.track.duration_ms || 0) / 1e3),
+					cover: item.track.album?.images?.[0]?.url || ""
 				}));
-				e = e.concat(a), n = i.next;
+				allTracks = allTracks.concat(tracks);
+				url = data.next;
 			}
-			return e;
+			return allTracks;
 		} catch (e) {
-			return console.error("Spotify get liked songs error:", e), [];
+			console.error("Spotify get liked songs error:", e);
+			return [];
 		}
 	});
 });
