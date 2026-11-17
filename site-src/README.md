@@ -15,5 +15,5 @@ npm install
 npm run build
 ```
 
-Testi e stile della pagina sono in `docs/index.html` e `docs/room.css`.
+Testi e stile della pagina sono in `docs/index.html` e `docs/room.css`. Dopo ogni modifica di `room.css` o `room.js` aumentare il numero `?v=` in `docs/index.html`, altrimenti i browser tengono la versione vecchia.
 Aggiungendo `?p=2` all'indirizzo la telecamera resta ferma sul capitolo 2 (utile per gli screenshot).
