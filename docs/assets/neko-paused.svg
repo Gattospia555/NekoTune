@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="neko-mascot neko-mascot--paused " viewBox="0 0 260 262" width="260" height="260" aria-hidden="true" focusable="false"><ellipse cx="124" cy="242" rx="84" ry="6" fill="#F28A5B" opacity=".14"/><path d="M80 236 C64 236 60 212 64 194 C70 166 86 148 122 148 C158 148 174 166 180 194 C184 212 180 236 164 236 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M106 196 L106 230 M138 196 L138 230" fill="none" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="104" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="140" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M168 230 C196 232 204 246 184 251 C154 257 98 256 72 250" fill="none" stroke="#F28A5B" stroke-width="16" stroke-linecap="round"/>
+<path d="M168 230 C196 232 204 246 184 251 C154 257 98 256 72 250" fill="none" stroke="#FFB37E" stroke-width="5" stroke-linecap="round"/>
+<circle cx="70" cy="249" r="9" fill="#F28A5B"/><g class="neko-head neko-head--sleep">
+<path d="M58 118 C54 92 64 74 78 66 L82 34 L108 56 C116 54 128 54 136 56 L162 34 L166 66 C180 74 190 92 186 118 C182 146 156 162 122 162 C88 162 62 146 58 118 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M92 112 Q100 119 108 112" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/><path d="M136 112 Q144 119 152 112" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/>
+<path d="M118 122 L126 122 L122 126 Z" fill="#2B1D16" stroke="#2B1D16" stroke-width="2" stroke-linejoin="round"/>
+<path d="M113 128 Q117.5 134 122 128 Q126.5 134 131 128" fill="none" stroke="#2B1D16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="86" cy="130" r="5" fill="#FF8F7A" opacity=".45"/><circle cx="158" cy="130" r="5" fill="#FF8F7A" opacity=".45"/>
+<path d="M78 121 L56 117 M78 128 L56 131 M166 121 L188 117 M166 128 L188 131" stroke="#B5654A" stroke-width="2.4" stroke-linecap="round"/>
+</g><path class="neko-float neko-float--slow" d="M196 70 h16 l-16 18 h16" fill="none" stroke="#9B7FC4" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="neko-float neko-float--slow neko-float--2" d="M216 38 h11 l-11 12 h11" fill="none" stroke="#BCA0DC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>

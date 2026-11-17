@@ -371,3 +371,118 @@ export function createMonitorScreen() {
   }
   return { texture, draw };
 }
+
+/** Light wooden floor boards. */
+export function floorTexture() {
+  const S = 1024;
+  const [c, g] = canvas(S, S);
+  const boards = 8;
+  const h = S / boards;
+  const tones = ["#F3DCC4", "#EFD5BB", "#F6E2CD", "#EBD0B5"];
+  for (let i = 0; i < boards; i++) {
+    let x = -((i * 173) % 400);
+    while (x < S) {
+      const w = 380 + ((i * 97 + x) % 220);
+      g.fillStyle = tones[(i + Math.floor(x / 97)) % tones.length];
+      g.fillRect(x, i * h, w, h);
+      // grain
+      g.strokeStyle = "rgba(150,100,70,.07)";
+      g.lineWidth = 2;
+      for (let k = 0; k < 5; k++) {
+        g.beginPath();
+        const yy = i * h + 12 + k * (h / 5);
+        g.moveTo(x, yy);
+        g.bezierCurveTo(x + w * 0.3, yy - 6, x + w * 0.6, yy + 6, x + w, yy);
+        g.stroke();
+      }
+      g.fillStyle = "rgba(120,80,60,.18)";
+      g.fillRect(x + w - 3, i * h, 3, h);
+      x += w;
+    }
+    g.fillStyle = "rgba(120,80,60,.16)";
+    g.fillRect(0, i * h + h - 3, S, 3);
+  }
+  const t = tex(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/** What you see through the window. night = false for day. */
+export function skyTexture(night) {
+  const W = 512;
+  const H = 400;
+  const [c, g] = canvas(W, H);
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  if (night) {
+    sky.addColorStop(0, "#1B1430");
+    sky.addColorStop(1, "#4A3480");
+  } else {
+    sky.addColorStop(0, "#BFA8EA");
+    sky.addColorStop(0.7, "#F6D3E4");
+    sky.addColorStop(1, "#FFD9BF");
+  }
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+  if (night) {
+    g.fillStyle = "#fff";
+    for (let i = 0; i < 70; i++) {
+      const r = (i % 7 === 0 ? 2.2 : 1.2);
+      g.globalAlpha = 0.4 + ((i * 37) % 60) / 100;
+      g.beginPath();
+      g.arc((i * 131) % W, (i * 71) % (H * 0.75), r, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+    g.fillStyle = "#FFF4DA";
+    g.beginPath();
+    g.arc(W * 0.72, H * 0.28, 34, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#1F1735";
+    g.beginPath();
+    g.arc(W * 0.75, H * 0.25, 30, 0, Math.PI * 2);
+    g.fill();
+  } else {
+    g.fillStyle = "rgba(255,255,255,.85)";
+    [[90, 110, 1], [330, 70, 1.3], [420, 180, 0.8]].forEach(([x, y, s]) => {
+      g.beginPath();
+      g.ellipse(x, y, 52 * s, 18 * s, 0, 0, Math.PI * 2);
+      g.ellipse(x - 26 * s, y + 6 * s, 30 * s, 14 * s, 0, 0, Math.PI * 2);
+      g.ellipse(x + 30 * s, y + 4 * s, 34 * s, 15 * s, 0, 0, Math.PI * 2);
+      g.fill();
+    });
+    g.fillStyle = "#FFE7C4";
+    g.beginPath();
+    g.arc(W * 0.22, H * 0.66, 30, 0, Math.PI * 2);
+    g.fill();
+  }
+  // city roofs at the bottom
+  g.fillStyle = night ? "#2A2050" : "#C9B1E6";
+  let x = 0;
+  let k = 0;
+  while (x < W) {
+    const w = 40 + ((k * 53) % 50);
+    const hh = 40 + ((k * 31) % 60);
+    g.fillRect(x, H - hh, w - 6, hh);
+    if (night) {
+      g.fillStyle = "#FFD58A";
+      for (let wy = H - hh + 10; wy < H - 8; wy += 16)
+        for (let wx = x + 6; wx < x + w - 14; wx += 12) if ((wx * 7 + wy * 3 + k) % 5 === 0) g.fillRect(wx, wy, 5, 7);
+      g.fillStyle = "#2A2050";
+    }
+    x += w;
+    k++;
+  }
+  return tex(c);
+}
+
+/** Soft round glow for lights. */
+export function glowTexture(color) {
+  const [c, g] = canvas(128, 128);
+  const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, color);
+  r.addColorStop(0.25, color.replace(")", ",0.55)").replace("rgb", "rgba"));
+  r.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = r;
+  g.fillRect(0, 0, 128, 128);
+  return tex(c);
+}
