@@ -3,6 +3,13 @@
 // to the next corner of the room. Press play and the room comes alive.
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { createCat } from "./cat.js";
 import { LofiBand, TRACKS } from "./audio.js";
 import {
@@ -98,7 +105,7 @@ document.addEventListener("visibilitychange", () => {
 // chapter is pinned the camera holds on its corner of the room (p = i, with
 // a slow drift); between two chapters it travels (p goes from i to i + 1).
 const chapters = [...document.querySelectorAll("[data-chapter]")];
-const rail = [...document.querySelectorAll(".rail a")];
+const rail = [...document.querySelectorAll(".tracks a")];
 let pins = [];
 function measure() {
   pins = chapters.map((el) => {
@@ -145,18 +152,63 @@ function updateCopies() {
 const forceP = new URLSearchParams(location.search).has("p") ? Number(new URLSearchParams(location.search).get("p")) : null;
 
 function buildScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
+  const DAY_BG = new THREE.Color("#F3EEFB");
+  const NIGHT_BG = new THREE.Color("#1E1733");
+  scene.background = DAY_BG.clone();
+  // soft studio reflections on glossy plastic and fabric
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.22;
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 90);
 
+  // post-processing: ambient occlusion, bloom on the lights, tone mapping,
+  // a little film grain. It steps down by itself on slow computers.
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  // the AO pass looks through a twin camera that ignores sprites and dust
+  // (layer 1): their square quads would otherwise show up as dark blocks
+  camera.layers.enable(1);
+  const aoCamera = camera.clone();
+  aoCamera.layers.set(0);
+  const gtao = new GTAOPass(scene, aoCamera, 2, 2);
+  gtao.updateGtaoMaterial({ radius: 0.65, distanceExponent: 1.4, thickness: 1.6, scale: 1.15, samples: 12 });
+  gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 5 });
+  gtao.blendIntensity = 1.0;
+  composer.addPass(gtao);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(2, 2), 0.55, 0.6, 1.8);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  const grain = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, time: { value: 0 }, amount: { value: 0.03 } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform sampler2D tDiffuse; uniform float time; uniform float amount; varying vec2 vUv;
+      float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898, 78.233)) + time) * 43758.5453); }
+      void main() { vec4 c = texture2D(tDiffuse, vUv); c.rgb += (rand(vUv * 1000.0) - 0.5) * amount; gl_FragColor = c; }`,
+  });
+  composer.addPass(grain);
+  const forceQ = new URLSearchParams(location.search).get("q");
+  let quality = forceQ != null ? Number(forceQ) : innerWidth < 820 || (navigator.deviceMemory && navigator.deviceMemory < 4) ? 1 : 2;
+  const perf = { frames: 0, time: 0, checks: 0 };
+  function applyQuality() {
+    gtao.enabled = quality >= 2;
+    bloom.enabled = quality >= 1;
+  }
+  applyQuality();
+
   const mat = (color, rough = 0.75, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0, ...extra });
+  // fabric: soft sheen at grazing angles; gloss: lacquered plastic
+  const fabric = (color, sheenColor = "#ffffff") =>
+    new THREE.MeshPhysicalMaterial({ color, roughness: 0.92, sheen: 0.7, sheenRoughness: 0.7, sheenColor: new THREE.Color(sheenColor) });
+  const gloss = (color, rough = 0.32) => new THREE.MeshPhysicalMaterial({ color, roughness: rough, clearcoat: 0.8, clearcoatRoughness: 0.18 });
   const shadowy = (o) => {
     o.traverse((m) => {
       if (m.isMesh) {
@@ -167,7 +219,8 @@ function buildScene(canvas) {
     return o;
   };
   const box = (w, h, d, color, r = 0.04, rough = 0.75) => {
-    const m = new THREE.Mesh(r > 0 ? new RoundedBoxGeometry(w, h, d, 3, r) : new THREE.BoxGeometry(w, h, d), mat(color, rough));
+    const material = typeof color === "string" ? mat(color, rough) : color;
+    const m = new THREE.Mesh(r > 0 ? new RoundedBoxGeometry(w, h, d, 3, r) : new THREE.BoxGeometry(w, h, d), material);
     m.castShadow = m.receiveShadow = true;
     return m;
   };
@@ -180,14 +233,14 @@ function buildScene(canvas) {
   };
 
   // ---------------------------------------------------------------- lights
-  const hemi = new THREE.HemisphereLight("#ffffff", "#D8C6F2", 1.15);
+  const hemi = new THREE.HemisphereLight("#ffffff", "#C9B4EC", 0.78);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight("#FFF1E6", 2.3);
+  const sun = new THREE.DirectionalLight("#FFF1E6", 2.8);
   sun.position.set(6, 9, 7);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
-  sun.shadow.bias = -0.0006;
+  sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.02;
   scene.add(sun);
   const windowLight = new THREE.PointLight("#FFD9BF", 1.2, 9, 1.6);
@@ -207,12 +260,12 @@ function buildScene(canvas) {
   at(box(2 * R + 0.5, 0.55, 2 * R + 0.5, "#CDB8EE", 0.16, 0.9), 0, -0.28, 0);
   const floorTex = floorTexture();
   floorTex.repeat.set(1.6, 1.6);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(2 * R, 2 * R), mat("#ffffff", 0.8, { map: floorTex }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(2 * R, 2 * R), new THREE.MeshPhysicalMaterial({ color: "#ffffff", roughness: 0.62, map: floorTex, clearcoat: 0.35, clearcoatRoughness: 0.45 }));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   at(floor, 0, 0.004, 0);
 
-  const wallColor = "#EEE5FA";
+  const wallColor = "#EAE0F8";
   at(box(2 * R + 0.3, WALL_H, 0.3, wallColor, 0.03, 0.95), 0, WALL_H / 2, -R - 0.15);
   at(box(0.3, WALL_H, 2 * R + 0.3, wallColor, 0.03, 0.95), -R - 0.15, WALL_H / 2, 0);
   // lower panels and skirting
@@ -233,7 +286,7 @@ function buildScene(canvas) {
     at(box(w, h, 0.12, "#FFFFFF", 0.02), x, y, 0.06, win)
   );
   at(box(3.1, 0.1, 0.36, "#FFFFFF", 0.03), 0, -1.13, 0.16, win); // sill
-  const curtainMat = mat("#FFC9A8", 0.95);
+  const curtainMat = fabric("#FFC9A8");
   [-1, 1].forEach((s) => {
     const cur = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 2.7, 16, 1, false, 0, Math.PI), curtainMat);
     cur.scale.set(1, 1, 0.45);
@@ -312,6 +365,7 @@ function buildScene(canvas) {
         const m = new THREE.Mesh(bulbGeo, new THREE.MeshStandardMaterial({ color: bulbCols[k], emissive: bulbCols[k], emissiveIntensity: 0.6, roughness: 0.4 }));
         at(m, p.x, p.y - 0.06, p.z);
         const g = new THREE.Sprite(glowMats[k]);
+        g.layers.set(1);
         g.scale.setScalar(0.55);
         at(g, p.x, p.y - 0.06, p.z);
         bulbs.push({ m, g });
@@ -340,7 +394,7 @@ function buildScene(canvas) {
   });
 
   // rug and cushions
-  const rug = new THREE.Mesh(new THREE.CircleGeometry(2.25, 64), mat("#D9C9F5", 0.98));
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(2.25, 64), fabric("#D9C9F5"));
   rug.rotation.x = -Math.PI / 2;
   rug.receiveShadow = true;
   at(rug, 0.3, 0.012, 0.9);
@@ -348,7 +402,7 @@ function buildScene(canvas) {
   rugRing.rotation.x = -Math.PI / 2;
   at(rugRing, 0.3, 0.016, 0.9);
   const cushion = (x, z, color) => {
-    const c = new THREE.Mesh(new THREE.SphereGeometry(0.85, 48, 24), mat(color, 0.95));
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.85, 48, 24), fabric(color));
     c.scale.set(1, 0.22, 1);
     c.castShadow = c.receiveShadow = true;
     return at(c, x, 0.1, z);
@@ -359,7 +413,7 @@ function buildScene(canvas) {
   // console with the turntable, under the window
   const consoleG = new THREE.Group();
   at(consoleG, -0.9, 0, -R + 0.62);
-  at(box(3.0, 0.72, 0.95, "#FFF8F1", 0.06, 0.6), 0, 0.42, 0, consoleG);
+  at(box(3.0, 0.72, 0.95, gloss("#FFF8F1", 0.5), 0.06), 0, 0.42, 0, consoleG);
   [-1.3, 1.3].forEach((x) => [-0.35, 0.35].forEach((z) => at(box(0.07, 0.1, 0.07, "#C9B6EC", 0.02), x, 0.04, z, consoleG)));
   [-0.75, 0.75].forEach((x) => {
     at(box(1.38, 0.56, 0.03, "#F4ECFC", 0.02), x, 0.42, 0.48, consoleG);
@@ -367,7 +421,7 @@ function buildScene(canvas) {
   });
   const deck = new THREE.Group();
   at(deck, -0.35, 0.78, 0.02, consoleG);
-  at(box(1.45, 0.16, 1.05, "#FFFFFF", 0.06, 0.5), 0, 0.08, 0, deck);
+  at(box(1.45, 0.16, 1.05, gloss("#FFFFFF"), 0.06), 0, 0.08, 0, deck);
   const platter = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.04, 64), mat("#3A3054", 0.5));
   platter.castShadow = true;
   at(platter, -0.17, 0.18, 0, deck);
@@ -384,7 +438,7 @@ function buildScene(canvas) {
   const led = at(new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 8), new THREE.MeshBasicMaterial({ color: "#9C7BD6" })), 0.5, 0.16, 0.45, deck);
   [-1.25, 1.2].forEach((x) => {
     const sp = new THREE.Group();
-    at(box(0.42, 0.62, 0.38, "#4A3C6B", 0.05, 0.6), 0, 0.31, 0, sp);
+    at(box(0.42, 0.62, 0.38, gloss("#4A3C6B", 0.45), 0.05), 0, 0.31, 0, sp);
     const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 24), mat("#2B2144", 0.4));
     cone.rotation.x = Math.PI / 2;
     at(cone, 0, 0.36, 0.2, sp);
@@ -440,11 +494,12 @@ function buildScene(canvas) {
         vec3 c = mix(texture2D(mapA, vUv).rgb, texture2D(mapB, vUv).rgb, mixK);
         vec3 off = vec3(0.10, 0.08, 0.16);
         float sheen = smoothstep(0.55, 0.0, distance(vUv, vec2(0.15, 0.95))) * 0.06;
-        gl_FragColor = vec4(mix(off, c, power) + sheen, 1.0);
+        vec3 col = mix(off, c, power) + sheen;
+        gl_FragColor = vec4(pow(col, vec3(2.2)), 1.0);
       }`,
   });
   const tv = new THREE.Group();
-  at(box(SW + 0.22, SH + 0.22, 0.1, "#2B2144", 0.06, 0.4), 0, 0, 0, tv);
+  at(box(SW + 0.22, SH + 0.22, 0.1, gloss("#2B2144", 0.25), 0.06), 0, 0, 0, tv);
   at(new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), tvMat), 0, 0, 0.052, tv);
   tv.rotation.y = Math.PI / 2;
   at(tv, -R + 0.1, 2.45, -0.15);
@@ -491,7 +546,7 @@ function buildScene(canvas) {
   [[-1.1, -0.45], [-1.1, 0.45], [1.1, -0.45], [1.1, 0.45]].forEach(([x, z]) => at(box(0.07, 1.1, 0.07, "#C9B6EC", 0.02), x, 0.55, z, desk));
   const monitor = new THREE.Group();
   at(monitor, -0.15, 1.17, -0.15, desk);
-  at(box(1.7, 1.0, 0.07, "#3A3054", 0.04, 0.45), 0, 0.75, 0, monitor);
+  at(box(1.7, 1.0, 0.07, gloss("#3A3054", 0.3), 0.04), 0, 0.75, 0, monitor);
   const streamScreen = createMonitorScreen();
   const streamMat = new THREE.MeshBasicMaterial({ map: streamScreen.texture, toneMapped: false, color: "#555" });
   at(new THREE.Mesh(new THREE.PlaneGeometry(1.58, 0.9), streamMat), 0, 0.75, 0.037, monitor);
@@ -509,8 +564,8 @@ function buildScene(canvas) {
   const chair = new THREE.Group();
   at(chair, -0.1, 0, 0.95, desk);
   chair.rotation.y = 0.3;
-  at(box(0.62, 0.1, 0.58, "#9C7BD6", 0.05), 0, 0.62, 0, chair);
-  at(box(0.6, 0.72, 0.1, "#9C7BD6", 0.05), 0, 1.0, 0.27, chair);
+  at(box(0.62, 0.1, 0.58, fabric("#9C7BD6"), 0.05), 0, 0.62, 0, chair);
+  at(box(0.6, 0.72, 0.1, fabric("#9C7BD6"), 0.05), 0, 1.0, 0.27, chair);
   at(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.55, 10), mat("#4A3C6B")), 0, 0.3, 0, chair);
   at(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 20), mat("#4A3C6B")), 0, 0.03, 0, chair);
   shadowy(desk);
@@ -550,6 +605,7 @@ function buildScene(canvas) {
   const particles = [];
   function emit(material, from, opts = {}) {
     const s = new THREE.Sprite(material.clone());
+    s.layers.set(1);
     s.position.copy(from);
     const size = opts.size ?? 0.26;
     s.scale.setScalar(size);
@@ -576,6 +632,7 @@ function buildScene(canvas) {
     })(),
     new THREE.PointsMaterial({ size: 0.06, map: dotTexture(), transparent: true, depthWrite: false, color: "#FFF4E6", opacity: 0.7 })
   );
+  motes.layers.set(1);
   room.add(motes);
 
   let fontsReady = false;
@@ -603,11 +660,11 @@ function buildScene(canvas) {
   // ---------------------------------------------------------------- camera path
   // camera position, target, sideways shift (wide screens), target for tall screens
   const KEYS = [
-    { pos: [8.4, 6.0, 11.4], tgt: [-0.3, 1.4, -0.4], off: 0.31, m: [-0.2, 1.7, -0.2] }, // the room
-    { pos: [3.1, 3.7, 2.5], tgt: [-2.4, 2.3, -0.35], off: -0.13, m: [-2.6, 2.2, -0.3] }, // TV and record
-    { pos: [5.4, 2.7, 6.4], tgt: [-0.9, 1.5, 0.1], off: 0.2, m: [-0.4, 1.5, 0.4] }, // friends
-    { pos: [-2.7, 2.35, 5.3], tgt: [1.6, 1.2, -2.0], off: -0.18, m: [1.6, 1.5, -2.0] }, // stream desk
-    { pos: [1.6, 2.0, 5.2], tgt: [-0.75, 0.95, 1.15], off: 0.2, m: [-0.75, 1.1, 1.15] }, // Neko
+    { pos: [8.4, 6.0, 11.4], tgt: [-0.3, 1.4, -0.4], off: 0.24, m: [-0.2, 1.7, -0.2] }, // the room
+    { pos: [3.7, 3.9, 3.5], tgt: [-2.4, 2.25, -0.35], off: 0.24, m: [-2.6, 2.2, -0.3] }, // TV and record
+    { pos: [5.4, 2.7, 6.4], tgt: [-0.9, 1.5, 0.1], off: 0.24, m: [-0.4, 1.5, 0.4] }, // friends
+    { pos: [-2.7, 2.35, 5.3], tgt: [1.6, 1.2, -2.0], off: 0.24, m: [1.6, 1.5, -2.0] }, // stream desk
+    { pos: [1.6, 2.0, 5.2], tgt: [-0.75, 0.95, 1.15], off: 0.24, m: [-0.75, 1.1, 1.15] }, // Neko
   ].map((k) => ({ pos: new THREE.Vector3(...k.pos), tgt: new THREE.Vector3(...k.tgt), off: k.off, m: new THREE.Vector3(...k.m) }));
 
   const camPos = new THREE.Vector3();
@@ -624,6 +681,8 @@ function buildScene(canvas) {
     height = innerHeight;
     narrow = width < 820 || height > width * 0.9;
     renderer.setSize(width, height, false);
+    composer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+    composer.setSize(width, height);
     camera.aspect = width / height;
     camera.fov = narrow ? 46 : 36;
     camera.updateProjectionMatrix();
@@ -779,31 +838,33 @@ function buildScene(canvas) {
     // stream monitor + ring light
     if (frame % 3 === 0 && p > 1.8) streamScreen.draw(still ? 0 : t, TRACKS[band.track], playing || p > 2.2);
     streamMat.color.setScalar(lerp(0.33, 1, liveK));
-    ringMat.emissiveIntensity = liveK * 2.2;
+    ringMat.emissiveIntensity = liveK * (1.5 + nightK * 4);
     deskLight.position.set(R - 1.6, 2.0, -R + 1.6);
     deskLight.intensity = liveK * (0.6 + nightK * 5);
 
     // day and night
+    scene.background.lerpColors(DAY_BG, NIGHT_BG, nightK);
+    scene.environmentIntensity = lerp(0.22, 0.1, nightK);
     skyNightMat.opacity = nightK;
-    hemi.intensity = lerp(1.15, 0.5, nightK);
-    hemi.groundColor.set(nightK > 0.5 ? "#5B4790" : "#D8C6F2");
-    sun.intensity = lerp(2.3, 0.35, nightK);
+    hemi.intensity = lerp(0.78, 0.45, nightK);
+    hemi.groundColor.set(nightK > 0.5 ? "#5B4790" : "#C9B4EC");
+    sun.intensity = lerp(2.8, 0.35, nightK);
     sun.color.set(nightK > 0.5 ? "#9C8CFF" : "#FFF1E6");
     windowLight.position.set(-0.9, 2.6, -R + 1.2);
     windowLight.intensity = lerp(1.2, 0.5, nightK);
     windowLight.color.set(nightK > 0.5 ? "#8E7CFF" : "#FFD9BF");
     lampLight.intensity = 0.4 + nightK * 4;
-    shadeMat.emissiveIntensity = 0.15 + nightK * 1.4;
+    shadeMat.emissiveIntensity = 0.15 + nightK * 3.2;
     neko.head.getWorldPosition(nekoHead);
     nekoFill.position.set(nekoHead.x + 1.2, nekoHead.y + 0.8, nekoHead.z + 1.4);
     nekoFill.intensity = nightK * 7;
     const bulbK = 0.35 + nightK * 0.65;
     bulbs.forEach(({ m, g }, i) => {
       const tw = still ? 1 : 0.85 + Math.sin(t * 2 + i * 1.7) * 0.15;
-      m.material.emissiveIntensity = (0.5 + nightK * 2.5) * tw;
+      m.material.emissiveIntensity = (1.1 + nightK * 4.5) * tw;
       g.material.opacity = bulbK * 0.5 * tw;
     });
-    renderer.toneMappingExposure = lerp(1.08, 1.2, nightK);
+    renderer.toneMappingExposure = lerp(1.0, 1.15, nightK);
     motes.rotation.y = still ? 0 : t * 0.02;
 
     // particles
@@ -854,7 +915,27 @@ function buildScene(canvas) {
       rail.forEach((a, i) => (i === cur ? a.setAttribute("aria-current", "step") : a.removeAttribute("aria-current")));
     }
 
-    renderer.render(scene, camera);
+    // quality: after the entrance, measure; step down if the computer struggles
+    if (state.intro >= 1 && perf.checks < 2 && forceQ == null) {
+      perf.frames++;
+      perf.time += Math.max(clock.getDelta(), 0);
+      if (perf.frames === 90) {
+        const fps = 90 / Math.max(perf.time, 0.001);
+        if (fps < 42 && quality > 0) {
+          quality--;
+          applyQuality();
+        }
+        perf.frames = 0;
+        perf.time = 0;
+        perf.checks++;
+      }
+    }
+    if (quality > 0) {
+      aoCamera.copy(camera);
+      aoCamera.layers.set(0);
+      grain.uniforms.time.value = still ? 0 : t % 100;
+      composer.render(dt);
+    } else renderer.render(scene, camera);
   }
 
   resize();
@@ -898,7 +979,11 @@ try {
   scene3d = buildScene(canvasEl);
   scene3d.start();
   const after = $(".after-room");
-  const update = () => scene3d.setRunning(!document.hidden && !(after && after.getBoundingClientRect().top <= 0));
+  const update = () => {
+    const past = after && after.getBoundingClientRect().top <= 0;
+    scene3d.setRunning(!document.hidden && !past);
+    if (past) rail.forEach((a) => a.removeAttribute("aria-current"));
+  };
   addEventListener("scroll", update, { passive: true });
   document.addEventListener("visibilitychange", update);
 } catch (err) {
@@ -913,35 +998,27 @@ try {
   }, 250);
 }
 
-// ---------------------------------------------------------------- screenshots row
-// Cards turn away from the middle like a fan and straighten in the centre.
-const shots = document.querySelector(".shots");
-if (shots && !reduced.matches) {
-  const cards = [...shots.querySelectorAll(".shot")];
-  const update = () => {
-    const mid = innerWidth / 2;
-    cards.forEach((c) => {
-      const r = c.getBoundingClientRect();
-      const k = Math.max(-1, Math.min(1, (r.left + r.width / 2 - mid) / (r.width * 1.1)));
-      c.style.setProperty("--tilt", k.toFixed(3));
-      c.style.setProperty("--away", Math.abs(k).toFixed(3));
-    });
-  };
-  shots.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
-  addEventListener("resize", update);
-  update();
-  let down = null;
-  shots.addEventListener("pointerdown", (e) => {
-    if (e.pointerType !== "mouse") return;
-    down = { x: e.clientX, left: shots.scrollLeft };
-    shots.style.scrollSnapType = "none";
+// ---------------------------------------------------------------- screenshots
+// Tabs: Home, Testi, Messaggi... one big picture at a time.
+const tabs = [...document.querySelectorAll('.viewer-tabs [role="tab"]')];
+function selectTab(i, focus) {
+  tabs.forEach((t, k) => {
+    const on = k === i;
+    t.setAttribute("aria-selected", String(on));
+    t.tabIndex = on ? 0 : -1;
+    document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
   });
-  addEventListener("pointermove", (e) => {
-    if (down) shots.scrollLeft = down.left - (e.clientX - down.x);
-  });
-  addEventListener("pointerup", () => {
-    if (!down) return;
-    down = null;
-    shots.style.scrollSnapType = "";
-  });
+  if (focus) tabs[i].focus();
 }
+tabs.forEach((t, i) => {
+  t.addEventListener("click", () => selectTab(i));
+  t.addEventListener("keydown", (e) => {
+    const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (e.key === "Home") return selectTab(0, true);
+    if (e.key === "End") return selectTab(tabs.length - 1, true);
+    if (d) {
+      e.preventDefault();
+      selectTab((i + d + tabs.length) % tabs.length, true);
+    }
+  });
+});
