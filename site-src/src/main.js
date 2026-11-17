@@ -8,7 +8,6 @@ import {
   C,
   recordTexture,
   coverTexture,
-  bubbleTexture,
   noteTexture,
   heartTexture,
   zTexture,
@@ -102,7 +101,7 @@ function scrollProgress() {
   const anchor = scrollY + innerHeight / 2;
   if (anchor <= centers[0]) return 0;
   for (let i = 0; i < centers.length - 1; i++) {
-    if (anchor <= centers[i + 1]) return i + (anchor - centers[i]) / (centers[i + 1] - centers[i]);
+    if (anchor <= centers[i + 1]) return i + (anchor - centers[i]) / Math.max(1, centers[i + 1] - centers[i]);
   }
   return centers.length - 1 + Math.min(0.6, (anchor - centers.at(-1)) / innerHeight);
 }
@@ -343,18 +342,73 @@ function buildScene(canvas) {
     particles.push(s);
   }
 
-  const bubbles = [
-    { text: "hai sentito questa?", mine: false },
-    { text: "Nuvole basse", sub: "Kite Club · ascolta", mine: false },
-    { text: "in loop da stamattina", mine: true },
-    { text: "Sessione d'ascolto", sub: "Codice NEKO42 · Partecipa", mine: true },
-  ].map((b, i) => {
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, opacity: 0 }));
-    s.userData = { ...b, i };
-    s.visible = false;
-    scene.add(s);
-    return s;
+  // the real app on a floating screen: player and lyrics while listening,
+  // then the chat with Luna (videos recorded from NekoTune with demo data)
+  const vids = ["assets/app-listen.mp4", "assets/app-friends.mp4"].map((src) => {
+    const v = document.createElement("video");
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.preload = "auto";
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.src = src;
+    const tex = new THREE.VideoTexture(v);
+    // colours pass straight through the shader below, no conversion
+    tex.colorSpace = THREE.NoColorSpace;
+    const o = { v, tex, ready: false, on: false };
+    v.addEventListener("playing", () => (o.ready = true));
+    return o;
   });
+  const loader = new THREE.TextureLoader();
+  const posters = ["assets/app-listen-poster.jpg", "assets/app-friends-poster.jpg"].map((src) => {
+    const tx = loader.load(src);
+    tx.colorSpace = THREE.NoColorSpace;
+    return tx;
+  });
+  const SW = 3.36;
+  const SH = 2.1;
+  const screenUniforms = {
+    mapA: { value: posters[0] },
+    mapB: { value: posters[1] },
+    mixK: { value: 0 },
+    opacity: { value: 1 },
+    size: { value: new THREE.Vector2(SW, SH) },
+    radius: { value: 0.07 },
+  };
+  const appMat = new THREE.ShaderMaterial({
+    uniforms: screenUniforms,
+    transparent: true,
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `
+      uniform sampler2D mapA; uniform sampler2D mapB; uniform float mixK; uniform float opacity;
+      uniform vec2 size; uniform float radius; varying vec2 vUv;
+      float box(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r; }
+      void main() {
+        float d = box((vUv - 0.5) * size, size * 0.5, radius);
+        float a = 1.0 - smoothstep(-0.006, 0.002, d);
+        vec4 c = mix(texture2D(mapA, vUv), texture2D(mapB, vUv), mixK);
+        gl_FragColor = vec4(c.rgb, a * opacity);
+      }`,
+  });
+  const appScreen = new THREE.Group();
+  const appFrameMat = new THREE.MeshStandardMaterial({ color: "#FFF8F1", roughness: 0.45, transparent: true });
+  const appFrame = new THREE.Mesh(new RoundedBoxGeometry(SW + 0.16, SH + 0.16, 0.08, 5, 0.1), appFrameMat);
+  appFrame.castShadow = true;
+  const appFace = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), appMat);
+  appFace.position.z = 0.045;
+  appScreen.add(appFrame, appFace);
+  appScreen.visible = false;
+  room.add(appScreen);
+  const SCREEN_A = new THREE.Vector3(-0.35, 3.05, -0.9);
+  const SCREEN_B = new THREE.Vector3(0.2, 2.45, -1.0);
+  const screenFrom = new THREE.Vector3();
+  function videoOn(o, on) {
+    if (on === o.on) return;
+    o.on = on;
+    if (on) o.v.play().catch(() => {});
+    else o.v.pause();
+  }
 
   // dust motes floating around the island
   const motes = new THREE.Points(
@@ -384,12 +438,6 @@ function buildScene(canvas) {
       m.material[4].map = coverTexture(i, t, a, cols);
       m.material[4].needsUpdate = true;
     });
-    bubbles.forEach((s) => {
-      const { texture, aspect } = bubbleTexture(s.userData.text, s.userData.mine, s.userData.sub);
-      s.material.map = texture;
-      s.material.needsUpdate = true;
-      s.userData.aspect = aspect;
-    });
   }
   function setTrack(i) {
     if (!fontsReady) return;
@@ -401,8 +449,8 @@ function buildScene(canvas) {
   // -------------------------------------------------------------- camera path
   const KEYS = [
     { pos: [0.7, 2.7, 7.1], tgt: [-0.3, 0.65, 0.1], off: 0.19, m: [-0.95, 0.8, 0.35] },
-    { pos: [0.4, 6.8, 9.6], tgt: [0, 1.2, 0], off: -0.19, m: [-0.2, 1.2, 0] },
-    { pos: [1.6, 3.2, 8.2], tgt: [0.25, 1.25, 0.9], off: 0.15, m: [0.2, 1.6, 0.9] },
+    { pos: [0.4, 6.6, 10.2], tgt: [0, 1.75, -0.3], off: -0.19, m: [-0.2, 1.9, -0.3] },
+    { pos: [1.6, 3.1, 8.9], tgt: [0.25, 1.6, 0.5], off: 0.15, m: [0.2, 1.9, 0.5] },
     { pos: [-3.9, 2.7, 5.4], tgt: [0.8, 1.1, -0.5], off: -0.17, m: [0.2, 1.1, -0.3] },
     { pos: [0.3, 2.2, 5.9], tgt: [-1.1, 0.9, 0.7], off: 0.18, m: [-1.2, 0.95, 0.8] },
   ].map((k) => ({ pos: new THREE.Vector3(...k.pos), tgt: new THREE.Vector3(...k.tgt), off: k.off, m: new THREE.Vector3(...k.m) }));
@@ -426,7 +474,7 @@ function buildScene(canvas) {
   }
 
   function cameraAt(p) {
-    const i = Math.min(KEYS.length - 2, Math.floor(p));
+    const i = Math.max(0, Math.min(KEYS.length - 2, Math.floor(p)));
     const t = smooth(p - i, 0.08, 0.92);
     const a = KEYS[i];
     const b = KEYS[i + 1];
@@ -492,13 +540,15 @@ function buildScene(canvas) {
     if (!running) return;
     requestAnimationFrame(tick);
     clock.update(now);
-    const dt = Math.min(clock.getDelta(), 0.05);
+    const dt = Math.min(Math.max(clock.getDelta(), 0), 0.05);
     const t = clock.getElapsed();
     const still = reduced.matches;
     frame++;
 
-    const target = forceP ?? scrollProgress();
-    state.p = still ? target : lerp(state.p, target, 1 - Math.exp(-dt * 5));
+    let target = forceP ?? scrollProgress();
+    if (!Number.isFinite(target)) target = 0;
+    if (frame % 60 === 0) measure();
+    state.p = still || !Number.isFinite(state.p) ? target : lerp(state.p, target, 1 - Math.exp(-dt * 5));
     const p = state.p;
 
     // fake beat when Web Audio is muted or missing
@@ -557,21 +607,32 @@ function buildScene(canvas) {
       m.rotation.z += Math.sin(t + i) * 0.05;
     });
 
-    // chat bubbles over the cats
-    const chatP = p - 1.55;
-    bubbles.forEach((s) => {
-      const { i, mine, aspect = 3 } = s.userData;
-      const k = smooth(chatP, i * 0.13, i * 0.13 + 0.1) * (1 - smooth(p, 2.35, 2.6));
-      s.visible = k > 0.01;
-      if (!s.visible) return;
-      const who = mine ? neko : luna;
-      who.head.getWorldPosition(tmp);
-      const stack = mine ? i - 2 : i;
-      s.position.set(tmp.x + (mine ? -0.1 : 0.1), tmp.y + 0.62 + stack * 0.42 - (1 - k) * 0.2, tmp.z);
-      const h = 0.34 * (s.userData.sub ? 1.3 : 1);
-      s.scale.set(h * aspect * k, h * k, 1);
-      s.material.opacity = k;
-    });
+    // the app screen rises from the record, then turns to the chat
+    const showK = smooth(p, 0.3, 0.85) * (1 - smooth(p, 2.1, 2.45));
+    const toFriends = smooth(p, 1.3, 1.75);
+    appScreen.visible = showK > 0.01;
+    if (appScreen.visible) {
+      const e = THREE.MathUtils.smootherstep(showK, 0, 1);
+      screenFrom.copy(recordWorld);
+      room.worldToLocal(screenFrom);
+      tmp.lerpVectors(SCREEN_A, SCREEN_B, toFriends);
+      appScreen.position.lerpVectors(screenFrom, tmp, e);
+      appScreen.position.y += still ? 0 : Math.sin(t * 0.9) * 0.04;
+      appScreen.scale.setScalar(Math.max(0.0001, e * lerp(1.45, 1.3, toFriends)));
+      appScreen.lookAt(camera.position);
+      if (!still) appScreen.rotateY(-look.x * 0.12);
+      screenUniforms.mixK.value = toFriends;
+      screenUniforms.opacity.value = Math.min(1, e * 1.4);
+      appFrameMat.opacity = Math.min(1, e * 1.4);
+      const friendsWas = vids[1].on;
+      videoOn(vids[0], !still && toFriends < 0.98);
+      videoOn(vids[1], !still && toFriends > 0.02);
+      if (vids[1].on && !friendsWas) vids[1].v.currentTime = 0;
+      screenUniforms.mapA.value = vids[0].ready ? vids[0].tex : posters[0];
+      screenUniforms.mapB.value = vids[1].ready ? vids[1].tex : posters[1];
+    } else {
+      vids.forEach((o) => videoOn(o, false));
+    }
 
     // monitor
     monitor.position.y = lerp(-2.2, 0, THREE.MathUtils.smootherstep(monitorK, 0, 1));
@@ -665,6 +726,7 @@ function buildScene(canvas) {
     setRunning(on) {
       if (on === running) return;
       running = on;
+      if (!on) vids.forEach((o) => videoOn(o, false));
       if (on) {
         clock.reset?.();
         requestAnimationFrame(tick);
@@ -697,4 +759,40 @@ try {
     ui.now.textContent = fmt(shown);
     ui.fill.style.transform = `scaleX(${shown / tr.length})`;
   }, 250);
+}
+
+// ---------------------------------------------------------------- screenshots row
+// Cards turn slightly away from the middle of the row, like pages in a fan,
+// and straighten as they reach the centre.
+const shots = document.querySelector(".shots");
+if (shots && !reduced.matches) {
+  const cards = [...shots.querySelectorAll(".shot")];
+  const update = () => {
+    const mid = innerWidth / 2;
+    cards.forEach((c) => {
+      const r = c.getBoundingClientRect();
+      const off = (r.left + r.width / 2 - mid) / (r.width * 1.1);
+      const k = Math.max(-1, Math.min(1, off));
+      c.style.setProperty("--tilt", k.toFixed(3));
+      c.style.setProperty("--away", Math.abs(k).toFixed(3));
+    });
+  };
+  shots.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+  addEventListener("resize", update);
+  update();
+  // drag with the mouse, too
+  let down = null;
+  shots.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse") return;
+    down = { x: e.clientX, left: shots.scrollLeft };
+    shots.style.scrollSnapType = "none";
+  });
+  addEventListener("pointermove", (e) => {
+    if (down) shots.scrollLeft = down.left - (e.clientX - down.x);
+  });
+  addEventListener("pointerup", () => {
+    if (!down) return;
+    down = null;
+    shots.style.scrollSnapType = "";
+  });
 }

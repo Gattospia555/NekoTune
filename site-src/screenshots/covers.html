@@ -1,0 +1,40 @@
+<!doctype html><html><body><script>
+const PAL = [
+ ["#C9B6EC","#9C7BD6","#FFF8F1"],["#FFD3B8","#FFB37E","#2B2144"],["#BFE6D3","#7FC7A6","#2B2144"],["#2B2144","#4A3C6B","#FFB37E"],
+ ["#FFE3CC","#F6C5A2","#9C7BD6"],["#E7DCF7","#C9B6EC","#F28A5B"],["#9C7BD6","#6E52A8","#BFE6D3"],["#FFB6C1","#F28AA0","#FFF8F1"],
+ ["#3B2D63","#8E6CC9","#FFD3B8"],["#FFF1D6","#FFC98B","#4A3C6B"],["#D7F0FF","#8FC3E8","#2B2144"],["#F4D8F0","#D99BCB","#2B2144"],
+ ["#1F3B37","#3F7A6E","#FFE3CC"],["#FFE8E0","#FF9E8A","#2B2144"],["#ECE3FA","#B9A2E6","#2B2144"],["#2B2144","#9C7BD6","#FFF8F1"],
+ ["#FFF8F1","#E7DCF7","#F28A5B"],["#C3E7DA","#FFD3B8","#2B2144"]
+];
+const MOTIFS=["sun","waves","stripes","dots","moon","arch","grid","blob","rings","mountains","paw","squares"];
+function paw(g,x,y,s,c){g.fillStyle=c;g.beginPath();g.ellipse(x,y+s*.35,s*.55,s*.45,0,0,7);g.fill();[[-.55,-.25],[-.2,-.6],[.2,-.6],[.55,-.25]].forEach(([dx,dy])=>{g.beginPath();g.ellipse(x+dx*s,y+dy*s,s*.2,s*.25,0,0,7);g.fill();});}
+function cover(i){
+ const S=320,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+ const [a,b,ink]=PAL[i%PAL.length];const bg=g.createLinearGradient(0,0,S*.4,S);bg.addColorStop(0,a);bg.addColorStop(1,b);g.fillStyle=bg;g.fillRect(0,0,S,S);
+ g.fillStyle=ink;g.strokeStyle=ink;const m=MOTIFS[i%MOTIFS.length];
+ if(m==="sun"){g.beginPath();g.arc(S*.5,S*.44,S*.22,0,7);g.fill();g.globalAlpha=.5;for(let k=0;k<5;k++)g.fillRect(0,S*(.68+k*.06),S,S*.025);}
+ else if(m==="waves"){g.lineWidth=10;for(let k=0;k<6;k++){g.beginPath();for(let x=-20;x<=S+20;x+=8){const y=S*(.2+k*.12)+Math.sin(x/32+k)*12;x===-20?g.moveTo(x,y):g.lineTo(x,y);}g.stroke();}}
+ else if(m==="stripes"){g.save();g.translate(S/2,S/2);g.rotate(-.5);for(let k=-6;k<6;k++)g.fillRect(-S,k*38,S*2,16);g.restore();}
+ else if(m==="dots"){for(let y=0;y<6;y++)for(let x=0;x<6;x++){g.beginPath();g.arc(36+x*50,36+y*50,6+((x+y)%3)*5,0,7);g.fill();}}
+ else if(m==="moon"){g.beginPath();g.arc(S*.55,S*.45,S*.22,0,7);g.fill();g.fillStyle=a;g.beginPath();g.arc(S*.64,S*.38,S*.19,0,7);g.fill();g.fillStyle=ink;for(let k=0;k<14;k++){g.fillRect((k*67)%S,(k*41)%(S*.9),3,3);}}
+ else if(m==="arch"){g.lineWidth=18;for(let k=0;k<4;k++){g.beginPath();g.arc(S/2,S*.82,S*(.12+k*.11),Math.PI,0);g.stroke();}}
+ else if(m==="grid"){g.lineWidth=4;for(let k=1;k<8;k++){g.beginPath();g.moveTo(k*40,0);g.lineTo(k*40,S);g.moveTo(0,k*40);g.lineTo(S,k*40);g.stroke();}g.beginPath();g.arc(S*.62,S*.38,48,0,7);g.fill();}
+ else if(m==="blob"){g.beginPath();g.moveTo(S*.2,S*.5);g.bezierCurveTo(S*.1,S*.1,S*.7,S*.05,S*.8,S*.4);g.bezierCurveTo(S*.95,S*.75,S*.35,S*.85,S*.2,S*.5);g.fill();}
+ else if(m==="rings"){g.lineWidth=9;for(let k=1;k<7;k++){g.beginPath();g.arc(S*.5,S*.5,k*22,0,7);g.stroke();}}
+ else if(m==="mountains"){g.beginPath();g.moveTo(0,S);g.lineTo(S*.3,S*.45);g.lineTo(S*.5,S*.7);g.lineTo(S*.72,S*.35);g.lineTo(S,S*.8);g.lineTo(S,S);g.fill();g.beginPath();g.arc(S*.78,S*.2,24,0,7);g.fill();}
+ else if(m==="paw"){paw(g,S*.5,S*.5,S*.2,ink);}
+ else {for(let k=0;k<4;k++){g.globalAlpha=.35+k*.18;g.fillRect(S*(.15+k*.12),S*(.15+k*.12),S*.4,S*.4);}}
+ g.globalAlpha=1;
+ // soft grain
+ const id=g.getImageData(0,0,S,S);for(let p=0;p<id.data.length;p+=4){const n=(Math.random()-.5)*10;id.data[p]+=n;id.data[p+1]+=n;id.data[p+2]+=n;}g.putImageData(id,0,0);
+ return c.toDataURL('image/jpeg',.86);
+}
+function avatar(i,name){const S=160,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+ const cols=[["#FFB37E","#F28A5B"],["#C9B6EC","#9C7BD6"],["#BFE6D3","#7FC7A6"],["#FFB6C1","#F28AA0"],["#FFE3CC","#F6C5A2"],["#8FC3E8","#5C8FC0"]][i%6];
+ const bg=g.createLinearGradient(0,0,S,S);bg.addColorStop(0,cols[0]);bg.addColorStop(1,cols[1]);g.fillStyle=bg;g.fillRect(0,0,S,S);
+ // cat face
+ g.fillStyle="#fff";g.globalAlpha=.92;g.beginPath();g.moveTo(40,62);g.lineTo(46,30);g.lineTo(68,50);g.lineTo(92,50);g.lineTo(114,30);g.lineTo(120,62);g.ellipse(80,88,44,38,0,0,Math.PI*2);g.fill();
+ g.globalAlpha=1;g.fillStyle="#2B2144";g.beginPath();g.arc(64,86,5,0,7);g.arc(96,86,5,0,7);g.fill();g.beginPath();g.moveTo(76,98);g.lineTo(84,98);g.lineTo(80,103);g.fill();
+ return c.toDataURL('image/jpeg',.88);}
+window.out={covers:Array.from({length:18},(_, i)=>cover(i)),avatars:Array.from({length:6},(_, i)=>avatar(i))};
+</script></body></html>
