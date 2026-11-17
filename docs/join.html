@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sessione d'ascolto · NekoTune</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="neko-page.css" />
+</head>
+<body>
+<div class="backdrop"></div>
+<main class="card">
+  <div class="brand">NekoTune</div>
+  <h1 id="title">Sessione d'ascolto</h1>
+  <p class="sub" id="lead">Ascoltate insieme, sincronizzati, in NekoTune.</p>
+  <div class="code" id="code"></div>
+  <div class="actions">
+    <a class="btn primary" id="open-app" href="#">Unisciti in NekoTune</a>
+  </div>
+  <p class="hint" id="hint">Se non si apre niente: apri NekoTune, vai su Sessione di gruppo e inserisci il codice. Non hai NekoTune? <a href="./#scarica">Scaricalo gratis</a>.</p>
+  <p class="hint hidden" id="invalid">Questo link non è completo: manca il codice della sessione.</p>
+</main>
+<footer>NekoTune · parte di NekoEcoSystem</footer>
+<script>
+  (function () {
+    var code = new URLSearchParams(location.search).get("code") || "";
+    var en = !/^it\b/i.test(navigator.language || "");
+    if (en) {
+      document.documentElement.lang = "en";
+      document.title = "Listening session · NekoTune";
+      document.getElementById("title").textContent = "Listening session";
+      document.getElementById("lead").textContent = "Listen together, in sync, in NekoTune.";
+      document.getElementById("open-app").textContent = "Join in NekoTune";
+      document.getElementById("hint").innerHTML =
+        'If nothing opens: open NekoTune, go to Group session and enter the code. Don’t have NekoTune? <a href="./#scarica">Get it free</a>.';
+      document.getElementById("invalid").textContent = "This link is incomplete: the session code is missing.";
+      document.querySelector("footer").textContent = "NekoTune · part of NekoEcoSystem";
+    }
+    if (!/^[A-Za-z0-9_-]{3,40}$/.test(code)) {
+      document.getElementById("invalid").classList.remove("hidden");
+      document.querySelector(".actions").classList.add("hidden");
+      document.getElementById("code").classList.add("hidden");
+      return;
+    }
+    document.getElementById("code").textContent = code;
+    document.getElementById("open-app").href = "nekotune://join/" + encodeURIComponent(code);
+  })();
+</script>
+</body>
+</html>

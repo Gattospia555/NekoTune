@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ascolta su NekoTune</title>
+<meta name="description" content="Un brano condiviso da NekoTune, il player musicale di NekoEcoSystem." />
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="neko-page.css" />
+</head>
+<body>
+<div class="backdrop" id="backdrop"></div>
+<main class="card">
+  <div class="brand">NekoTune</div>
+  <div class="cover" id="cover"></div>
+  <h1 id="title">Un brano su NekoTune</h1>
+  <p class="sub" id="artist"></p>
+  <div class="actions">
+    <a class="btn primary" id="open-app" href="#">Apri in NekoTune</a>
+    <a class="btn" id="open-ytm" href="#" rel="noopener">Ascolta su YouTube Music</a>
+  </div>
+  <p class="hint" id="hint">Non hai NekoTune? <a href="./#scarica">Scaricalo gratis</a>.</p>
+  <p class="hint hidden" id="invalid">Questo link non è completo: manca il brano.</p>
+</main>
+<footer>NekoTune · parte di NekoEcoSystem</footer>
+<script>
+  // Everything here comes from the link, so it is shown as text only, and
+  // the cover is used only from YouTube's own image hosts.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var id = q.get("v") || "";
+    var title = (q.get("t") || "").slice(0, 200);
+    var artist = (q.get("a") || "").slice(0, 120);
+    var cover = q.get("c") || "";
+    var en = !/^it\b/i.test(navigator.language || "");
+
+    if (en) {
+      document.documentElement.lang = "en";
+      document.title = "Listen on NekoTune";
+      document.getElementById("open-app").textContent = "Open in NekoTune";
+      document.getElementById("open-ytm").textContent = "Listen on YouTube Music";
+      document.getElementById("hint").innerHTML =
+        'Don’t have NekoTune? <a href="./#scarica">Get it free</a>.';
+      document.getElementById("invalid").textContent = "This link is incomplete: the track is missing.";
+      document.querySelector("footer").textContent = "NekoTune · part of NekoEcoSystem";
+    }
+
+    if (!/^[\w-]{11}$/.test(id)) {
+      document.getElementById("invalid").classList.remove("hidden");
+      document.querySelector(".actions").classList.add("hidden");
+      return;
+    }
+
+    if (title) {
+      document.getElementById("title").textContent = title;
+      document.title = title + (artist ? " – " + artist : "") + " · NekoTune";
+    }
+    document.getElementById("artist").textContent = artist;
+
+    try {
+      var host = new URL(cover).hostname;
+      var ok = /^https:$/.test(new URL(cover).protocol) &&
+        /(^|\.)(ytimg\.com|googleusercontent\.com|ggpht\.com)$/.test(host);
+      if (ok) {
+        var css = 'url("' + cover.replace(/["\\\n]/g, "") + '")';
+        // the gradient stays underneath, in case the image does not load
+        document.getElementById("cover").style.backgroundImage =
+          css + ", linear-gradient(135deg, #cc8b65, #e8b98a)";
+        document.getElementById("backdrop").style.backgroundImage = css;
+      }
+    } catch (e) { /* no cover */ }
+
+    var app = new URL("nekotune://play/" + id);
+    if (title) app.searchParams.set("t", title);
+    if (artist) app.searchParams.set("a", artist);
+    document.getElementById("open-app").href = app.toString();
+    document.getElementById("open-ytm").href = "https://music.youtube.com/watch?v=" + id;
+  })();
+</script>
+</body>
+</html>
