@@ -624,7 +624,8 @@ body[data-mood="night"] .rail a[aria-current] {
 }
 
 /* ---------- phones and small windows ---------- */
-@media (max-width: 819px) {
+/* stacked layout: phones, and tall windows (scene on top, text below) */
+@media (max-width: 819px), (max-aspect-ratio: 10/9) {
   .rail {
     display: none;
   }
@@ -638,9 +639,10 @@ body[data-mood="night"] .rail a[aria-current] {
     padding-top: 46svh;
   }
   .copy,
-  .copy-right {
+  .copy-right,
+  .chapter-hero .copy {
     margin: 0 auto;
-    width: 100%;
+    width: min(100%, 36rem);
   }
   .chapter-hero .copy {
     padding: 22px;
@@ -650,7 +652,7 @@ body[data-mood="night"] .rail a[aria-current] {
     -webkit-backdrop-filter: blur(14px);
   }
   h1 {
-    font-size: clamp(2rem, 8.5vw, 2.6rem);
+    font-size: clamp(2rem, 6.4vw, 3.4rem);
   }
   .lead {
     font-size: 1rem;

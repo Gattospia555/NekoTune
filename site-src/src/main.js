@@ -418,7 +418,7 @@ function buildScene(canvas) {
   function resize() {
     width = innerWidth;
     height = innerHeight;
-    narrow = width < 820;
+    narrow = width < 820 || height > width * 0.9;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.fov = narrow ? 44 : 36;
