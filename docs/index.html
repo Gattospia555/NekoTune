@@ -15,125 +15,93 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="room.css" />
 </head>
-<body>
+<body data-mood="day">
   <a class="skip" href="#main">Vai al contenuto</a>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <img class="fallback-neko" src="assets/neko-playing.svg" alt="" width="260" height="262" />
 
   <header class="top">
     <a class="brand" href="./" aria-label="NekoTune, inizio pagina">
       <img src="assets/logo-256.png" alt="" width="40" height="40" />
       <span>NekoTune</span>
     </a>
-    <nav class="top-nav" aria-label="Sezioni">
-      <a href="#ascolta">Ascoltare</a>
-      <a href="#insieme">Con gli amici</a>
-      <a href="#stream">Per chi streamma</a>
-      <a href="#domande">Domande</a>
-    </nav>
     <a class="btn btn-small" href="#scarica">Scarica</a>
   </header>
 
+  <nav class="rail" aria-label="Capitoli">
+    <a href="#inizio"><span>La stanza</span></a>
+    <a href="#ascolta"><span>Ascoltare</span></a>
+    <a href="#insieme"><span>Con gli amici</span></a>
+    <a href="#stream"><span>Per chi streamma</span></a>
+    <a href="#scarica"><span>Scarica</span></a>
+  </nav>
+
   <main id="main">
-    <!-- Hero: the one moving moment of the page. Neko sleeps until you
-         press play on the little player. -->
-    <section class="hero">
-      <div class="hero-text">
-        <h1>Tutta la musica che vuoi, e un gatto che l'ascolta con te.</h1>
+    <section class="chapter chapter-hero" id="inizio" data-chapter="0" aria-labelledby="h-hero">
+      <div class="copy copy-left">
+        <h1 id="h-hero">Tutta la musica che vuoi, e un gatto che l'ascolta con te.</h1>
         <p class="lead">
           NekoTune è un lettore musicale gratuito per il computer: cerchi un
           brano, lo ascolti, lo salvi offline e lo condividi con gli amici.
           Senza pubblicità.
         </p>
-        <div class="hero-actions">
-          <a class="btn" href="https://github.com/Gattospia555/NekoTune/releases/latest">Scarica per Windows</a>
-          <a class="btn btn-quiet" href="#ascolta">Guarda cosa fa</a>
-        </div>
-      </div>
 
-      <div class="hero-demo" id="demo" data-state="paused">
-        <div class="demo-neko" aria-hidden="true">
-          <div class="neko neko-asleep"><svg class="neko-mascot neko-mascot--paused " viewBox="0 0 260 262" aria-hidden="true" focusable="false"><ellipse cx="124" cy="242" rx="84" ry="6" fill="#F28A5B" opacity=".14"/><path d="M80 236 C64 236 60 212 64 194 C70 166 86 148 122 148 C158 148 174 166 180 194 C184 212 180 236 164 236 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M106 196 L106 230 M138 196 L138 230" fill="none" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="104" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<ellipse cx="140" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M168 230 C196 232 204 246 184 251 C154 257 98 256 72 250" fill="none" stroke="#F28A5B" stroke-width="16" stroke-linecap="round"/>
-<path d="M168 230 C196 232 204 246 184 251 C154 257 98 256 72 250" fill="none" stroke="#FFB37E" stroke-width="5" stroke-linecap="round"/>
-<circle cx="70" cy="249" r="9" fill="#F28A5B"/><g class="neko-head neko-head--sleep">
-<path d="M58 118 C54 92 64 74 78 66 L82 34 L108 56 C116 54 128 54 136 56 L162 34 L166 66 C180 74 190 92 186 118 C182 146 156 162 122 162 C88 162 62 146 58 118 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M92 112 Q100 119 108 112" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/><path d="M136 112 Q144 119 152 112" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/>
-<path d="M118 122 L126 122 L122 126 Z" fill="#2B1D16" stroke="#2B1D16" stroke-width="2" stroke-linejoin="round"/>
-<path d="M113 128 Q117.5 134 122 128 Q126.5 134 131 128" fill="none" stroke="#2B1D16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="86" cy="130" r="5" fill="#FF8F7A" opacity=".45"/><circle cx="158" cy="130" r="5" fill="#FF8F7A" opacity=".45"/>
-<path d="M78 121 L56 117 M78 128 L56 131 M166 121 L188 117 M166 128 L188 131" stroke="#B5654A" stroke-width="2.4" stroke-linecap="round"/>
-</g><path class="neko-float neko-float--slow" d="M196 70 h16 l-16 18 h16" fill="none" stroke="#9B7FC4" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-<path class="neko-float neko-float--slow neko-float--2" d="M216 38 h11 l-11 12 h11" fill="none" stroke="#BCA0DC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="neko neko-awake"><svg class="neko-mascot neko-mascot--playing " viewBox="0 0 260 262" aria-hidden="true" focusable="false" data-neko-tail="1"><ellipse cx="124" cy="242" rx="84" ry="6" fill="#F28A5B" opacity=".14"/><g class="neko-tail">
-<path data-tail="outer" d="M150.0 228.0 L157.0 228.9 L163.5 229.4 L169.6 229.3 L175.3 228.7 L180.4 227.7 L185.1 226.3 L189.3 224.4 L193.0 222.2 L196.2 219.5 L198.8 216.6 L200.9 213.3 L202.4 209.7 L203.4 205.8 L203.8 201.6 L203.6 197.2 L203.0 193.6 L202.4 190.1 L201.7 186.6 L200.9 183.3 L200.1 179.9 L199.4 176.6 L198.6 173.3 L197.9 170.1 L197.3 166.8 L196.8 163.5 L196.4 160.1 L196.2 156.7 L196.1 153.2 L196.2 149.6 L196.5 145.9 L197.0 143.1 L197.7 140.5 L198.6 138.1 L199.8 136.0 L201.1 134.0 L202.6 132.3 L204.3 130.9 L206.1 129.7 L208.1 128.7 L210.1 128.0 L212.2 127.6 L214.4 127.4 L216.7 127.6 L218.9 128.0 L221.2 128.7 L223.4 129.7 L225.3 131.0 L227.1 132.5 L228.7 134.2 L230.0 136.1 L231.2 138.1 L232.0 140.3 L232.7 142.5 L233.1 144.9 L233.2 147.3 L233.0 149.8 L232.6 152.3 L231.9 154.8 L230.8 157.2 L229.5 159.6 L228.7 160.8 L227.9 161.8 L227.0 162.8 L226.1 163.6 L225.1 164.4 L224.2 165.1 L223.1 165.7 L222.1 166.2 L221.0 166.6 L219.9 166.9 L218.9 167.2 L217.8 167.3 L216.7 167.4 L215.6 167.4 L214.5 167.3" fill="none" stroke="#F28A5B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-<path data-tail="inner" d="M150.0 228.0 L157.0 228.9 L163.5 229.4 L169.6 229.3 L175.3 228.7 L180.4 227.7 L185.1 226.3 L189.3 224.4 L193.0 222.2 L196.2 219.5 L198.8 216.6 L200.9 213.3 L202.4 209.7 L203.4 205.8 L203.8 201.6 L203.6 197.2 L203.0 193.6 L202.4 190.1 L201.7 186.6 L200.9 183.3 L200.1 179.9 L199.4 176.6 L198.6 173.3 L197.9 170.1 L197.3 166.8 L196.8 163.5 L196.4 160.1 L196.2 156.7 L196.1 153.2 L196.2 149.6 L196.5 145.9 L197.0 143.1 L197.7 140.5 L198.6 138.1 L199.8 136.0 L201.1 134.0 L202.6 132.3 L204.3 130.9 L206.1 129.7 L208.1 128.7 L210.1 128.0 L212.2 127.6 L214.4 127.4 L216.7 127.6 L218.9 128.0 L221.2 128.7 L223.4 129.7 L225.3 131.0 L227.1 132.5 L228.7 134.2 L230.0 136.1 L231.2 138.1 L232.0 140.3 L232.7 142.5 L233.1 144.9 L233.2 147.3 L233.0 149.8 L232.6 152.3 L231.9 154.8 L230.8 157.2 L229.5 159.6 L228.7 160.8 L227.9 161.8 L227.0 162.8 L226.1 163.6 L225.1 164.4 L224.2 165.1 L223.1 165.7 L222.1 166.2 L221.0 166.6 L219.9 166.9 L218.9 167.2 L217.8 167.3 L216.7 167.4 L215.6 167.4 L214.5 167.3" fill="none" stroke="#FFB37E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<circle data-tail="tip" cx="214.5" cy="167.3" r="9" fill="#F28A5B"/>
-</g><path d="M80 236 C64 236 60 212 64 194 C70 166 86 148 122 148 C158 148 174 166 180 194 C184 212 180 236 164 236 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M106 196 L106 230 M138 196 L138 230" fill="none" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="104" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<ellipse cx="140" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><g class="neko-head neko-head--bob">
-<path d="M58 118 C54 92 64 74 78 66 L82 34 L108 56 C116 54 128 54 136 56 L162 34 L166 66 C180 74 190 92 186 118 C182 146 156 162 122 162 C88 162 62 146 58 118 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<g class="neko-eyes"><circle cx="100" cy="112" r="6" fill="#2B1D16"/><circle cx="98.2" cy="110.2" r="1.9" fill="#fff"/><circle cx="144" cy="112" r="6" fill="#2B1D16"/><circle cx="142.2" cy="110.2" r="1.9" fill="#fff"/></g>
-<path d="M118 122 L126 122 L122 126 Z" fill="#2B1D16" stroke="#2B1D16" stroke-width="2" stroke-linejoin="round"/>
-<path d="M113 128 Q117.5 134 122 128 Q126.5 134 131 128" fill="none" stroke="#2B1D16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="86" cy="130" r="5" fill="#FF8F7A" opacity=".45"/><circle cx="158" cy="130" r="5" fill="#FF8F7A" opacity=".45"/>
-<path d="M78 121 L56 117 M78 128 L56 131 M166 121 L188 117 M166 128 L188 131" stroke="#B5654A" stroke-width="2.4" stroke-linecap="round"/>
-</g><g class="neko-float neko-float--1"><circle cx="34" cy="80" r="6" fill="#BCA0DC"/><path d="M40 80 V56 Q50 60 48 70" fill="none" stroke="#BCA0DC" stroke-width="3.4" stroke-linecap="round"/></g>
-<g class="neko-float neko-float--2"><circle cx="22" cy="126" r="4.5" fill="#FFB6C1"/><path d="M26.5 126 V108 Q34 111 33 118" fill="none" stroke="#FFB6C1" stroke-width="2.8" stroke-linecap="round"/></g></svg></div>
-        </div>
-        <div class="player-card">
-          <div class="pc-cover" aria-hidden="true">
-            <span class="pc-eq"><i></i><i></i><i></i><i></i></span>
+        <div class="player" role="group" aria-label="Lettore di prova">
+          <button type="button" class="p-play" id="play" aria-pressed="false" aria-label="Riproduci">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+          </button>
+          <div class="p-info">
+            <p class="p-title" id="track-title">Pisolino sul davanzale</p>
+            <p class="p-artist" id="track-artist">Neko &amp; Friends</p>
+            <div class="p-bar" aria-hidden="true">
+              <span class="p-time" id="time-now">0:00</span>
+              <span class="p-track"><span class="p-fill" id="progress-fill"></span></span>
+              <span class="p-time" id="time-total">3:12</span>
+            </div>
           </div>
-          <div class="pc-info">
-            <p class="pc-title" id="demo-title">Pisolino sul davanzale</p>
-            <p class="pc-artist" id="demo-artist">Neko &amp; Friends</p>
-          </div>
-          <div class="pc-progress" aria-hidden="true">
-            <span class="pc-time" id="demo-now">0:00</span>
-            <span class="pc-bar"><span class="pc-fill" id="demo-fill"></span></span>
-            <span class="pc-time" id="demo-total">3:12</span>
-          </div>
-          <div class="pc-controls">
-            <button type="button" class="pc-btn" id="demo-prev" aria-label="Brano precedente">
+          <div class="p-side">
+            <button type="button" class="p-btn" id="prev" aria-label="Brano precedente">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12M18 6l-9 6 9 6z" /></svg>
             </button>
-            <button type="button" class="pc-play" id="demo-play" aria-pressed="false" aria-label="Riproduci">
-              <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
-              <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
-            </button>
-            <button type="button" class="pc-btn" id="demo-next" aria-label="Brano successivo">
+            <button type="button" class="p-btn" id="next" aria-label="Brano successivo">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6v12M6 6l9 6-9 6z" /></svg>
+            </button>
+            <button type="button" class="p-btn p-sound" id="sound" aria-pressed="true" aria-label="Togli l'audio">
+              <svg class="i-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z M15.5 9a4 4 0 0 1 0 6 M18 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+              <svg class="i-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z M16 9.5l5 5 M21 9.5l-5 5" /></svg>
             </button>
           </div>
         </div>
-        <p class="demo-caption" id="demo-caption" aria-live="polite">Neko dorme. Premi play.</p>
+        <p class="caption" id="caption" aria-live="polite">Neko dorme. Premi play.</p>
+        <p class="hint">La musica del lettore di prova è suonata dal browser in tempo reale. Scorri per fare il giro della stanza.</p>
       </div>
     </section>
 
-    <section class="block" id="ascolta" aria-labelledby="h-ascolta">
-      <div class="block-head">
+    <section class="chapter" id="ascolta" data-chapter="1" aria-labelledby="h-ascolta">
+      <div class="copy copy-right panel">
         <h2 id="h-ascolta">Cerchi, ascolti, salvi.</h2>
         <p>
           Dentro c'è il catalogo di YouTube Music: brani, album, artisti,
           remix e cover. Il resto lo decidi tu.
         </p>
+        <dl class="features">
+          <div><dt>Smart Radio</dt><dd>Parti da un brano e la coda continua da sola con musica simile.</dd></div>
+          <div><dt>Testi sincronizzati</dt><dd>Le parole scorrono insieme alla canzone, riga per riga.</dd></div>
+          <div><dt>Offline</dt><dd>Salvi i brani nell'app o li scarichi sul PC in MP3, e li ascolti anche senza internet.</dd></div>
+          <div><dt>Importa da Spotify</dt><dd>Incolli il link di una playlist e la ritrovi in NekoTune.</dd></div>
+          <div><dt>Equalizzatore e temi</dt><dd>Il suono e i colori come piacciono a te, compresi i temi che crei tu.</dd></div>
+          <div><dt>Mini player</dt><dd>Una finestrella sempre in primo piano mentre lavori o giochi.</dd></div>
+        </dl>
       </div>
-      <dl class="features">
-        <div><dt>Smart Radio</dt><dd>Parti da un brano e la coda continua da sola con musica simile.</dd></div>
-        <div><dt>Testi sincronizzati</dt><dd>Le parole scorrono insieme alla canzone, riga per riga.</dd></div>
-        <div><dt>Offline</dt><dd>Salvi i brani nell'app o li scarichi sul PC in MP3, e li ascolti anche senza internet.</dd></div>
-        <div><dt>Importa da Spotify</dt><dd>Incolli il link di una playlist e la ritrovi in NekoTune.</dd></div>
-        <div><dt>Equalizzatore e temi</dt><dd>Il suono e i colori come piacciono a te, compresi i temi che crei tu.</dd></div>
-        <div><dt>Mini player</dt><dd>Una finestrella sempre in primo piano mentre lavori o giochi.</dd></div>
-      </dl>
     </section>
 
-    <section class="block block-split" id="insieme" aria-labelledby="h-insieme">
-      <div class="block-head">
+    <section class="chapter" id="insieme" data-chapter="2" aria-labelledby="h-insieme">
+      <div class="copy copy-left panel">
         <h2 id="h-insieme">Con gli amici è meglio.</h2>
-        <p>Aggiungi i tuoi amici e la musica diventa una cosa da fare insieme.</p>
+        <p>Aggiungi i tuoi amici e la musica diventa una cosa da fare insieme. Qui c'è Luna, che ha appena trovato un brano da farti sentire.</p>
         <ul class="points">
           <li><strong>Messaggi.</strong> Scrivi agli amici e condividi il brano che stai ascoltando con un clic.</li>
           <li><strong>Sessione di gruppo.</strong> Ascoltate la stessa musica nello stesso momento, con la chat accanto.</li>
@@ -141,116 +109,72 @@
           <li><strong>Cosa ascoltano gli altri.</strong> Lo vedi accanto al loro nome, e con un clic lo ascolti anche tu.</li>
         </ul>
       </div>
-
-      <figure class="chat-mock" aria-label="Esempio di conversazione in NekoTune">
-        <div class="cm-head">
-          <span class="cm-avatar cm-avatar-luna" aria-hidden="true">L</span>
-          <span class="cm-name">Luna</span>
-          <span class="cm-playing">sta ascoltando</span>
-        </div>
-        <div class="cm-row theirs"><p class="cm-bubble">hai sentito questa?</p></div>
-        <div class="cm-row theirs">
-          <div class="cm-card">
-            <span class="cm-cover cm-cover-a" aria-hidden="true"></span>
-            <span><strong>Nuvole basse</strong><br />Kite Club</span>
-          </div>
-        </div>
-        <div class="cm-row mine"><p class="cm-bubble">in loop da stamattina</p></div>
-        <div class="cm-row mine">
-          <div class="cm-card cm-invite">
-            <span><strong>Sessione d'ascolto</strong><br />Codice NEKO42</span>
-            <span class="cm-join">Partecipa</span>
-          </div>
-        </div>
-        <figcaption class="sr-only">Luna condivide un brano, poi arriva un invito ad ascoltare insieme.</figcaption>
-      </figure>
     </section>
 
-    <section class="block block-split block-reverse" id="stream" aria-labelledby="h-stream">
-      <div class="block-head">
+    <section class="chapter" id="stream" data-chapter="3" aria-labelledby="h-stream">
+      <div class="copy copy-right panel">
         <h2 id="h-stream">Pensato anche per chi fa stream.</h2>
-        <p>Mentre sei in live, la tua musica la vede anche la chat.</p>
+        <p>Si abbassano le luci, si va in live. Mentre giochi, la tua musica la vede anche la chat.</p>
         <ul class="points">
           <li><strong>Widget per OBS.</strong> Il brano in riproduzione in sovrimpressione, in tre stili, chiaro o scuro.</li>
           <li><strong>Attività su Discord.</strong> "Sta ascoltando" sul tuo profilo, con copertina e tempo.</li>
           <li><strong>NekoBot.</strong> Con <code>/nekotune now</code> il tuo server vede cosa stai ascoltando.</li>
         </ul>
       </div>
-
-      <figure class="stream-mock" aria-label="Esempio del widget di NekoTune sopra una live">
-        <div class="sm-screen">
-          <span class="sm-live">LIVE</span>
-          <div class="sm-widget">
-            <span class="sm-cover" aria-hidden="true"></span>
-            <span class="sm-text"><strong>Pisolino sul davanzale</strong><span>Neko &amp; Friends</span></span>
-            <span class="sm-eq" aria-hidden="true"><i></i><i></i><i></i></span>
-          </div>
-        </div>
-      </figure>
     </section>
 
-    <section class="download" id="scarica" aria-labelledby="h-scarica">
-      <div class="dl-neko" aria-hidden="true"><svg class="neko-mascot neko-mascot--liked " viewBox="0 0 260 262" aria-hidden="true" focusable="false" data-neko-tail="1.6"><ellipse cx="124" cy="242" rx="84" ry="6" fill="#F28A5B" opacity=".14"/><g class="neko-tail">
-<path data-tail="outer" d="M150.0 228.0 L157.0 228.9 L163.5 229.4 L169.6 229.3 L175.3 228.7 L180.4 227.7 L185.1 226.3 L189.3 224.4 L193.0 222.2 L196.2 219.5 L198.8 216.6 L200.9 213.3 L202.4 209.7 L203.4 205.8 L203.8 201.6 L203.6 197.2 L203.0 193.6 L202.4 190.1 L201.7 186.6 L200.9 183.3 L200.1 179.9 L199.4 176.6 L198.6 173.3 L197.9 170.1 L197.3 166.8 L196.8 163.5 L196.4 160.1 L196.2 156.7 L196.1 153.2 L196.2 149.6 L196.5 145.9 L197.0 143.1 L197.7 140.5 L198.6 138.1 L199.8 136.0 L201.1 134.0 L202.6 132.3 L204.3 130.9 L206.1 129.7 L208.1 128.7 L210.1 128.0 L212.2 127.6 L214.4 127.4 L216.7 127.6 L218.9 128.0 L221.2 128.7 L223.4 129.7 L225.3 131.0 L227.1 132.5 L228.7 134.2 L230.0 136.1 L231.2 138.1 L232.0 140.3 L232.7 142.5 L233.1 144.9 L233.2 147.3 L233.0 149.8 L232.6 152.3 L231.9 154.8 L230.8 157.2 L229.5 159.6 L228.7 160.8 L227.9 161.8 L227.0 162.8 L226.1 163.6 L225.1 164.4 L224.2 165.1 L223.1 165.7 L222.1 166.2 L221.0 166.6 L219.9 166.9 L218.9 167.2 L217.8 167.3 L216.7 167.4 L215.6 167.4 L214.5 167.3" fill="none" stroke="#F28A5B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-<path data-tail="inner" d="M150.0 228.0 L157.0 228.9 L163.5 229.4 L169.6 229.3 L175.3 228.7 L180.4 227.7 L185.1 226.3 L189.3 224.4 L193.0 222.2 L196.2 219.5 L198.8 216.6 L200.9 213.3 L202.4 209.7 L203.4 205.8 L203.8 201.6 L203.6 197.2 L203.0 193.6 L202.4 190.1 L201.7 186.6 L200.9 183.3 L200.1 179.9 L199.4 176.6 L198.6 173.3 L197.9 170.1 L197.3 166.8 L196.8 163.5 L196.4 160.1 L196.2 156.7 L196.1 153.2 L196.2 149.6 L196.5 145.9 L197.0 143.1 L197.7 140.5 L198.6 138.1 L199.8 136.0 L201.1 134.0 L202.6 132.3 L204.3 130.9 L206.1 129.7 L208.1 128.7 L210.1 128.0 L212.2 127.6 L214.4 127.4 L216.7 127.6 L218.9 128.0 L221.2 128.7 L223.4 129.7 L225.3 131.0 L227.1 132.5 L228.7 134.2 L230.0 136.1 L231.2 138.1 L232.0 140.3 L232.7 142.5 L233.1 144.9 L233.2 147.3 L233.0 149.8 L232.6 152.3 L231.9 154.8 L230.8 157.2 L229.5 159.6 L228.7 160.8 L227.9 161.8 L227.0 162.8 L226.1 163.6 L225.1 164.4 L224.2 165.1 L223.1 165.7 L222.1 166.2 L221.0 166.6 L219.9 166.9 L218.9 167.2 L217.8 167.3 L216.7 167.4 L215.6 167.4 L214.5 167.3" fill="none" stroke="#FFB37E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<circle data-tail="tip" cx="214.5" cy="167.3" r="9" fill="#F28A5B"/>
-</g><path d="M80 236 C64 236 60 212 64 194 C70 166 86 148 122 148 C158 148 174 166 180 194 C184 212 180 236 164 236 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M106 196 L106 230 M138 196 L138 230" fill="none" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="104" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<ellipse cx="140" cy="234" rx="14" ry="8" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><g class="neko-head neko-head--bob">
-<path d="M58 118 C54 92 64 74 78 66 L82 34 L108 56 C116 54 128 54 136 56 L162 34 L166 66 C180 74 190 92 186 118 C182 146 156 162 122 162 C88 162 62 146 58 118 Z" fill="#FFB37E" stroke="#F28A5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M92 115 Q100 105 108 115" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/><path d="M136 115 Q144 105 152 115" fill="none" stroke="#2B1D16" stroke-width="3.4" stroke-linecap="round"/>
-<path d="M118 122 L126 122 L122 126 Z" fill="#2B1D16" stroke="#2B1D16" stroke-width="2" stroke-linejoin="round"/>
-<path d="M113 128 Q117.5 134 122 128 Q126.5 134 131 128" fill="none" stroke="#2B1D16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="86" cy="130" r="5" fill="#FF8F7A" opacity=".45"/><circle cx="158" cy="130" r="5" fill="#FF8F7A" opacity=".45"/>
-<path d="M78 121 L56 117 M78 128 L56 131 M166 121 L188 117 M166 128 L188 131" stroke="#B5654A" stroke-width="2.4" stroke-linecap="round"/>
-</g><path class="neko-heart" d="M34 78 C16 64 19 46 29 46 C33.5 46 34 51 34 51 C34 51 34.5 46 39 46 C49 46 52 64 34 78 Z" fill="#FFB6C1" stroke="#F28AA0" stroke-width="3" stroke-linejoin="round"/></svg></div>
-      <div class="dl-text">
-        <h2 id="h-scarica">Scarica NekoTune</h2>
-        <p>Versione 1.0.0, per Windows 10 e 11. Le altre versioni sono nella pagina delle versioni.</p>
-        <div class="hero-actions">
-          <a class="btn btn-light" href="https://github.com/Gattospia555/NekoTune/releases/latest">Scarica per Windows</a>
-          <a class="btn btn-ghost" href="https://github.com/Gattospia555/NekoTune/releases">Tutte le versioni</a>
+    <section class="chapter" id="scarica" data-chapter="4" aria-labelledby="h-scarica">
+      <div class="copy copy-left panel panel-strong">
+        <h2 id="h-scarica">Porta Neko sul tuo computer.</h2>
+        <p>NekoTune è gratis, per Windows 10 e 11. Le altre versioni sono nella pagina delle versioni.</p>
+        <div class="actions">
+          <a class="btn" href="https://github.com/Gattospia555/NekoTune/releases/latest">Scarica per Windows</a>
+          <a class="btn btn-quiet" href="https://github.com/Gattospia555/NekoTune/releases">Tutte le versioni</a>
         </div>
-        <p class="dl-note">È gratis. L'account serve solo per amici, messaggi, sessioni e backup delle playlist.</p>
+        <p class="note">L'account serve solo per amici, messaggi, sessioni e backup delle playlist.</p>
       </div>
     </section>
 
-    <section class="block faq" id="domande" aria-labelledby="h-domande">
-      <h2 id="h-domande">Domande</h2>
-      <details>
-        <summary>È davvero gratis?</summary>
-        <p>Sì. Non ci sono abbonamenti né pubblicità.</p>
-      </details>
-      <details>
-        <summary>Da dove arriva la musica?</summary>
-        <p>Dal catalogo pubblico di YouTube e YouTube Music. NekoTune non ospita brani: li cerca e li riproduce per te.</p>
-      </details>
-      <details>
-        <summary>Serve un account?</summary>
-        <p>Per ascoltare no. Serve per aggiungere amici, scrivere messaggi, fare sessioni di gruppo e tenere un backup di playlist e preferiti tra più computer.</p>
-      </details>
-      <details>
-        <summary>Funziona senza internet?</summary>
-        <p>Sì, con i brani che hai salvato offline nell'app o scaricato sul PC.</p>
-      </details>
-      <details>
-        <summary>C'è per telefono?</summary>
-        <p>Per ora NekoTune è per computer.</p>
-      </details>
-    </section>
+    <div class="after-room">
+      <section class="faq" id="domande" aria-labelledby="h-domande">
+        <h2 id="h-domande">Domande</h2>
+        <details>
+          <summary>È davvero gratis?</summary>
+          <p>Sì. Non ci sono abbonamenti né pubblicità.</p>
+        </details>
+        <details>
+          <summary>Da dove arriva la musica?</summary>
+          <p>Dal catalogo pubblico di YouTube e YouTube Music. NekoTune non ospita brani: li cerca e li riproduce per te.</p>
+        </details>
+        <details>
+          <summary>Serve un account?</summary>
+          <p>Per ascoltare no. Serve per aggiungere amici, scrivere messaggi, fare sessioni di gruppo e tenere un backup di playlist e preferiti tra più computer.</p>
+        </details>
+        <details>
+          <summary>Funziona senza internet?</summary>
+          <p>Sì, con i brani che hai salvato offline nell'app o scaricato sul PC.</p>
+        </details>
+        <details>
+          <summary>C'è per telefono?</summary>
+          <p>Per ora NekoTune è per computer.</p>
+        </details>
+        <details>
+          <summary>La musica di questa pagina è di qualcuno?</summary>
+          <p>No: i tre brani del lettore di prova li suona il browser mentre li ascolti, accordo per accordo. Le copertine che girano intorno al giradischi sono inventate.</p>
+        </details>
+      </section>
+
+      <footer class="foot">
+        <p>NekoTune fa parte di NekoEcoSystem, insieme a NekoCalendar, NekoNotes e NekoBot.</p>
+        <p class="foot-links">
+          <a href="https://github.com/Gattospia555/NekoTune">Il progetto su GitHub</a>
+          <a href="https://github.com/Gattospia555/NekoTune/releases">Versioni</a>
+        </p>
+        <p class="foot-small">© 2026 NekoTune. YouTube e Spotify sono marchi dei rispettivi proprietari; NekoTune non è collegato a loro.</p>
+      </footer>
+    </div>
   </main>
 
-  <footer class="foot">
-    <p>
-      NekoTune fa parte di NekoEcoSystem, insieme a NekoCalendar, NekoNotes e NekoBot.
-    </p>
-    <p class="foot-links">
-      <a href="https://github.com/Gattospia555/NekoTune">Il progetto su GitHub</a>
-      <a href="https://github.com/Gattospia555/NekoTune/releases">Versioni</a>
-    </p>
-    <p class="foot-small">© 2026 NekoTune. YouTube e Spotify sono marchi dei rispettivi proprietari; NekoTune non è collegato a loro.</p>
-  </footer>
-
-  <script src="site.js" defer></script>
+  <script type="module" src="room.js"></script>
 </body>
 </html>

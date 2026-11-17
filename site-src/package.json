@@ -1,0 +1,14 @@
+{
+  "name": "nekotune-site",
+  "private": true,
+  "description": "3D scene of the NekoTune website (docs/room.js)",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=esm --target=es2020 --outfile=../docs/room.js"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4"
+  }
+}
