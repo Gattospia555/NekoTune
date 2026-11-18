@@ -188,6 +188,38 @@ export class LofiBand {
     }
   }
 
+  /** A short purr: low noise, wobbling about 24 times a second. */
+  purr() {
+    if (this.muted) return;
+    this.ensure();
+    const ctx = this.ctx;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime + 0.02;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 180;
+    lp.Q.value = 2;
+    const wob = ctx.createGain();
+    wob.gain.value = 0.5;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 24;
+    const lfoAmt = ctx.createGain();
+    lfoAmt.gain.value = 0.5;
+    lfo.connect(lfoAmt).connect(wob.gain);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.9, t + 0.25);
+    env.gain.setValueAtTime(0.9, t + 1.1);
+    env.gain.linearRampToValueAtTime(0, t + 1.6);
+    src.connect(lp).connect(wob).connect(env).connect(ctx.destination);
+    src.start(t);
+    lfo.start(t);
+    src.stop(t + 1.7);
+    lfo.stop(t + 1.7);
+  }
+
   keys(notes, time, dur, vol) {
     const ctx = this.ctx;
     notes.forEach((n, i) => {

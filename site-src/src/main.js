@@ -12,6 +12,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { createCat } from "./cat.js";
 import { LofiBand, TRACKS } from "./audio.js";
+import "./product.js";
 import {
   C,
   recordTexture,
@@ -59,6 +60,7 @@ function showTrack() {
   ui.artist.textContent = t.artist;
   ui.total.textContent = fmt(t.length);
   scene3d?.setTrack(band.track);
+  dispatchEvent(new CustomEvent("neko-track", { detail: { ...t, playing } }));
 }
 
 function setPlaying(on) {
@@ -71,6 +73,7 @@ function setPlaying(on) {
   } catch {
     /* no Web Audio: the room still dances */
   }
+  dispatchEvent(new CustomEvent("neko-track", { detail: { ...TRACKS[band.track], playing: on } }));
   ui.caption.textContent = on
     ? band.muted
       ? "Neko è sveglio. La musica è senza audio."
@@ -436,8 +439,10 @@ function buildScene(canvas) {
   at(arm, 0, 0.1, 0.31, armPivot);
   at(box(0.08, 0.04, 0.13, C.peachDeep, 0.015), 0, 0.09, 0.62, armPivot);
   const led = at(new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 8), new THREE.MeshBasicMaterial({ color: "#9C7BD6" })), 0.5, 0.16, 0.45, deck);
+  const speakers = [];
   [-1.25, 1.2].forEach((x) => {
     const sp = new THREE.Group();
+    speakers.push(sp);
     at(box(0.42, 0.62, 0.38, gloss("#4A3C6B", 0.45), 0.05), 0, 0.31, 0, sp);
     const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 24), mat("#2B2144", 0.4));
     cone.rotation.x = Math.PI / 2;
@@ -661,10 +666,7 @@ function buildScene(canvas) {
   // camera position, target, sideways shift (wide screens), target for tall screens
   const KEYS = [
     { pos: [8.4, 6.0, 11.4], tgt: [-0.3, 1.4, -0.4], off: 0.24, m: [-0.2, 1.7, -0.2] }, // the room
-    { pos: [3.7, 3.9, 3.5], tgt: [-2.4, 2.25, -0.35], off: 0.24, m: [-2.6, 2.2, -0.3] }, // TV and record
-    { pos: [5.4, 2.7, 6.4], tgt: [-0.9, 1.5, 0.1], off: 0.24, m: [-0.4, 1.5, 0.4] }, // friends
-    { pos: [-2.7, 2.35, 5.3], tgt: [1.6, 1.2, -2.0], off: 0.24, m: [1.6, 1.5, -2.0] }, // stream desk
-    { pos: [1.6, 2.0, 5.2], tgt: [-0.75, 0.95, 1.15], off: 0.24, m: [-0.75, 1.1, 1.15] }, // Neko
+    { pos: [-0.95, 2.45, -0.15], tgt: [-4.0, 2.45, -0.15], off: 0, m: [-4.0, 2.45, -0.15] }, // into the TV
   ].map((k) => ({ pos: new THREE.Vector3(...k.pos), tgt: new THREE.Vector3(...k.tgt), off: k.off, m: new THREE.Vector3(...k.m) }));
 
   const camPos = new THREE.Vector3();
@@ -697,14 +699,14 @@ function buildScene(canvas) {
     camTgt.lerpVectors(a.tgt, b.tgt, t);
     const off = lerp(a.off, b.off, t);
     // slow orbit while a chapter is pinned
-    tmp.subVectors(camPos, camTgt).applyAxisAngle(THREE.Object3D.DEFAULT_UP, (d - 0.5) * 0.14);
+    tmp.subVectors(camPos, camTgt).applyAxisAngle(THREE.Object3D.DEFAULT_UP, (d - 0.5) * 0.14 * (1 - t));
     camPos.copy(camTgt).add(tmp);
     if (narrow) {
       mTgt.lerpVectors(a.m, b.m, t);
-      tmp.multiplyScalar(1.35);
+      tmp.multiplyScalar(lerp(1.35, 1.0, t));
       camTgt.copy(mTgt);
       camPos.copy(mTgt).add(tmp);
-      camera.setViewOffset(width, height, 0, height * 0.2, width, height);
+      camera.setViewOffset(width, height, 0, height * 0.2 * (1 - t), width, height);
     } else {
       camera.setViewOffset(width, height, -off * width, 0, width, height);
     }
@@ -715,24 +717,66 @@ function buildScene(canvas) {
   const look = { x: 0, y: 0 };
   const ray = new THREE.Raycaster();
   let wakeUntil = 0;
-  const clickables = [...neko.hit, record, platter];
+  // things in the room you can touch: hover shows a label, click does something
+  const user = { night: 0, lamp: 0, tv: 0, plant: 0, statue: 0, petUntil: 0, lunaUntil: 0 };
+  const targets = [];
+  const target = (obj, name, label, act) => {
+    obj.traverse((m) => m.isMesh && targets.push({ mesh: m, name, label, act }));
+  };
+  target(neko.group, "neko", () => "Accarezza Neko", () => {
+    neko.happy(1.6);
+    if (!playing && state.awake < 0.5) {
+      wakeUntil = clock.getElapsed() + 2.6;
+      ui.caption.textContent = "Mrr? Neko si è svegliato un attimo.";
+    } else ui.caption.textContent = "Neko fa le fusa.";
+    band.purr?.();
+    const from = neko.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.45, 0));
+    for (let i = 0; i < 6; i++) emit(heartMat, from, { size: 0.2 + Math.random() * 0.1, spread: 1.2, up: 0.8 });
+  });
+  target(luna.group, "luna", () => "Saluta Luna", () => {
+    luna.happy(1.6);
+    const from = luna.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.45, 0));
+    for (let i = 0; i < 4; i++) emit(heartMat, from, { size: 0.18, spread: 1, up: 0.7 });
+  });
+  target(deck, "record", () => (playing ? "Ferma il disco" : "Fai partire il disco"), () => setPlaying(!playing));
+  speakers.forEach((sp) => target(sp, "speaker", () => (playing ? "Ferma la musica" : "Accendi la musica"), () => setPlaying(!playing)));
+  target(crate, "crate", () => "Pesca un altro disco", () => {
+    band.setTrack(band.track + 1);
+    showTrack();
+    if (!playing) setPlaying(true);
+  });
+  target(lampG, "lamp", () => (user.lamp ? "Spegni la lampada" : "Accendi la lampada"), () => (user.lamp = user.lamp ? 0 : 1));
+  target(win, "window", () => (user.night ? "Fai tornare giorno" : "Fai venire sera"), () => (user.night = user.night ? 0 : 1));
+  target(tv, "tv", () => ["Accendi la TV", "Cambia canale", "Spegni la TV"][user.tv], () => (user.tv = (user.tv + 1) % 3));
+  target(plant, "plant", () => "Smuovi la pianta", () => (user.plant = 1));
+  target(statue, "statue", () => "Fai girare la statuina", () => (user.statue = 1));
+  const hitMeshes = targets.map((x) => x.mesh);
+  const tip = document.querySelector(".room-tip");
+  let hovered = null;
   addEventListener("pointermove", (e) => pointer.set((e.clientX / width) * 2 - 1, -(e.clientY / height) * 2 + 1));
   function pick(e) {
     if (e.target !== canvas) return null;
     ray.setFromCamera(new THREE.Vector2((e.clientX / width) * 2 - 1, -(e.clientY / height) * 2 + 1), camera);
-    return ray.intersectObjects(clickables, false)[0]?.object ?? null;
+    const hit = ray.intersectObjects(hitMeshes, false)[0];
+    return hit ? targets.find((x) => x.mesh === hit.object) : null;
   }
-  canvas.addEventListener("pointermove", (e) => (canvas.style.cursor = pick(e) ? "pointer" : ""));
-  canvas.addEventListener("click", (e) => {
-    const o = pick(e);
-    if (!o) return;
-    if (o === record || o === platter) return setPlaying(!playing);
-    const from = neko.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.45, 0));
-    if (!playing && state.awake < 0.5) {
-      wakeUntil = clock.getElapsed() + 2.6;
-      ui.caption.textContent = "Mrr? Neko si è svegliato un attimo.";
+  canvas.addEventListener("pointermove", (e) => {
+    hovered = pick(e);
+    canvas.style.cursor = hovered ? "pointer" : "";
+    if (tip) {
+      if (hovered && e.pointerType === "mouse") {
+        tip.textContent = hovered.label();
+        tip.style.transform = `translate(${e.clientX + 16}px, ${e.clientY + 18}px)`;
+        tip.classList.add("on");
+      } else tip.classList.remove("on");
     }
-    for (let i = 0; i < 5; i++) emit(heartMat, from, { size: 0.2 + Math.random() * 0.1, spread: 1.2, up: 0.8 });
+  });
+  canvas.addEventListener("pointerleave", () => tip?.classList.remove("on"));
+  canvas.addEventListener("click", (e) => {
+    const h = pick(e);
+    if (!h) return;
+    h.act();
+    if (tip && h) tip.textContent = h.label();
   });
 
   function videoOn(o, on) {
@@ -744,7 +788,7 @@ function buildScene(canvas) {
 
   // ---------------------------------------------------------------- loop
   const clock = new THREE.Timer();
-  const state = { p: 0, d: 0.5, awake: 0, intro: reduced.matches ? 1 : 0, spin: 0, arm: 0, cur: -1 };
+  const state = { p: 0, d: 0.5, awake: 0, intro: reduced.matches ? 1 : 0, spin: 0, arm: 0, cur: -1, night: 0, lamp: 0, tv: 0, music: 0, plantT: 0, statueT: 0 };
   let lastNote = 0;
   let lastZ = 0;
   let lastHeart = 0;
@@ -780,14 +824,33 @@ function buildScene(canvas) {
     // chapter states
     const wantAwake = playing || p > 0.35 || t < wakeUntil ? 1 : 0;
     state.awake = lerp(state.awake, wantAwake, 1 - Math.exp(-dt * (wantAwake ? 3 : 1.4)));
-    const coverK = bump(p, 0.45, 0.95, 1.25, 1.7);
-    const lunaK = bump(p, 1.25, 1.8, 2.4, 2.8);
-    const nightK = bump(p, 2.35, 2.85, 3.35, 3.75);
-    const phonesK = bump(p, 2.5, 2.9, 3.4, 3.8);
-    const tvOn = smooth(p, 0.35, 0.8) * (1 - bump(p, 2.6, 3.0, 3.4, 3.8));
-    const toFriends = bump(p, 1.3, 1.8, 3.2, 3.6);
-    const liveK = smooth(p, 2.3, 2.8);
+    const ease = (v, to, speed) => lerp(v, to, 1 - Math.exp(-dt * speed));
+    state.music = ease(state.music, playing ? 1 : 0, 2.5);
+    state.night = ease(state.night, user.night, 2.2);
+    state.lamp = ease(state.lamp, Math.max(user.lamp, user.night), 4);
+    // the TV: switched on by hand, or when we dive into it
+    state.tv = ease(state.tv, user.tv === 0 ? 0 : 1, 4);
+    const coverK = state.music * (1 - smooth(p, 0.3, 0.6));
+    const lunaK = 1;
+    const nightK = state.night * (1 - smooth(p, 0.5, 0.9));
+    const phonesK = state.music;
+    const tvOn = Math.max(state.tv, smooth(p, 0.25, 0.6));
+    const toFriends = user.tv === 2 && p < 0.3 ? 1 : 0;
+    const liveK = Math.max(nightK, state.music * 0.6);
     document.body.dataset.mood = nightK > 0.5 ? "night" : "day";
+    // plant wiggle, statue spin
+    if (user.plant) {
+      state.plantT += dt;
+      plant.rotation.z = Math.sin(state.plantT * 14) * 0.08 * Math.exp(-state.plantT * 2.5);
+      if (state.plantT > 2.5) (user.plant = 0), (state.plantT = 0), (plant.rotation.z = 0);
+    }
+    if (user.statue) {
+      state.statueT = Math.min(1, state.statueT + dt * 1.2);
+      statue.rotation.y = -0.4 + THREE.MathUtils.smootherstep(state.statueT, 0, 1) * Math.PI * 2;
+      if (state.statueT >= 1) (user.statue = 0), (state.statueT = 0);
+    }
+    // the canvas fades into the page except when we are inside the TV
+    canvas.style.setProperty("--m", (1 - smooth(p, 0.35, 0.95)).toFixed(3));
 
     if (state.intro < 1) state.intro = Math.min(1, state.intro + dt / 1.8);
     const introE = 1 - Math.pow(1 - state.intro, 3);
@@ -853,8 +916,8 @@ function buildScene(canvas) {
     windowLight.position.set(-0.9, 2.6, -R + 1.2);
     windowLight.intensity = lerp(1.2, 0.5, nightK);
     windowLight.color.set(nightK > 0.5 ? "#8E7CFF" : "#FFD9BF");
-    lampLight.intensity = 0.4 + nightK * 4;
-    shadeMat.emissiveIntensity = 0.15 + nightK * 3.2;
+    lampLight.intensity = 0.4 + state.lamp * (1.5 + nightK * 3);
+    shadeMat.emissiveIntensity = 0.15 + state.lamp * (1 + nightK * 2.2);
     neko.head.getWorldPosition(nekoHead);
     nekoFill.position.set(nekoHead.x + 1.2, nekoHead.y + 0.8, nekoHead.z + 1.4);
     nekoFill.intensity = nightK * 7;
@@ -868,7 +931,7 @@ function buildScene(canvas) {
     motes.rotation.y = still ? 0 : t * 0.02;
 
     // particles
-    if (playing && !still && t - lastNote > 0.55 && p < 2.3) {
+    if (playing && !still && t - lastNote > 0.55 && p < 0.4) {
       lastNote = t;
       tmp.copy(recordWorld).add(tmp2.set((Math.random() - 0.5) * 0.5, 0.15, (Math.random() - 0.5) * 0.4));
       emit(noteMats[Math.floor(Math.random() * 3)], tmp, { size: 0.22 + beat * 0.08, spread: 0.5 });
@@ -877,7 +940,7 @@ function buildScene(canvas) {
       lastZ = t;
       emit(zMat, tmp.copy(nekoHead).add(tmp2.set(0.35, 0.35, 0)), { size: 0.18, spread: 0.15, up: 0.35, life: 2.6, kind: "z" });
     }
-    if (p > 3.6 && p < 4.4 && !still && t - lastHeart > 0.8) {
+    if (false) {
       lastHeart = t;
       emit(heartMat, tmp.copy(nekoHead).add(tmp2.set(0, 0.55, 0)), { size: 0.18, spread: 0.9, up: 0.45, life: 2 });
     }
@@ -909,11 +972,7 @@ function buildScene(canvas) {
     const shown = (band.ctx ? band.elapsed : fakeClock) % tr.length;
     ui.now.textContent = fmt(shown);
     ui.fill.style.transform = `scaleX(${shown / tr.length})`;
-    const cur = Math.round(Math.min(p, 4));
-    if (cur !== state.cur) {
-      state.cur = cur;
-      rail.forEach((a, i) => (i === cur ? a.setAttribute("aria-current", "step") : a.removeAttribute("aria-current")));
-    }
+
 
     // quality: after the entrance, measure; step down if the computer struggles
     if (state.intro >= 1 && perf.checks < 2 && forceQ == null) {
@@ -982,7 +1041,7 @@ try {
   const update = () => {
     const past = after && after.getBoundingClientRect().top <= 0;
     scene3d.setRunning(!document.hidden && !past);
-    if (past) rail.forEach((a) => a.removeAttribute("aria-current"));
+
   };
   addEventListener("scroll", update, { passive: true });
   document.addEventListener("visibilitychange", update);

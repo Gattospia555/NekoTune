@@ -4,35 +4,38 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NekoTune, il lettore musicale con un gatto dentro</title>
-  <meta name="description" content="NekoTune è un lettore musicale gratuito per il computer: cerchi un brano, lo ascolti, lo salvi offline e lo condividi con gli amici. Senza pubblicità." />
+  <meta name="description" content="NekoTune è un lettore musicale gratuito per Windows: cerchi un brano, lo ascolti, lo salvi offline e lo condividi con gli amici. Senza pubblicità." />
   <meta name="theme-color" content="#F3EEFB" />
   <meta property="og:title" content="NekoTune" />
-  <meta property="og:description" content="Tutta la musica che vuoi, e un gatto che l'ascolta con te. Gratis, per Windows." />
-  <meta property="og:image" content="https://gattospia555.github.io/NekoTune/assets/logo-256.png" />
+  <meta property="og:description" content="Musica con un gatto dentro. Gratis, per Windows." />
+  <meta property="og:image" content="https://gattospia555.github.io/NekoTune/media/og.jpg" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/png" href="assets/favicon-64.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="room.css?v=6" />
+  <link rel="stylesheet" href="room.css?v=9" />
 </head>
 <body data-mood="day">
   <a class="skip" href="#main">Vai al contenuto</a>
   <canvas id="scene" aria-hidden="true"></canvas>
-  <img class="fallback-neko" src="assets/neko-playing.svg" alt="" width="260" height="262" />
+  <img class="fallback-neko" src="media/neko-headphones.webp" alt="" width="1000" height="854" />
+  <div class="room-tip" aria-hidden="true"></div>
 
   <header class="top">
     <a class="brand" href="./" aria-label="NekoTune, inizio pagina">
       <img src="assets/logo-256.png" alt="" width="40" height="40" />
       <span>NekoTune</span>
     </a>
-    <nav class="tracks" aria-label="Capitoli">
+    <nav class="tracks" aria-label="Sezioni">
       <a href="#inizio"><span class="tn">A1</span> La stanza</a>
-      <a href="#ascolta"><span class="tn">A2</span> Ascoltare</a>
-      <a href="#insieme"><span class="tn">A3</span> Con gli amici</a>
-      <a href="#stream"><span class="tn">A4</span> In diretta</a>
-      <a href="#scarica"><span class="tn">A5</span> Scarica</a>
+      <a href="#player"><span class="tn">A2</span> Il player</a>
+      <a href="#testi"><span class="tn">A3</span> Testi</a>
+      <a href="#temi"><span class="tn">A4</span> Temi</a>
+      <a href="#amici"><span class="tn">B1</span> Amici</a>
+      <a href="#diretta"><span class="tn">B2</span> In diretta</a>
+      <a href="#scarica"><span class="tn">B3</span> Scarica</a>
     </nav>
     <a class="btn btn-small" href="#scarica">Scarica</a>
   </header>
@@ -76,108 +79,160 @@
           </div>
         </div>
         <p class="caption" id="caption" aria-live="polite">Neko dorme. Premi play.</p>
-        <p class="hint">La musica del lettore di prova è suonata dal browser in tempo reale. Scorri per fare il giro della stanza.</p>
+        <p class="hint">Nella stanza puoi toccare quasi tutto: Neko, il disco, la lampada, la finestra, la TV.</p>
       </div>
       </div>
     </section>
-
-    <section class="chapter" id="ascolta" data-chapter="1" aria-labelledby="h-ascolta">
-      <div class="stage">
-      <div class="copy">
-        <h2 id="h-ascolta">Cerchi, ascolti, salvi.</h2>
-        <p>
-          Dentro c'è il catalogo di YouTube Music: brani, album, artisti,
-          remix e cover. Sulla TV di Neko gira l'app vera.
-        </p>
-        <dl class="features">
-          <div><dt>Smart Radio</dt><dd>Parti da un brano e la coda continua da sola con musica simile.</dd></div>
-          <div><dt>Testi sincronizzati</dt><dd>Le parole scorrono insieme alla canzone, riga per riga.</dd></div>
-          <div><dt>Offline</dt><dd>Salvi i brani nell'app o li scarichi sul PC in MP3, e li ascolti anche senza internet.</dd></div>
-          <div><dt>Importa da Spotify</dt><dd>Incolli il link di una playlist e la ritrovi in NekoTune.</dd></div>
-          <div><dt>Equalizzatore e temi</dt><dd>Il suono e i colori come piacciono a te, compresi i temi che crei tu.</dd></div>
-          <div><dt>Mini player</dt><dd>Una finestrella sempre in primo piano mentre lavori o giochi.</dd></div>
-        </dl>
-      </div>
-      </div>
-    </section>
-
-    <section class="chapter" id="insieme" data-chapter="2" aria-labelledby="h-insieme">
-      <div class="stage">
-      <div class="copy">
-        <h2 id="h-insieme">Con gli amici è meglio.</h2>
-        <p>Aggiungi i tuoi amici e la musica diventa una cosa da fare insieme. È arrivata Luna: sulla TV c'è la vostra chat.</p>
-        <ul class="points">
-          <li><strong>Messaggi.</strong> Scrivi agli amici e condividi il brano che stai ascoltando con un clic.</li>
-          <li><strong>Sessione di gruppo.</strong> Ascoltate la stessa musica nello stesso momento, con la chat accanto.</li>
-          <li><strong>Playlist condivise.</strong> Una playlist che modificate in più persone.</li>
-          <li><strong>Cosa ascoltano gli altri.</strong> Lo vedi accanto al loro nome, e con un clic lo ascolti anche tu.</li>
-        </ul>
-      </div>
-      </div>
-    </section>
-
-    <section class="chapter" id="stream" data-chapter="3" aria-labelledby="h-stream">
-      <div class="stage">
-      <div class="copy">
-        <h2 id="h-stream">Pensato anche per chi fa stream.</h2>
-        <p>Si abbassano le luci, si va in live. Mentre giochi, la tua musica la vede anche la chat.</p>
-        <ul class="points">
-          <li><strong>Widget per OBS.</strong> Il brano in riproduzione in sovrimpressione, in tre stili, chiaro o scuro.</li>
-          <li><strong>Attività su Discord.</strong> "Sta ascoltando" sul tuo profilo, con copertina e tempo.</li>
-          <li><strong>NekoBot.</strong> Con <code>/nekotune now</code> il tuo server vede cosa stai ascoltando.</li>
-        </ul>
-      </div>
-      </div>
-    </section>
-
-    <section class="chapter" id="scarica" data-chapter="4" aria-labelledby="h-scarica">
-      <div class="stage">
-      <div class="copy">
-        <h2 id="h-scarica">Porta Neko sul tuo computer.</h2>
-        <p>NekoTune è gratis, per Windows 10 e 11. Le altre versioni sono nella pagina delle versioni.</p>
-        <div class="actions">
-          <a class="btn" href="https://github.com/Gattospia555/NekoTune/releases/latest">Scarica per Windows</a>
-          <a class="btn btn-quiet" href="https://github.com/Gattospia555/NekoTune/releases">Tutte le versioni</a>
-        </div>
-        <p class="note">L'account serve solo per amici, messaggi, sessioni e backup delle playlist.</p>
-      </div>
-      </div>
+    <section class="chapter chapter-dive" data-chapter="1" aria-hidden="true">
+      <div class="stage"></div>
     </section>
 
     <div class="after-room">
-      <section class="inside" id="dentro" aria-labelledby="h-dentro">
-        <div class="inside-head">
-          <h2 id="h-dentro">Dentro NekoTune</h2>
-          <p>Schermate vere dell'app. I brani, le copertine e gli amici sono di prova, inventati per queste immagini.</p>
-        </div>
-        <div class="viewer">
-          <div class="viewer-tabs" role="tablist" aria-label="Schermate">
-            <button type="button" role="tab" id="tab-0" aria-controls="shot-0" aria-selected="true" tabindex="0">Home</button>
-            <button type="button" role="tab" id="tab-1" aria-controls="shot-1" aria-selected="false" tabindex="-1">Testi</button>
-            <button type="button" role="tab" id="tab-2" aria-controls="shot-2" aria-selected="false" tabindex="-1">Messaggi</button>
-            <button type="button" role="tab" id="tab-3" aria-controls="shot-3" aria-selected="false" tabindex="-1">Tema scuro</button>
-            <button type="button" role="tab" id="tab-4" aria-controls="shot-4" aria-selected="false" tabindex="-1">Temi</button>
+      <!-- A2: the player, Apple-style: the computer stays put, the app moves -->
+      <section class="ap" id="player" aria-labelledby="h-player">
+        <div class="ap-stage">
+          <div class="ap-heads">
+            <h2 id="h-player" class="ap-h" data-step="0">Il tuo player.</h2>
+            <p class="ap-h" data-step="1">Premi play. <span>Il resto lo fa lui.</span></p>
+            <p class="ap-h" data-step="2">A tutto schermo, <span>quando il brano lo merita.</span></p>
+            <p class="ap-h" data-step="3">I testi seguono <span>la voce.</span></p>
           </div>
-          <figure class="viewer-shot" id="shot-0" role="tabpanel" aria-labelledby="tab-0">
-            <img src="assets/app-home.webp" alt="La home di NekoTune con gli ascolti recenti, l'accesso rapido e i brani preferiti" width="1600" height="1000" loading="lazy" />
-            <figcaption>La home: quello che hai ascoltato, le tue playlist, i preferiti.</figcaption>
-          </figure>
-          <figure class="viewer-shot" id="shot-1" role="tabpanel" aria-labelledby="tab-1" hidden>
-            <img src="assets/app-expanded-lyrics.webp" alt="Il player a tutto schermo con la copertina e i testi sincronizzati" width="1600" height="1000" loading="lazy" />
-            <figcaption>Il player a tutto schermo, con i testi che scorrono insieme al brano.</figcaption>
-          </figure>
-          <figure class="viewer-shot" id="shot-2" role="tabpanel" aria-labelledby="tab-2" hidden>
-            <img src="assets/app-messages.webp" alt="La pagina Messaggi con la conversazione con Luna, un brano condiviso e un invito a una sessione" width="1600" height="1000" loading="lazy" />
-            <figcaption>I messaggi: brani condivisi, reazioni, inviti ad ascoltare insieme.</figcaption>
-          </figure>
-          <figure class="viewer-shot" id="shot-3" role="tabpanel" aria-labelledby="tab-3" hidden>
-            <img src="assets/app-home-dark.webp" alt="La home di NekoTune con il tema scuro Warm Dark" width="1600" height="1000" loading="lazy" />
-            <figcaption>Lo stesso NekoTune con il tema Warm Dark.</figcaption>
-          </figure>
-          <figure class="viewer-shot" id="shot-4" role="tabpanel" aria-labelledby="tab-4" hidden>
-            <img src="assets/app-themes.webp" alt="La pagina Temi con i temi pronti e l'editor per crearne uno" width="1600" height="1000" loading="lazy" />
-            <figcaption>I temi pronti, e quello che ti crei tu.</figcaption>
-          </figure>
+          <div class="laptop">
+            <div class="screen">
+              <img class="sc sc-idle" src="media/home-idle.webp" alt="La home di NekoTune" width="1600" height="1000" />
+              <img class="sc sc-play" src="media/home-playing.webp" alt="" width="1600" height="1000" />
+              <img class="sc sc-exp" src="media/expanded.webp" alt="Il player a tutto schermo" width="1600" height="1000" />
+              <img class="sc sc-lyr" src="media/lyrics-1.webp" alt="I testi sincronizzati nel player" width="1600" height="1000" />
+              <img class="sc sc-lyr" src="media/lyrics-2.webp" alt="" width="1600" height="1000" />
+              <img class="sc sc-lyr" src="media/lyrics-3.webp" alt="" width="1600" height="1000" />
+            </div>
+            <div class="base" aria-hidden="true"></div>
+          </div>
+          <ul class="ap-facts">
+            <li data-step="1"><strong>Il catalogo di YouTube Music</strong> brani, album, artisti, remix e cover</li>
+            <li data-step="2"><strong>Smart Radio</strong> la coda continua da sola con musica simile</li>
+            <li data-step="3"><strong>Offline</strong> salvi i brani e li ascolti senza internet</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- A3: lyrics light up as you scroll -->
+      <section class="lyr" id="testi" aria-labelledby="h-testi">
+        <div class="lyr-stage">
+          <div class="lyr-text">
+            <h2 id="h-testi" class="lyr-title">Testi che scorrono insieme al brano.</h2>
+            <div class="lyr-lines" aria-label="Esempio di testo sincronizzato">
+            <p class="lyr-line"><span>Le</span> <span>nuvole</span> <span>si</span> <span>abbassano</span> <span>sul</span> <span>tetto</span></p>
+            <p class="lyr-line"><span>e</span> <span>il</span> <span>gatto</span> <span>dorme</span> <span>sopra</span> <span>il</span> <span>mio</span> <span>quaderno</span></p>
+            <p class="lyr-line"><span>metto</span> <span>un</span> <span>disco,</span> <span>giro</span> <span>piano</span> <span>il</span> <span>volume</span></p>
+            <p class="lyr-line"><span>la</span> <span>città</span> <span>si</span> <span>spegne</span> <span>una</span> <span>luce</span> <span>alla</span> <span>volta</span></p>
+            <p class="lyr-line"><span>e</span> <span>resta</span> <span>solo</span> <span>questa</span> <span>melodia</span></p>
+            <p class="lyr-line"><span>che</span> <span>mi</span> <span>porta</span> <span>a</span> <span>casa.</span></p>
+            </div>
+            <p class="lyr-note">Nell'app le righe si illuminano da sole, a tempo con la canzone. Queste le abbiamo scritte noi, per la pagina.</p>
+          </div>
+          <img class="lyr-neko" src="media/neko-headphones.webp" alt="Neko con le cuffie, seduto su un disco" width="1000" height="854" loading="lazy" />
+        </div>
+      </section>
+
+      <!-- A4: themes, for real -->
+      <section class="th" id="temi" aria-labelledby="h-temi">
+        <div class="th-inner">
+          <div class="th-text">
+            <h2 id="h-temi">Sei temi pronti. Più quelli che crei tu.</h2>
+            <p>Prova: scegli un tema e guarda NekoTune cambiare colore, come fa nell'app.</p>
+            <div class="th-picker" role="group" aria-label="Temi di NekoTune">
+            <button type="button" class="th-btn" data-theme="nekotune-cream" data-bg="#FAF8F5" data-ink="light" aria-pressed="true">
+              <span class="th-dots" aria-hidden="true"><i style="background:#FAF8F5"></i><i style="background:#CC8B65"></i><i style="background:#E8D3C3"></i></span>
+              Cozy Light
+            </button>
+            <button type="button" class="th-btn" data-theme="nekotune-dark" data-bg="#2D2B55" data-ink="dark" aria-pressed="false">
+              <span class="th-dots" aria-hidden="true"><i style="background:#2D2B55"></i><i style="background:#FFDAB9"></i><i style="background:#BCA0DC"></i></span>
+              Warm Dark
+            </button>
+            <button type="button" class="th-btn" data-theme="midnight" data-bg="#0a1628" data-ink="dark" aria-pressed="false">
+              <span class="th-dots" aria-hidden="true"><i style="background:#0a1628"></i><i style="background:#4fc3f7"></i><i style="background:#81d4fa"></i></span>
+              Blu Notte
+            </button>
+            <button type="button" class="th-btn" data-theme="sunset" data-bg="#1a0a0f" data-ink="dark" aria-pressed="false">
+              <span class="th-dots" aria-hidden="true"><i style="background:#1a0a0f"></i><i style="background:#ff6b6b"></i><i style="background:#ffa07a"></i></span>
+              Tramonto
+            </button>
+            <button type="button" class="th-btn" data-theme="forest" data-bg="#0a150f" data-ink="dark" aria-pressed="false">
+              <span class="th-dots" aria-hidden="true"><i style="background:#0a150f"></i><i style="background:#00b894"></i><i style="background:#55efc4"></i></span>
+              Foresta
+            </button>
+            <button type="button" class="th-btn" data-theme="neon" data-bg="#0a0a0a" data-ink="dark" aria-pressed="false">
+              <span class="th-dots" aria-hidden="true"><i style="background:#0a0a0a"></i><i style="background:#ff00ff"></i><i style="background:#ff66ff"></i></span>
+              Neon
+            </button>
+            </div>
+          </div>
+          <div class="th-shot">
+            <img class="th-img" src="media/theme-nekotune-cream.webp" alt="NekoTune con il tema Cozy Light" width="1600" height="1000" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      <!-- B1: friends, the chat builds up as you scroll -->
+      <section class="fr" id="amici" aria-labelledby="h-amici">
+        <div class="fr-stage">
+          <div class="fr-text">
+            <h2 id="h-amici">Con gli amici è meglio.</h2>
+            <ul class="points">
+              <li><strong>Messaggi.</strong> Scrivi agli amici e mandi il brano che stai ascoltando con un clic.</li>
+              <li><strong>Sessione di gruppo.</strong> La stessa musica nello stesso momento, con la chat accanto.</li>
+              <li><strong>Playlist condivise.</strong> Una playlist che modificate in più persone.</li>
+              <li><strong>Cosa ascoltano gli altri.</strong> Lo vedi accanto al loro nome, e con un clic lo ascolti anche tu.</li>
+            </ul>
+          </div>
+          <div class="fr-scene">
+            <img class="fr-cats" src="media/neko-friends.webp" alt="Neko e Luna, la sua amica" width="1000" height="796" loading="lazy" />
+            <div class="chat" aria-label="Esempio di conversazione tra Luna e Neko">
+              <p class="bub theirs">ehi, sei ancora sveglio?</p>
+              <div class="bub theirs bub-track"><span class="bt-cover" aria-hidden="true"></span><span><strong>Nuvole basse</strong>Kite Club</span></div>
+              <p class="bub mine">in loop da stamattina</p>
+              <div class="bub theirs bub-invite"><strong>Sessione d'ascolto</strong><span>Codice NEKO42</span><span class="bi-join">Partecipa</span></div>
+              <p class="bub mine">arrivo! metto le cuffie</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- B2: streaming -->
+      <section class="st" id="diretta" aria-labelledby="h-diretta">
+        <div class="st-stage">
+          <img class="st-bg" src="media/room-night.webp" alt="La stanza di Neko di sera, con la scrivania da streamer" width="1600" height="1000" loading="lazy" />
+          <div class="st-text">
+            <h2 id="h-diretta">In diretta, la tua musica la vede anche la chat.</h2>
+            <ul class="points">
+              <li><strong>Widget per OBS.</strong> Il brano in riproduzione sopra la live, in tre stili, chiaro o scuro.</li>
+              <li><strong>Attività su Discord.</strong> "Sta ascoltando" sul tuo profilo, con copertina e tempo.</li>
+              <li><strong>NekoBot.</strong> Con <code>/nekotune now</code> il tuo server vede cosa stai ascoltando.</li>
+            </ul>
+          </div>
+          <div class="st-widget" aria-hidden="true">
+            <span class="sw-cover"></span>
+            <span class="sw-text"><strong class="sw-title">Pisolino sul davanzale</strong><span class="sw-artist">Neko &amp; Friends</span></span>
+            <span class="sw-eq"><i></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- B3: download -->
+      <section class="dl" id="scarica" aria-labelledby="h-scarica">
+        <div class="dl-art">
+          <img class="dl-asleep" src="media/neko-asleep.webp" alt="Neko che dorme su un disco" width="1000" height="567" loading="lazy" />
+          <img class="dl-awake" src="media/neko-headphones.webp" alt="" width="1000" height="854" loading="lazy" />
+        </div>
+        <div class="dl-text">
+          <h2 id="h-scarica">Porta Neko sul tuo computer.</h2>
+          <p>NekoTune è gratis, per Windows 10 e 11. Le altre versioni sono nella pagina delle versioni.</p>
+          <div class="actions">
+            <a class="btn btn-big" href="https://github.com/Gattospia555/NekoTune/releases/latest">Scarica per Windows</a>
+            <a class="btn btn-quiet" href="https://github.com/Gattospia555/NekoTune/releases">Tutte le versioni</a>
+          </div>
+          <p class="note">L'account serve solo per amici, messaggi, sessioni e backup delle playlist.</p>
         </div>
       </section>
 
@@ -211,6 +266,7 @@
         </div>
       </section>
 
+
       <footer class="foot">
         <img class="foot-neko" src="assets/neko-paused.svg" alt="" width="130" height="131" loading="lazy" />
         <p class="foot-brand">NekoTune</p>
@@ -224,6 +280,6 @@
     </div>
   </main>
 
-  <script type="module" src="room.js?v=6"></script>
+  <script type="module" src="room.js?v=9"></script>
 </body>
 </html>

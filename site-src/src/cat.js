@@ -158,6 +158,15 @@ export function createCat({
     onFace(holder, 0.155 * s, 0.035, 0.002);
     return holder;
   });
+  // happy eyes (^ ^) when petted
+  const happyEyes = [-1, 1].map((s) => {
+    const m = new THREE.Mesh(arc(0.05, 0.012), eyeMat);
+    const holder = new THREE.Group();
+    holder.add(m);
+    holder.visible = false;
+    onFace(holder, 0.155 * s, 0.02, 0.002);
+    return holder;
+  });
   // mouth: a small "w" under the nose
   [-1, 1].forEach((s) => {
     const m = new THREE.Mesh(arc(0.022, 0.0065), eyeMat);
@@ -233,6 +242,8 @@ export function createCat({
 
   let blink = 0;
   let nextBlink = 2;
+  let happyUntil = 0;
+  const now = () => performance.now() / 1000;
 
   /** awake 0..1, t seconds, beat 0..1, look {x,y}, still = no idle motion */
   function pose(awake, t, beat, look, still, phonesK = 0) {
@@ -274,8 +285,11 @@ export function createCat({
     }
     blink = Math.max(0, blink - 0.12);
     const open = a > 0.55 ? 1 - (blink > 0 ? Math.sin(blink * Math.PI) : 0) : 0;
-    openEyes.forEach((e) => ((e.scale.y = Math.max(0.05, open)), (e.visible = open > 0.06)));
-    closedEyes.forEach((e) => (e.visible = open <= 0.06));
+    const isHappy = now() < happyUntil && a > 0.4;
+    openEyes.forEach((e) => ((e.scale.y = Math.max(0.05, open)), (e.visible = open > 0.06 && !isHappy)));
+    closedEyes.forEach((e) => (e.visible = open <= 0.06 && !isHappy));
+    happyEyes.forEach((e) => (e.visible = isHappy));
+    if (isHappy && !still) head.rotation.z += Math.sin(t * 9) * 0.05;
 
     for (let i = 0; i < tailPts.length; i++) {
       tailPts[i].lerpVectors(TAIL_SLEEP[i], TAIL_AWAKE[i], a);
@@ -291,5 +305,5 @@ export function createCat({
   }
 
   pose(0, 0, 0, { x: 0, y: 0 }, true);
-  return { group, head, pose, hit: [torso, skull] };
+  return { group, head, pose, hit: [torso, skull], happy: (sec) => (happyUntil = now() + sec) };
 }
