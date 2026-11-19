@@ -32,7 +32,7 @@ COLORS = {
     "luna": "#efe9f8", "lunaDark": "#b9a3e3", "lunaInner": "#f2b8c6",
     "eye": "#2b1d16", "nose": "#c75b5b", "blush": "#ff9aa2", "phones": "#5a4a7a", "phonesPad": "#ffb37e",
     "book1": "#5fb3a8", "book2": "#e5a54b", "book3": "#d65b4a", "book4": "#6c8fc4", "book5": "#93b07a",
-    "sky": "#8fd3cf", "led": "#d65b4a", "nekoLine": "#e0764a", "lunaLine": "#8e78bd",
+    "sky": "#8fd3cf", "led": "#d65b4a", "nekoLine": "#e0764a", "lunaLine": "#8e78bd", "whisk": "#7a4a3e", "lunaWhisk": "#6f5f8f", "nekoEar": "#ffc4a3", "lunaEar": "#f6c2d2",
 }
 MATS = {}
 
@@ -356,8 +356,11 @@ box("crate_in", (1.15, 0.7, 0.82), (-3.0, 0.53, 2.6), "woodDark", bevel=0.02)
 crate_cols = ["book1", "book2", "book3", "book4", "book5", "lilac", "yellow", "teal"]
 for k in range(8):
     box(f"crate_rec{k}", (0.07, 0.82, 0.78), (-3.45 + k * 0.125, 0.75, 2.6), crate_cols[k], bevel=0.015, rot=(0, 0, -8 + k * 2))
-box("crate_rec_out", (0.82, 0.07, 0.82), (-1.85, 0.16, 2.95), "book2", bevel=0.015, rot=(0, 18, 0))
-cyl("crate_rec_out_disc", 0.36, 0.03, (-1.95, 0.21, 2.9), "record", bevel=0.01, verts=32)
+box("crate_rec_out", (0.86, 0.04, 0.86), (-1.8, 0.14, 2.95), "book2", bevel=0.012, rot=(0, 18, 0))
+box("crate_rec_out_art", (0.5, 0.012, 0.5), (-1.62, 0.165, 3.02), "teal", bevel=0.005, rot=(0, 18, 0))
+cyl("crate_rec_out_disc", 0.4, 0.025, (-2.2, 0.15, 2.75), "record", bevel=0.008, verts=48)
+cyl("crate_rec_out_label", 0.13, 0.03, (-2.2, 0.152, 2.75), "label", bevel=0, verts=32)
+torus("crate_rec_out_groove", 0.28, 0.006, (-2.2, 0.165, 2.75), "metal")
 
 # desk + monitor under the window, chair in front
 DX = 2.6
@@ -374,7 +377,8 @@ box("keyboard", (0.85, 0.05, 0.3), (DX - 0.2, 1.635, -W + 1.05), "white", bevel=
 box("mouse", (0.12, 0.05, 0.18), (DX + 0.45, 1.635, -W + 1.08), "white", bevel=0.02)
 cyl("mic_base", 0.12, 0.04, (DX + 0.95, 1.63, -W + 0.55), "ink", verts=20)
 tube("mic_arm", [(DX + 0.95, 1.65, -W + 0.55), (DX + 0.95, 2.2, -W + 0.6), (DX + 0.7, 2.45, -W + 0.85)], 0.02, "ink", res=6)
-cyl("mic", 0.09, 0.3, (DX + 0.65, 2.42, -W + 0.9), "metal", bevel=0.03, verts=20, rot=(30, 0, 20))
+cyl("mic", 0.07, 0.24, (DX + 0.68, 2.36, -W + 0.9), "ink", bevel=0.03, verts=24, rot=(20, 0, 15))
+sphere("mic_grille", 0.11, (DX + 0.64, 2.53, -W + 0.96), "metal", scale=(1, 1.3, 1), rot=(20, 0, 15), seg=24)
 # chair
 ch = empty("chair", (DX - 0.2, 0, -W + 2.0))
 box("chair_seat", (0.95, 0.16, 0.9), (DX - 0.2, 1.0, -W + 2.0), "lilac", bevel=0.07, parent=None)
@@ -402,17 +406,6 @@ bz = SZ - 1.05
 for k, (h, c) in enumerate([(0.7, "book1"), (0.62, "book2"), (0.75, "book3"), (0.58, "book4"), (0.66, "book5")]):
     box(f"shelf_book{k}", (0.45, h, 0.13), (-W + 0.32, SY + 0.05 + h / 2, bz), c, bevel=0.02, rot=(0, 0, 0 if k < 4 else 14))
     bz += 0.15
-# lucky cat (maneki-neko) figurine
-stat = empty("statue", (-W + 0.35, SY + 0.05, SZ + 0.6))
-sb = blob("statue_body", [((-W + 0.35, SY + 0.3, SZ + 0.6), 0.32, (1, 1.1, 0.9)), ((-W + 0.35, SY + 0.63, SZ + 0.62), 0.26, (1, 0.95, 0.95))], "white", res=0.03)
-bpy.context.view_layer.update()
-mw = sb.matrix_world.copy(); sb.parent = stat; sb.matrix_world = mw
-sphere("statue_paw", 0.07, (-W + 0.48, SY + 0.85, SZ + 0.68), "white", parent=stat, seg=12)
-for side in (-1, 1):
-    cyl(f"statue_ear{side}", 0.07, 0.12, (-W + 0.35 + 0.0, SY + 0.86, SZ + 0.6 + side * 0.12), "red", r2=0.0, bevel=0, verts=12, parent=stat, rot=(side * 15, 0, 0))
-box("statue_coin", (0.04, 0.16, 0.12), (-W + 0.54, SY + 0.32, SZ + 0.6), "yellow", bevel=0.02, parent=stat)
-cyl("statue_collar", 0.2, 0.04, (-W + 0.35, SY + 0.46, SZ + 0.6), "red", bevel=0.01, verts=24, parent=stat)
-
 # frame / poster on the back wall
 box("poster", (1.55, 1.55, 0.06), (-1.6, 3.75, -W + 0.05), "white", bevel=0.03)
 plane("poster_art", 1.35, 1.35, (-1.6, 3.75, -W + 0.085), "teal")
@@ -464,24 +457,28 @@ def reparent(objs, parent):
         o.parent = parent
         o.matrix_world = mw
 
-def chibi(prefix, base, dark, line_dark, accent=None, phones=False):
+def chibi(prefix, base, dark, line_dark, accent=None, phones=False, inner="nekoInner", whisk="whisk"):
     """Built at the origin facing +z; returns the root empty."""
     made_before = set(COL.objects)
-    # body: a soft bell
+    # body: a sitting cat seen in 3D — narrow chest, wide haunches at the back
     body = blob(f"{prefix}_body", [
-        ((0, 0.42, -0.06), 0.66, (1.0, 0.78, 0.86)),
-        ((0, 0.86, 0.0), 0.46, (0.86, 0.82, 0.8)),
+        ((0, 0.36, -0.08), 0.66, (1.08, 0.72, 0.92)),
+        ((0, 0.82, 0.02), 0.46, (0.92, 0.9, 0.82)),
+        ((-0.4, 0.3, -0.14), 0.42, (0.8, 0.92, 1.12)),
+        ((0.4, 0.3, -0.14), 0.42, (0.8, 0.92, 1.12)),
     ], base)
     apply_mods(body)
-    # front legs + bean paws (separate pieces, so the outline draws them like the drawing)
+    # front legs (mostly inside the body, the outline draws them like the two lines of
+    # the drawing), bean paws in front, back feet peeking out at the sides
     legs = []
     for sx in (-1, 1):
-        legs.append(sphere(f"{prefix}_leg{sx}", 0.12, (sx * 0.17, 0.42, 0.4), base, scale=(0.9, 2.9, 0.95), seg=24))
-        legs.append(sphere(f"{prefix}_paw{sx}", 0.13, (sx * 0.19, 0.09, 0.52), base, scale=(1.05, 0.62, 1.2), seg=20))
+        legs.append(sphere(f"{prefix}_leg{sx}", 0.115, (sx * 0.16, 0.36, 0.34), base, scale=(0.95, 2.6, 1.0), seg=24))
+        legs.append(sphere(f"{prefix}_paw{sx}", 0.125, (sx * 0.17, 0.08, 0.47), base, scale=(1.05, 0.62, 1.15), seg=20))
+        legs.append(sphere(f"{prefix}_foot{sx}", 0.14, (sx * 0.52, 0.08, 0.16), base, scale=(0.9, 0.6, 1.35), rot=(0, sx * 18, 0), seg=20))
     # head: wide and round, chubby at the cheeks
-    hy = 1.36
+    hy = 1.3
     head_mesh = blob(f"{prefix}_skull", [
-        ((0, hy, 0.04), 0.8, (1.12, 0.92, 0.9)),
+        ((0, hy, 0.04), 0.8, (1.08, 0.93, 0.95)),
         ((-0.38, hy - 0.17, 0.1), 0.3, (1.0, 0.82, 0.86)),
         ((0.38, hy - 0.17, 0.1), 0.3, (1.0, 0.82, 0.86)),
     ], base, res=0.035)
@@ -489,9 +486,11 @@ def chibi(prefix, base, dark, line_dark, accent=None, phones=False):
     feat = []
     # ears: rounded triangles, a little outward
     for sx in (-1, 1):
-        e = cyl(f"{prefix}_ear{sx}", 0.29, 0.46, (sx * 0.47, hy + 0.5, -0.02), base, r2=0.04, bevel=0.06, verts=24, rot=(0, 0, -sx * 20))
-        e.scale = (1.0, 0.55, 1.0)  # flatten front-to-back (Blender y)
-        feat.append(e)
+        e = cyl(f"{prefix}_ear{sx}", 0.28, 0.48, (sx * 0.46, hy + 0.5, -0.04), base, r2=0.035, bevel=0.07, verts=24, rot=(-6, 0, -sx * 18))
+        e.scale = (1.0, 0.72, 1.0)  # a bit flatter front-to-back (Blender y)
+        ie = cyl(f"{prefix}_earin{sx}", 0.16, 0.27, (sx * 0.45, hy + 0.45, 0.07), inner, r2=0.02, bevel=0.04, verts=20, rot=(-6, 0, -sx * 18))
+        ie.scale = (1.0, 0.3, 1.0)
+        feat += [e, ie]
     # face, glued to the head surface
     for sx in (-1, 1):
         ex = sx * 0.31
@@ -512,7 +511,7 @@ def chibi(prefix, base, dark, line_dark, accent=None, phones=False):
         for k, dy in ((0, 0.05), (1, -0.04)):
             st0 = side(head_mesh, sx * 0.3, hy - 0.12 + dy, 0.3, -sx)
             st0 = (st0[0] - sx * 0.02, st0[1], st0[2])
-            w = tube(f"{prefix}_whisker{sx}{k}", [st0, (st0[0] + sx * 0.2, st0[1] + dy * 0.6 + 0.01, st0[2] - 0.02), (st0[0] + sx * 0.36, st0[1] + dy * 1.4 + 0.02, st0[2] - 0.06)], 0.0075, line_dark, res=5)
+            w = tube(f"{prefix}_whisker{sx}{k}", [st0, (st0[0] + sx * 0.2, st0[1] + dy * 0.6 + 0.01, st0[2] - 0.02), (st0[0] + sx * 0.34, st0[1] + dy * 1.4 + 0.02, st0[2] - 0.06)], 0.0065, whisk, res=5)
             feat.append(w)
     n = front(head_mesh, 0, hy - 0.11, back=0.012)
     nose = sphere(f"{prefix}_nose", 0.042, n, "eye", scale=(1.3, 0.85, 0.6), seg=12)
@@ -557,12 +556,26 @@ def place(root, x, z, yaw, scale=1.0):
 # Neko on his cushion, turned towards the camera
 cyl("neko_cushion", 1.6, 0.32, (-0.2, 0.32, 0.55), "cushion", bevel=0.14, verts=48)
 cyl("neko_cushion_top", 1.3, 0.1, (-0.2, 0.47, 0.55), "cushion2", bevel=0.05, verts=48)
-nk = chibi("neko", "neko", "nekoDark", "nekoLine", phones=True)
+nk = chibi("neko", "neko", "nekoDark", "nekoLine", phones=True, inner="nekoEar", whisk="whisk")
 place(nk, -0.2, 0.55, 38, 1.35)
 nk.location = P(-0.2, 0.5, 0.55)
-lu = chibi("luna", "luna", "lunaDark", "lunaLine", accent="bow")
+lu = chibi("luna", "luna", "lunaDark", "lunaLine", accent="bow", inner="lunaEar", whisk="lunaWhisk")
 place(lu, 2.35, 2.0, 22, 1.05)
 lu.location = P(2.35, 0.12, 2.0)
+
+# lucky cat (maneki-neko) on the shelf: the same little cat, white, waving
+mk = chibi("statue", "white", "red", "ink", inner="lunaEar", whisk="ink")
+for n in ("statue_tailwrap", "statue_tailwraptip"):
+    o = bpy.data.objects.get(n)
+    if o: bpy.data.objects.remove(o, do_unlink=True)
+mk_paw = tube("statue_wave", [(0.3, 0.7, 0.2), (0.48, 1.0, 0.26), (0.5, 1.25, 0.26)], 0.11, "white", res=8)
+mk_pawt = sphere("statue_wavepaw", 0.13, (0.5, 1.3, 0.26), "white", seg=16)
+mk_col = torus("statue_collar", 0.42, 0.05, (0, 0.98, 0.04), "red", rot=(0, 0, 0))
+mk_bell = sphere("statue_bell", 0.09, (0, 0.92, 0.46), "yellow", seg=16)
+mk_coin = cyl("statue_coin", 0.2, 0.05, (-0.12, 0.42, 0.55), "yellow", rot=(80, 0, 0), bevel=0.02, verts=24)
+reparent([mk_paw, mk_pawt, mk_col, mk_bell, mk_coin], mk)
+place(mk, -W + 0.4, SZ + 0.55, 90, 0.36)
+mk.location = P(-W + 0.4, SY + 0.05, SZ + 0.55)
 
 # ================================================================== export
 for o in COL.objects:

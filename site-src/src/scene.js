@@ -115,7 +115,11 @@ export function createRoom(canvas, hooks) {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   });
+  const still = loader.load("media/home-idle.webp");
+  still.colorSpace = THREE.SRGBColorSpace;
   const screenU = {
+    mapS: { value: still },
+    stillK: { value: 0 },
     mapA: { value: posters[0] },
     mapB: { value: posters[1] },
     mixK: { value: 0 },
@@ -128,13 +132,15 @@ export function createRoom(canvas, hooks) {
     uniforms: screenU,
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: `
-      uniform sampler2D mapA, mapB; uniform float mixK, power, aspect, srcAspect; uniform vec3 off; varying vec2 vUv;
+      uniform sampler2D mapA, mapB, mapS; uniform float mixK, power, aspect, srcAspect, stillK; uniform vec3 off; varying vec2 vUv;
       void main(){
         vec2 uv = vUv;
         // cover-fit the 16:10 video into the screen
         float k = aspect / srcAspect;
         uv.y = (uv.y - 0.5) / k + 0.5;
         vec3 c = mix(texture2D(mapA, uv).rgb, texture2D(mapB, uv).rgb, mixK);
+        // at the end of the dive the TV shows the same picture the next section starts with
+        c = mix(c, texture2D(mapS, uv).rgb, stillK);
         float sheen = smoothstep(0.6, 0.0, distance(vUv, vec2(0.12, 0.9))) * 0.05;
         gl_FragColor = vec4(mix(off, c, power) + sheen, 1.0);
         #include <colorspace_fragment>
@@ -246,6 +252,7 @@ export function createRoom(canvas, hooks) {
         T(["statue"], () => "Fai girare il gatto portafortuna", () => (user.statue = 1));
         T(["pc_body", "pc_screen", "keyboard", "mic"], () => "Vai alla sezione per lo stream", () => hooks.goTo("#diretta"));
         hitMeshes = targets.map((x) => x.mesh);
+        document.fonts?.ready.then(paintPoster);
         ready = true;
         paintPoster();
         resolve();
@@ -344,7 +351,7 @@ export function createRoom(canvas, hooks) {
     const half = THREE.MathUtils.degToRad(camera.fov / 2);
     const dH = 0.91 / Math.tan(half);
     const dW = 1.56 / (Math.tan(half) * camera.aspect);
-    KEYS[1].pos.set(TV.x + Math.min(dH, dW) * 0.985, TV.y, TV.z);
+    KEYS[1].pos.set(TV.x + Math.min(dH, dW) * 0.995, TV.y, TV.z);
     KEYS[1].tgt.set(TV.x - 2, TV.y, TV.z);
   }
 
@@ -546,6 +553,7 @@ export function createRoom(canvas, hooks) {
     setVideo(vids[0], !still && tvOn > 0.05 && (screenU.mixK.value < 0.5 || dive));
     setVideo(vids[1], !still && tvOn > 0.05 && screenU.mixK.value > 0.5 && !dive);
     if (dive) screenU.mixK.value = 0;
+    screenU.stillK.value = smooth(p, 0.5, 0.85);
     screenU.mapA.value = vids[0].ready ? vids[0].tex : posters[0];
     screenU.mapB.value = vids[1].ready ? vids[1].tex : posters[1];
     tvGlow.intensity = tvOn * (1 + cur.stars * 5);

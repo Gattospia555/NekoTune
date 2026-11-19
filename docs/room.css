@@ -502,7 +502,10 @@ h1 {
   position: relative;
   z-index: 2;
   pointer-events: auto;
-  background: var(--paper);
+  /* the first screen overlaps the end of the dive into the TV, so it is see-through */
+  margin-top: -100vh;
+  margin-top: -100lvh;
+  background: linear-gradient(transparent 0 100vh, var(--paper) 100vh);
   color: var(--ink);
 }
 .points {
@@ -540,6 +543,16 @@ h1 {
   height: 400vh;
   background: var(--dark);
   color: #f4ecdd;
+}
+.ap.pre {
+  background: transparent;
+}
+.ap-stage {
+  transition: opacity 0.25s ease;
+}
+.ap.pre .ap-stage {
+  opacity: 0;
+  visibility: hidden;
 }
 .ap-stage {
   position: sticky;
@@ -866,38 +879,17 @@ html[data-time="night"] .bub-invite {
 
 /* ===== streaming at night ===== */
 .st {
-  position: relative;
-  min-height: 92vh;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  background: #24284a;
+  background: var(--dark);
   color: #f4ecdd;
 }
-.st-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 70% 50%;
-}
-.st::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(28, 26, 46, 0.94) 0%, rgba(28, 26, 46, 0.78) 32%, rgba(28, 26, 46, 0) 62%);
-}
 .st-inner {
-  position: relative;
-  z-index: 1;
-  width: 100%;
   max-width: 1320px;
   margin: 0 auto;
-  padding: 100px var(--gutter);
-}
-.st-text {
-  max-width: 34rem;
+  padding: clamp(80px, 13vh, 140px) var(--gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
 }
 .st .points li {
   color: rgba(244, 236, 221, 0.84);
@@ -905,24 +897,39 @@ html[data-time="night"] .bub-invite {
 .st .points strong {
   color: var(--neko);
 }
+.st .points li::before {
+  box-shadow: 0 0 0 2px #000;
+}
 .st code {
   background: rgba(255, 179, 126, 0.18);
   color: var(--neko);
 }
+.st-frame {
+  position: relative;
+  margin: 0;
+}
+.st-img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: var(--bw) solid #000;
+  box-shadow: 0 8px 0 #000;
+}
 .st-widget {
   position: absolute;
-  right: var(--gutter);
-  bottom: clamp(28px, 8vh, 80px);
+  left: 4%;
+  bottom: 7%;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 16px 10px 10px;
   border-radius: 16px;
   background: #1c1a2e;
+  color: #f4ecdd;
   border: var(--bw) solid #000;
   box-shadow: 0 4px 0 #000;
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateY(16px);
   transition:
     opacity 0.6s var(--ease) 0.4s,
     transform 0.6s var(--ease) 0.4s;
@@ -985,7 +992,7 @@ html[data-time="night"] .bub-invite {
 .dl {
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(80px, 13vh, 140px) var(--gutter);
+  padding: clamp(60px, 10vh, 110px) var(--gutter) clamp(30px, 5vh, 60px);
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
   gap: clamp(28px, 5vw, 80px);
@@ -994,6 +1001,8 @@ html[data-time="night"] .bub-invite {
 .dl-art {
   position: relative;
   aspect-ratio: 1;
+  width: min(100%, 420px);
+  justify-self: center;
 }
 .dl-art img {
   position: absolute;
@@ -1025,7 +1034,7 @@ html[data-time="night"] .bub-invite {
 .faq {
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(40px, 8vh, 90px) var(--gutter) clamp(60px, 10vh, 110px);
+  padding: clamp(30px, 5vh, 60px) var(--gutter) clamp(60px, 10vh, 110px);
   display: grid;
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
   gap: clamp(24px, 4vw, 64px);
@@ -1185,15 +1194,14 @@ html[data-time="night"] .bub-invite {
     margin: 0 auto;
     order: 2;
   }
-  .st::after {
-    background: linear-gradient(180deg, rgba(28, 26, 46, 0.94) 0%, rgba(28, 26, 46, 0.75) 55%, rgba(28, 26, 46, 0.2) 100%);
+  .st-inner {
+    grid-template-columns: 1fr;
   }
   .st-widget {
     position: relative;
     left: auto;
-    right: auto;
     bottom: auto;
-    margin-top: 26px;
+    margin-top: 16px;
     width: fit-content;
   }
   .dl-art {

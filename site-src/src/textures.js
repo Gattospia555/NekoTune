@@ -19,6 +19,17 @@ export const C = {
 const DISPLAY = '"Dela Gothic One", "Zen Maru Gothic", system-ui, sans-serif';
 const BODY = '"Zen Maru Gothic", system-ui, sans-serif';
 
+/** Draw text, shrinking the font until it fits maxW. */
+function fitText(g, text, x, y, maxW, weight, size, family) {
+  let px = size;
+  g.font = `${weight} ${px}px ${family}`;
+  while (g.measureText(text).width > maxW && px > 8) {
+    px -= 1;
+    g.font = `${weight} ${px}px ${family}`;
+  }
+  g.fillText(text, x, y);
+}
+
 function canvas(w, h) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -191,11 +202,9 @@ export function coverTexture(i, title, artist, colors) {
   roundRect(g, 26, S - 120, S - 52, 94, 22);
   g.fill();
   g.fillStyle = C.plum;
-  g.font = `600 38px ${DISPLAY}`;
-  g.fillText(title, 50, S - 72);
+  fitText(g, title, 50, S - 72, S - 100, 600, 36, DISPLAY);
   g.fillStyle = C.plumSoft;
-  g.font = `700 24px ${BODY}`;
-  g.fillText(artist, 50, S - 40);
+  fitText(g, artist, 50, S - 40, S - 100, 700, 24, BODY);
   g.restore();
   return tex(c);
 }
@@ -297,9 +306,12 @@ export function dotTexture() {
 export function createMonitorScreen() {
   const W = 768;
   const H = 448;
-  const [c, g] = canvas(W, H);
+  const SC = 2;
+  const [c, g] = canvas(W * SC, H * SC);
   const texture = tex(c);
+  texture.anisotropy = 4;
   function draw(time, track, playing) {
+    g.setTransform(SC, 0, 0, SC, 0, 0);
     const sky = g.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, "#3B2D63");
     sky.addColorStop(1, "#8E6CC9");
@@ -356,11 +368,9 @@ export function createMonitorScreen() {
     g.fill();
     paw(g, 70, H - 76, 11, "rgba(43,33,68,.8)");
     g.fillStyle = C.plum;
-    g.font = `600 28px ${DISPLAY}`;
-    g.fillText(track.title, 118, H - 74);
+    fitText(g, track.title, 118, H - 74, 262, 600, 26, DISPLAY);
     g.fillStyle = C.plumSoft;
-    g.font = `700 20px ${BODY}`;
-    g.fillText(track.artist, 118, H - 46);
+    fitText(g, track.artist, 118, H - 46, 262, 700, 20, BODY);
     for (let i = 0; i < 4; i++) {
       const hh = playing ? 12 + Math.abs(Math.sin(time * (5 + i * 1.7) + i)) * 30 : 8;
       g.fillStyle = C.lilac;

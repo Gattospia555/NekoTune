@@ -15,7 +15,7 @@
   <link rel="preload" href="fonts/dela-gothic-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/zen-maru-gothic-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="media/room.glb" as="fetch" crossorigin />
-  <link rel="stylesheet" href="room.css?v=12" />
+  <link rel="stylesheet" href="room.css?v=13" />
 </head>
 <body>
   <a class="skip" href="#main">Vai al contenuto</a>
@@ -167,7 +167,7 @@
             </ul>
           </div>
           <div class="fr-scene">
-            <img class="fr-cats" src="media/neko-friends.webp" alt="Neko e Luna, la sua amica" width="1000" height="928" loading="lazy" />
+            <img class="fr-cats" src="media/neko-friends.webp" alt="Neko e Luna, la sua amica" width="1000" height="902" loading="lazy" />
             <div class="chat" aria-label="Esempio di conversazione tra Luna e Neko">
               <p class="bub theirs">ehi, sei ancora sveglio?</p>
               <div class="bub theirs bub-track"><span class="bt-cover" aria-hidden="true"></span><span><strong>Nuvole basse</strong>Kite Club</span></div>
@@ -181,7 +181,6 @@
 
       <!-- B: streaming -->
       <section class="st" id="diretta" aria-labelledby="h-diretta">
-        <img class="st-bg" src="media/room-stream.webp" alt="La scrivania di Neko di sera, con il monitor acceso" width="1600" height="900" loading="lazy" />
         <div class="st-inner">
           <div class="st-text">
             <h2 id="h-diretta">In diretta, la tua musica la vede anche la chat.</h2>
@@ -191,11 +190,14 @@
               <li><strong>NekoBot.</strong> Con <code>/nekotune now</code> il tuo server vede cosa stai ascoltando.</li>
             </ul>
           </div>
-          <div class="st-widget" aria-hidden="true">
-            <span class="sw-cover"></span>
-            <span class="sw-text"><strong class="sw-title">Pisolino sul davanzale</strong><span class="sw-artist">Neko &amp; Friends</span></span>
-            <span class="sw-eq"><i></i><i></i><i></i><i></i></span>
-          </div>
+          <figure class="st-frame">
+            <img class="st-img" src="media/room-stream.webp" alt="La scrivania di Neko di sera, con il monitor acceso e la live in corso" width="1440" height="900" loading="lazy" />
+            <div class="st-widget" aria-hidden="true">
+              <span class="sw-cover"></span>
+              <span class="sw-text"><strong class="sw-title">Pisolino sul davanzale</strong><span class="sw-artist">Neko &amp; Friends</span></span>
+              <span class="sw-eq"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </figure>
         </div>
       </section>
 
@@ -263,6 +265,6 @@
     </div>
   </main>
 
-  <script type="module" src="room.js?v=12"></script>
+  <script type="module" src="room.js?v=13"></script>
 </body>
 </html>

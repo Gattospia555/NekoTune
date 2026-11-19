@@ -34,15 +34,28 @@ const apParts = ap && {
 };
 const STEPS = [0.16, 0.36, 0.58, 0.79, 1.0];
 function updatePlayer() {
-  if (!ap || !visible(ap)) return;
+  if (!ap) return;
+  // the section slides in under the room while the camera dives into the TV:
+  // it stays invisible until it reaches the top, then takes over seamlessly
+  ap.classList.toggle("pre", ap.getBoundingClientRect().top > 1);
+  if (!visible(ap)) return;
   const p = reduced.matches ? Math.max(progress(ap), 0) : progress(ap);
   const P = apParts;
   // the screen starts filling the window (we just came out of Neko's TV) and settles into the laptop
   const z = smooth(p, 0, STEPS[0]);
+  // at z = 0 the laptop screen exactly covers the window, centred, like the TV
+  // at the end of the dive; then it settles into the laptop
   const lw = P.laptop.offsetWidth || 1;
-  const fill = Math.max(innerWidth / (lw * 0.94), 1);
+  const screen = P.laptop.firstElementChild;
+  const sh = screen.offsetHeight || lw / 1.6;
+  const fill = Math.max(innerWidth / lw, innerHeight / sh, 1);
   const scale = lerp(fill, 1, z);
-  P.laptop.style.transform = `translateY(${lerp(-6, 0, z)}vh) scale(${scale.toFixed(4)})`;
+  const cx = P.laptop.offsetLeft + lw / 2;
+  const cy = P.laptop.offsetTop + sh / 2;
+  const tx = (innerWidth / 2 - cx) * (1 - z);
+  const ty = (innerHeight / 2 - cy) * (1 - z);
+  P.laptop.style.transformOrigin = `${lw / 2}px ${sh / 2}px`;
+  P.laptop.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale.toFixed(4)})`;
   ap.style.setProperty("--z", z.toFixed(3));
   // pictures
   const s1 = smooth(p, STEPS[1], STEPS[1] + 0.06);
