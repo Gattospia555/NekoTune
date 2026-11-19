@@ -362,7 +362,7 @@ export function createRoom(canvas, hooks) {
       camPos.lerpVectors(far, b.pos, fly);
       camera.setViewOffset(width, height, 0, height * 0.17 * (1 - t), width, height);
     } else {
-      camera.setViewOffset(width, height, -width * 0.255 * (1 - t), height * 0.02 * (1 - t), width, height);
+      camera.setViewOffset(width, height, -width * (width < 1150 ? 0.32 : 0.255) * (1 - t), height * 0.02 * (1 - t), width, height);
     }
   }
 

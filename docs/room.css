@@ -341,7 +341,7 @@ main {
   visibility: visible;
 }
 h1 {
-  font-size: clamp(2.3rem, 3.9vw, 4.1rem);
+  font-size: clamp(2.1rem, 3.9vw, 4.1rem);
   line-height: 1.06;
 }
 .lead {
