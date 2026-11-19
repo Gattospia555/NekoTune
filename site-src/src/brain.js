@@ -218,7 +218,7 @@ export class CatBrain {
     // T: spring targets; R: fast offsets added after the springs; p: everything else
     const T = { lean: 0, roll: 0, rot: 0, nod: 0, turn: 0, look: 0, sx: 1, sy: 1 };
     const R = { lean: 0, roll: 0, rot: 0, nod: 0, sy: 1, sx: 1 };
-    const p = { eyes: "open", mouth: "", paws: [null, null], energy: 0.6, hop: 0, dy: 0, dx: 0, yawAdd: 0, ears: [0, 0], awake: true };
+    const p = { eyes: "open", mouth: "", paws: [null, null], hind: [0, 0], hindDrop: 0, energy: 0.6, hop: 0, dy: 0, dx: 0, yawAdd: 0, ears: [0, 0], awake: true };
     const music = ctx.music > 0.5;
     const isNeko = this.name === "neko";
 
@@ -414,6 +414,7 @@ export class CatBrain {
         { w: 0.85 * air * s, dir: [-0.1, -0.2, 1], lift: 0.9 },
         { w: 0.85 * air * s, dir: [0.1, -0.2, 1], lift: 0.9 },
       ];
+      p.hindDrop = (air - land * 0.4) * s;
       p.ears = [0.3 * s, 0.3 * s];
       p.energy = 2.6;
     } else {
@@ -434,6 +435,8 @@ export class CatBrain {
         { w: 0.5 * s, dir: [0, -1, 1.1 * Math.max(0, sN)], lift: 0.35 },
         { w: 0.5 * s, dir: [0, -1, 1.1 * Math.max(0, -sN)], lift: 0.35 },
       ];
+      // back feet move with the opposite front foot (front-left with back-right), like cats do
+      p.hind = [-sN * s, sN * s];
       p.energy = 1.3 + s;
     }
   }
@@ -608,6 +611,7 @@ const ACTS = {
       { w: 0.6 * air, dir: [-0.3, 0.2, 1], lift: 0.6 },
       { w: 0.6 * air, dir: [0.3, 0.2, 1], lift: 0.6 },
     ];
+    p.hindDrop = air;
     p.eyes = k > 0.3 ? "happy" : "open";
     p.ears = [0.2 * air, 0.2 * air];
     p.energy = 2.4;
@@ -617,6 +621,8 @@ const ACTS = {
     const u = seg(k, 0.15, 0.85);
     p.yawAdd = u * TAU;
     p.hop = bell(k, 0.15, 0.85) * 0.3;
+    p.hindDrop = bell(k, 0.15, 0.85) * 0.6;
+    p.hind = [Math.sin(k * 40) * 0.5 * bell(k, 0.15, 0.85), -Math.sin(k * 40) * 0.5 * bell(k, 0.15, 0.85)];
     p.eyes = "happy";
     p.energy = 2.6;
   },
@@ -668,6 +674,7 @@ const ACTS = {
       { w: down, dir: [-0.15, -0.12, 1], lift: 1 },
       { w: down, dir: [0.15, -0.12, 1], lift: 1 },
     ];
+    p.hind = [-0.7 * down, -0.7 * down];
     if (k > 0.7 && k < 0.95) p.eyes = "yawn";
     else p.eyes = down > 0.4 ? "heavy" : "open";
     p.ears = [0.35 * down, 0.35 * down];
@@ -711,6 +718,8 @@ const ACTS = {
     const u = clamp01((k - 0.2) / 0.55);
     p.yawAdd = (u * u * (3 - 2 * u)) * TAU * 1.5;
     p.hop = k > 0.2 && k < 0.75 ? Math.abs(Math.sin(t * 18)) * 0.07 : 0;
+    const run = k > 0.2 && k < 0.75 ? 0.7 : 0;
+    p.hind = [Math.sin(t * 18) * run, -Math.sin(t * 18) * run];
     const dizzy = k > 0.75 ? 1 - seg(k, 0.75, 1) : 0;
     R.roll = Math.sin(t * 9) * 0.1 * dizzy;
     R.rot = Math.sin(t * 9 + 1) * 0.12 * dizzy;
@@ -736,6 +745,9 @@ const ACTS = {
       { w: air, dir: [-0.15, 0.15, 1], lift: 1 },
       { w: air, dir: [0.15, 0.15, 1], lift: 1 },
     ];
+    p.hindDrop = air;
+    // treading on the spot while wiggling
+    if (k > 0.18 && k < 0.53) p.hind = [Math.sin(t * 20) * 0.25, -Math.sin(t * 20) * 0.25];
     // the leap carries the cat forward, towards what it was looking at
     const u = seg(k, 0.54, 0.8);
     const step = (u - (b.leapPrev || 0)) * 0.7;
@@ -807,6 +819,7 @@ const DANCE_MOVES = {
       { w: 0.45 * Math.max(0, s), dir: [-0.3, -0.6, 1], lift: 0.4 },
       { w: 0.45 * Math.max(0, -s), dir: [0.3, -0.6, 1], lift: 0.4 },
     ];
+    p.hind = [-s * 0.6, s * 0.6];
   },
   paws(T, p, R, ctx) {
     // paws up, one per beat, like a little dance in the air
@@ -824,6 +837,7 @@ const DANCE_MOVES = {
     const ph = (((ctx.phase % 2) + 2) % 2) / 2;
     const air = ph < 0.45 ? Math.sin((Math.PI * ph) / 0.45) : 0;
     p.hop = air * 0.32;
+    p.hindDrop = air;
     R.sy = air > 0 ? 1 + 0.08 * air : 1 - 0.1 * Math.sin((Math.PI * (ph - 0.45)) / 0.55);
     T.nod = (ctx.groove - 0.5) * 0.18;
     p.eyes = "happy";

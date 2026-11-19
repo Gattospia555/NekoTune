@@ -184,6 +184,24 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
     legs.push(pv);
   }
   const legBase = legs.map((l) => l.position.clone());
+  // back legs: the round haunches on the sides of the body and the back feet,
+  // which peek out beside the front ones (like a real sitting cat)
+  const hinds = [];
+  for (const [k, x] of [
+    [0, 80],
+    [1, 164],
+  ]) {
+    const pv = new THREE.Group();
+    pv.position.copy(local(x, 208, -8));
+    group.add(pv);
+    const haunch = add(new THREE.SphereGeometry(1, 28, 18), fur, pv);
+    haunch.scale.set(21, 25, 36);
+    haunch.rotation.y = k ? -0.25 : 0.25;
+    const foot = add(new THREE.SphereGeometry(1, 20, 14), fur, pv);
+    foot.scale.set(14, 9, 19);
+    foot.position.copy(local(x + (k ? 7 : -7), 234, 26).sub(pv.position));
+    hinds.push({ foot, base: foot.position.clone(), step: 0, drop: 0 });
+  }
 
   // head group, pivoting at the neck so it can nod and tilt
   const head = new THREE.Group();
@@ -449,6 +467,16 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
         legs[i].position.z += out * 16;
         legs[i].position.x += out * 10 * (i ? 1 : -1);
         legs[i].scale.set(1, 1 + 0.4 * out, 1);
+      }
+      // back feet: step forwards/backwards (walking), hang down (in the air)
+      const ks = opts.still ? 1 : 1 - Math.exp(-dt * 16);
+      for (let i = 0; i < 2; i++) {
+        const h = hinds[i];
+        h.step += ((opts.hind?.[i] || 0) * (1 - s) - h.step) * ks;
+        h.drop += ((opts.hindDrop || 0) - h.drop) * ks;
+        h.foot.position.copy(h.base);
+        h.foot.position.z += h.step * 13 - h.drop * 16;
+        h.foot.position.y += Math.max(0, h.step) * 7 - h.drop * 9;
       }
       // the body settles a little as he falls asleep
       group.userData.settle = s;
