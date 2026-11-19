@@ -356,7 +356,16 @@ export function drawFace(g, opts) {
   g.lineWidth = 2;
   g.fill(NOSE);
   g.stroke(NOSE);
-  if (opts.eyes === "yawn") {
+  if (opts.mouth === "mew") {
+    // small open "mew"
+    g.beginPath();
+    g.ellipse(122, 134, 5, 5.5, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#ff8fa0";
+    g.beginPath();
+    g.ellipse(122, 136.5, 3, 2, 0, 0, Math.PI * 2);
+    g.fill();
+  } else if (opts.eyes === "yawn") {
     // big open mouth with a little tongue
     g.beginPath();
     g.ellipse(122, 139, 9, 4 + 9 * (opts.yawn ?? 1), 0, 0, Math.PI * 2);

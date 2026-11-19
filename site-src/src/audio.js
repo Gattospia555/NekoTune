@@ -146,6 +146,39 @@ export class LofiBand {
     return this.elapsedBefore + (this.ctx.currentTime - this.startedAt);
   }
 
+  /** Smooth 0..1 wave, 1 on every beat (quarter note): for head bobbing without jerks. */
+  groove() {
+    if (!this.ctx || !this.playing) return 0;
+    const beat = 60 / TRACKS[this.track].bpm;
+    const phase = (this.elapsed - 0.06) / beat;
+    return 0.5 + 0.5 * Math.cos(phase * Math.PI * 2);
+  }
+
+  /** Luna's little "mew": a short rising-then-falling tone. */
+  mew() {
+    if (this.muted) return;
+    this.ensure();
+    const ctx = this.ctx;
+    if (ctx.state === "suspended") ctx.resume();
+    const t = ctx.currentTime + 0.02;
+    const o = ctx.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(620, t);
+    o.frequency.exponentialRampToValueAtTime(1180, t + 0.12);
+    o.frequency.exponentialRampToValueAtTime(720, t + 0.38);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1400;
+    bp.Q.value = 1.2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+    o.connect(bp).connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + 0.45);
+  }
+
   /** 0..1 pulse right after each kick, for the visuals. */
   pulse() {
     if (!this.ctx || !this.playing) return 0;

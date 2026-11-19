@@ -140,6 +140,7 @@ try {
     nextTrack: () => nextTrack(1),
     say,
     purr: () => band.purr?.(),
+    mew: () => band.mew?.(),
     goTo: (sel) => $(sel)?.scrollIntoView({ behavior: "smooth" }),
     mood: (name) => setMood(name),
     frame: () => {
@@ -149,6 +150,9 @@ try {
       let beat = band.pulse();
       if (playing && !band.ctx) beat = Math.exp(-((fakeClock * 1.3) % 1) * 7);
       room.setBeat(beat);
+      let groove = band.groove();
+      if (playing && !band.ctx) groove = 0.5 + 0.5 * Math.cos(fakeClock * (TRACKS[band.track].bpm / 60) * Math.PI * 2);
+      room.setGroove(groove);
       tickPlayer(dt);
     },
   });

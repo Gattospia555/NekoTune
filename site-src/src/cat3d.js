@@ -99,13 +99,20 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
 
   // body, front legs, bean feet
   add(puff(shapeFrom(BODY), 34, 26), fur);
+  const legs = [];
   for (const x of [106, 138]) {
-    const leg = add(new THREE.CapsuleGeometry(9.5, 28, 6, 14), fur);
-    leg.position.copy(local(x, 212, 47));
-    const foot = add(new THREE.SphereGeometry(1, 20, 14), fur);
+    const pv = new THREE.Group();
+    pv.position.copy(local(x, 196, 44));
+    group.add(pv);
+    const leg = add(new THREE.CapsuleGeometry(9.5, 28, 6, 14), fur, pv);
+    leg.position.copy(local(x, 212, 47).sub(pv.position));
+    const foot = add(new THREE.SphereGeometry(1, 20, 14), fur, pv);
     foot.scale.set(15, 9.5, 17);
-    foot.position.copy(local(x - 2, 233, 50));
+    foot.position.copy(local(x - 2, 233, 50).sub(pv.position));
+    legs.push(pv);
   }
+  const legZ = legs[1].position.z;
+  const legX = legs[1].position.x;
 
   // head group, pivoting at the neck so it can nod and tilt
   const head = new THREE.Group();
@@ -237,12 +244,12 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   buildTail(0);
 
   let faceKey = "";
-  function paintFace(eyes, look, yawn = 0) {
-    const key = eyes + "|" + Math.round(look * 4) + "|" + Math.round(yawn * 6);
+  function paintFace(eyes, look, yawn = 0, mouth = "") {
+    const key = eyes + "|" + Math.round(look * 4) + "|" + Math.round(yawn * 6) + "|" + mouth;
     if (key === faceKey) return;
     faceKey = key;
     fg.setTransform(2, 0, 0, 2, 0, 0);
-    drawFace(fg, { pal, eyes, look, yawn });
+    drawFace(fg, { pal, eyes, look, yawn, mouth });
     faceTex.needsUpdate = true;
   }
   paintFace("open", 0);
@@ -251,6 +258,10 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   // sleep: 0 awake ... 1 asleep. Falling asleep is a little scene (yawn,
   // heavy eyes, head going down, tail curling round the paws); waking is quick.
   const sm = { phase: "awake", t: 0, sleep: 0, tailM: 0, bounce: 0 };
+  const DOWN = new THREE.Vector3(0, -1, 0);
+  const IDQ = new THREE.Quaternion();
+  const waveQ = new THREE.Quaternion();
+  const waveDir = new THREE.Vector3();
   const ease = (x) => x * x * (3 - 2 * x);
   const clamp = (x) => Math.min(1, Math.max(0, x));
   let frame = 0;
@@ -318,16 +329,27 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
         sm.bounce = 0;
       }
       if (opts.eyes === "happy") eyes = "happy";
-      paintFace(eyes, sm.sleep > 0.5 ? 0 : opts.look || 0, yawn);
+      paintFace(eyes, sm.sleep > 0.5 ? 0 : opts.look || 0, yawn, sm.sleep > 0.5 ? "" : opts.mouth || "");
       phones.visible = !!opts.phones && sm.sleep < 0.5;
       // head: blend the awake pose and the sleeping pose
       const s = sm.sleep;
       const breath = opts.breath || 0;
-      head.rotation.set(
-        (opts.nod || 0) * (1 - s) + 0.22 * s - headUp * 0.18,
-        (opts.turn || 0) * (1 - s),
-        -((opts.rot || 0) * (1 - s) + 0.07 * s)
-      );
+      // the head follows its target smoothly (no jumps, whatever the inputs do)
+      const k = opts.still ? 1 : 1 - Math.exp(-dt * 10);
+      head.rotation.x += ((opts.nod || 0) * (1 - s) + 0.22 * s - headUp * 0.18 - head.rotation.x) * k;
+      head.rotation.y += ((opts.turn || 0) * (1 - s) - head.rotation.y) * k;
+      head.rotation.z += (-((opts.rot || 0) * (1 - s) + 0.07 * s) - head.rotation.z) * k;
+      // waving paw (right front leg)
+      const w = opts.wave || 0;
+      // raised up beside the face and waving
+      const wig = Math.sin(sm.t * 13) * 0.22;
+      waveDir.set(0.75 + wig, 0.95, 0.4).normalize();
+      waveQ.setFromUnitVectors(DOWN, waveDir);
+      legs[1].quaternion.slerpQuaternions(IDQ, waveQ, w);
+      // the arm comes out of the fur a bit, and reaches a little further
+      legs[1].position.z = legZ + w * 16;
+      legs[1].position.x = legX + w * 10;
+      legs[1].scale.set(1, 1 + 0.4 * w, 1);
       head.position.y = FOOT_Y - 152 - ((opts.dy || 0) * (1 - s) + (4 + breath) * s) + sm.bounce * 5 + headUp * 3;
       // the body settles a little as he falls asleep
       group.userData.settle = s;
