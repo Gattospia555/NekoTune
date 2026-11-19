@@ -54,8 +54,10 @@ function frontOnlyUV(frontZ) {
       const out = [a, b, c].map((k) => new THREE.Vector2(v[k * 3], v[k * 3 + 1]));
       return v[a * 3 + 2] > frontZ ? out : [FAR(), FAR(), FAR()];
     },
-    generateSideWallUV() {
-      return [FAR(), FAR(), FAR(), FAR()];
+    // the rounded edge on the front half gets the same flat projection, so
+    // features near the edge of the face (mouth, cheeks) are not cut off
+    generateSideWallUV(geometry, v, a, b, c, d) {
+      return [a, b, c, d].map((k) => (v[k * 3 + 2] > frontZ ? new THREE.Vector2(v[k * 3], v[k * 3 + 1]) : FAR()));
     },
   };
 }
@@ -179,31 +181,31 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
     knot.position.copy(inHead(local(150, 60, 27)));
   }
 
-  // tails: the moving note-tail, and the one curled round the paws (asleep)
-  const tailMat = fur;
+  // tail: one tube that morphs between the app's moving note-tail (awake)
+  // and the tail curled round the paws (asleep)
+  const N = 48;
   const tail = createTail();
-  let tailMesh = null;
-  const tipUp = add(new THREE.SphereGeometry(10, 16, 12), dark);
-  function buildTail() {
-    const pts = tail.points().map(([x, y], i, all) => local(x, y, -26 + (i / all.length) * 6));
-    const curve = new THREE.CatmullRomCurve3(pts);
-    const geo = new THREE.TubeGeometry(curve, 72, 8.5, 10);
-    if (tailMesh) {
-      tailMesh.geometry.dispose();
-      tailMesh.geometry = geo;
-    } else tailMesh = add(geo, tailMat);
-    tipUp.position.copy(pts[pts.length - 1]);
-  }
-  buildTail();
-  // curled tail: the drawing's curve, bent forward around the feet
-  const curled = new THREE.Group();
-  group.add(curled);
-  {
+  const resample = (pts) => {
+    const len = [0];
+    for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + pts[i].distanceTo(pts[i - 1]));
+    const total = len[len.length - 1];
+    const out = [];
+    let j = 0;
+    for (let k = 0; k < N; k++) {
+      const d = (k / (N - 1)) * total;
+      while (j < len.length - 2 && len[j + 1] < d) j++;
+      const f = (d - len[j]) / Math.max(1e-6, len[j + 1] - len[j]);
+      out.push(pts[j].clone().lerp(pts[j + 1], Math.min(1, Math.max(0, f))));
+    }
+    return out;
+  };
+  const upPoints = () => resample(tail.points().map(([x, y], i, all) => local(x, y, -26 + (i / all.length) * 6)));
+  const curledPts = (() => {
     const [p0, c1, c2, p1, c3, c4, p2] = CURLED_TAIL;
     const bez = (a, b, c, d, t) => a * (1 - t) ** 3 + 3 * b * t * (1 - t) ** 2 + 3 * c * t * t * (1 - t) + d * t ** 3;
     const pts = [];
-    for (let i = 0; i <= 30; i++) {
-      const u = i / 30;
+    for (let i = 0; i <= 40; i++) {
+      const u = i / 40;
       const [A, B, C, D] = u < 0.5 ? [p0, c1, c2, p1] : [p1, c3, c4, p2];
       const t = u < 0.5 ? u * 2 : (u - 0.5) * 2;
       const x = bez(A[0], B[0], C[0], D[0], t);
@@ -211,41 +213,134 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
       const z = -24 + 84 * THREE.MathUtils.smoothstep(u, 0, 0.55);
       pts.push(local(x, y, z));
     }
-    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 8.5, 10), tailMat, curled);
-    const tip = add(new THREE.SphereGeometry(10, 16, 12), dark, curled);
-    tip.position.copy(pts[pts.length - 1]);
+    // start from the same root as the note-tail
+    pts.unshift(local(150, 228, -26));
+    return resample(pts);
+  })();
+  let up = upPoints();
+  const tailMesh = add(new THREE.BufferGeometry(), fur);
+  const tip = add(new THREE.SphereGeometry(10, 16, 12), dark);
+  const cur = curledPts.map((p) => p.clone());
+  function buildTail(m) {
+    // m = 0 note-tail, 1 curled; on the way it swings out to the side, round the body
+    const swing = Math.sin(Math.PI * m);
+    for (let k = 0; k < N; k++) {
+      const u = k / (N - 1);
+      cur[k].lerpVectors(up[k], curledPts[k], THREE.MathUtils.smoothstep(m, u * 0.35, u * 0.35 + 0.65));
+      cur[k].x += swing * 46 * u;
+      cur[k].z += swing * 30 * u;
+    }
+    tailMesh.geometry.dispose();
+    tailMesh.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cur), 72, 8.5, 10);
+    tip.position.copy(cur[N - 1]);
   }
-  curled.visible = false;
+  buildTail(0);
 
   let faceKey = "";
-  function paintFace(eyes, look) {
-    const key = eyes + "|" + Math.round(look * 4);
+  function paintFace(eyes, look, yawn = 0) {
+    const key = eyes + "|" + Math.round(look * 4) + "|" + Math.round(yawn * 6);
     if (key === faceKey) return;
     faceKey = key;
     fg.setTransform(2, 0, 0, 2, 0, 0);
-    drawFace(fg, { pal, eyes, look });
+    drawFace(fg, { pal, eyes, look, yawn });
     faceTex.needsUpdate = true;
   }
   paintFace("open", 0);
 
+  // ---------------------------------------------------------------- sleep / wake
+  // sleep: 0 awake ... 1 asleep. Falling asleep is a little scene (yawn,
+  // heavy eyes, head going down, tail curling round the paws); waking is quick.
+  const sm = { phase: "awake", t: 0, sleep: 0, tailM: 0, bounce: 0 };
+  const ease = (x) => x * x * (3 - 2 * x);
+  const clamp = (x) => Math.min(1, Math.max(0, x));
   let frame = 0;
+  let lastTail = -1;
   return {
     group,
     head,
     meshes,
-    /** opts: { eyes, awake (note-tail vs curled), phones, rot, dy, look, energy } */
+    get asleep() {
+      return sm.phase === "asleep";
+    },
+    /**
+     * opts: { awake (target), eyes (when awake), phones, rot, nod, turn, dy (awake pose),
+     *         breath, look, energy, still }
+     */
     update(dt, opts) {
-      paintFace(opts.eyes, opts.look || 0);
-      phones.visible = !!opts.phones;
-      const up = opts.awake !== false;
-      curled.visible = !up;
-      if (tailMesh) tailMesh.visible = up;
-      tipUp.visible = up;
-      head.rotation.set(opts.nod || 0, opts.turn || 0, -(opts.rot || 0));
-      head.position.y = FOOT_Y - 152 - (opts.dy || 0);
-      if (up && !opts.still && frame++ % 2 === 0) {
-        tail.step(dt * 2, opts.energy ?? 1);
-        buildTail();
+      const want = opts.awake !== false;
+      if (opts.still) {
+        sm.phase = want ? "awake" : "asleep";
+        sm.sleep = sm.tailM = want ? 0 : 1;
+      } else if (want && (sm.phase === "asleep" || sm.phase === "falling")) {
+        sm.phase = "waking";
+        sm.t = 0;
+        sm.from = sm.sleep;
+        sm.tailFrom = sm.tailM;
+      } else if (!want && (sm.phase === "awake" || sm.phase === "waking")) {
+        sm.phase = "falling";
+        sm.t = 0;
+        sm.from = sm.sleep;
+        sm.tailFrom = sm.tailM;
+      }
+      sm.t += dt;
+      let eyes = opts.eyes;
+      let yawn = 0;
+      let headUp = 0;
+      if (sm.phase === "falling") {
+        const T = sm.t;
+        // 0-1.1 s yawn, 1.1-2.4 s heavy eyes and slow blinks, head goes down, tail curls
+        if (T < 1.1) {
+          yawn = Math.sin(Math.PI * clamp(T / 1.1));
+          eyes = yawn > 0.25 ? "yawn" : "heavy";
+          headUp = yawn;
+        } else if (T < 2.6) {
+          const b = T - 1.1;
+          eyes = (b > 0.45 && b < 0.7) || b > 1.2 ? "sleep" : "heavy";
+        } else eyes = "sleep";
+        sm.sleep = sm.from + (1 - sm.from) * ease(clamp((T - 0.9) / 1.8));
+        sm.tailM = sm.tailFrom + (1 - sm.tailFrom) * ease(clamp((T - 1.2) / 1.3));
+        if (T > 3) sm.phase = "asleep";
+      } else if (sm.phase === "waking") {
+        const T = sm.t;
+        eyes = T < 0.12 ? "sleep" : T < 0.22 ? "blink" : opts.eyes;
+        sm.sleep = sm.from * (1 - ease(clamp(T / 0.45)));
+        sm.tailM = sm.tailFrom * (1 - ease(clamp((T - 0.1) / 0.6)));
+        // ears-up pop at the end
+        sm.bounce = T > 0.3 ? Math.sin(Math.PI * clamp((T - 0.3) / 0.35)) : 0;
+        if (T > 0.8) sm.phase = "awake";
+      } else if (sm.phase === "asleep") {
+        eyes = "sleep";
+        sm.sleep = 1;
+        sm.tailM = 1;
+      } else {
+        sm.sleep = 0;
+        sm.tailM = 0;
+        sm.bounce = 0;
+      }
+      if (opts.eyes === "happy") eyes = "happy";
+      paintFace(eyes, sm.sleep > 0.5 ? 0 : opts.look || 0, yawn);
+      phones.visible = !!opts.phones && sm.sleep < 0.5;
+      // head: blend the awake pose and the sleeping pose
+      const s = sm.sleep;
+      const breath = opts.breath || 0;
+      head.rotation.set(
+        (opts.nod || 0) * (1 - s) + 0.22 * s - headUp * 0.18,
+        (opts.turn || 0) * (1 - s),
+        -((opts.rot || 0) * (1 - s) + 0.07 * s)
+      );
+      head.position.y = FOOT_Y - 152 - ((opts.dy || 0) * (1 - s) + (4 + breath) * s) + sm.bounce * 5 + headUp * 3;
+      // the body settles a little as he falls asleep
+      group.userData.settle = s;
+      // tail: animate the note-tail while (partly) awake; morph towards the curl
+      const animate = !opts.still && sm.tailM < 1;
+      if (animate && frame++ % 2 === 0) {
+        tail.step(dt * 2, (opts.energy ?? 1) * (1 - sm.tailM));
+        up = upPoints();
+        buildTail(sm.tailM);
+        lastTail = sm.tailM;
+      } else if (sm.tailM !== lastTail) {
+        buildTail(sm.tailM);
+        lastTail = sm.tailM;
       }
     },
   };

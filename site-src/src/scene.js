@@ -341,7 +341,7 @@ export function createRoom(canvas, hooks) {
   function petNeko() {
     st.happy = 1.8;
     if (!playing && st.awake < 0.5) {
-      wakeUntil = clock.getElapsed() + 2.8;
+      wakeUntil = clock.getElapsed() + 3.5;
       hooks.say("Mrr? Neko si è svegliato un attimo.");
     } else hooks.say("Neko fa le fusa.");
     hooks.purr();
@@ -528,16 +528,17 @@ export function createRoom(canvas, hooks) {
     parts.luna.group.rotation.y = toCam(parts.luna) + 0.42;
     const blink = !still && aw > 0.5 && t % 4.1 < 0.13;
     const happy = st.happy > 0.3;
-    const awakeNow = aw > 0.45;
+    const awakeNow = wantAwake === 1;
     parts.neko.update(dt, {
-      eyes: happy ? "happy" : awakeNow ? (blink ? "blink" : "open") : "sleep",
+      eyes: happy ? "happy" : blink ? "blink" : "open",
       awake: awakeNow,
       phones: st.music > 0.5,
-      rot: awakeNow ? (still ? 0 : Math.sin(t * 1.3) * 0.05) + (happy ? Math.sin(t * 9) * 0.09 : 0) : 0.07,
-      nod: awakeNow ? beat * 0.12 * st.music - look.y * 0.12 : 0.22,
-      turn: awakeNow ? look.x * 0.35 : 0,
-      dy: awakeNow ? 0 : 4 + (still ? 0 : Math.sin(t * 1.4) * 1.5),
-      look: awakeNow ? look.x : 0,
+      rot: (still ? 0 : Math.sin(t * 1.3) * 0.05) + (happy ? Math.sin(t * 9) * 0.09 : 0),
+      nod: beat * 0.12 * st.music - look.y * 0.12,
+      turn: look.x * 0.35,
+      dy: 0,
+      breath: still ? 0 : Math.sin(t * 1.4) * 1.5,
+      look: look.x,
       energy: happy ? 1.6 : 1,
       still,
     });
@@ -552,8 +553,10 @@ export function createRoom(canvas, hooks) {
       energy: lh ? 1.6 : 0.8,
       still,
     });
-    const breathe = still ? 0 : Math.sin(t * (aw > 0.5 ? 2.4 : 1.4)) * 0.012;
-    parts.neko.group.scale.set(0.0125 * (1 + breathe * 0.4), 0.0125 * (1 + breathe), 0.0125 * (1 + breathe * 0.4));
+    const settle = parts.neko.group.userData.settle || 0;
+    const breathe = still ? 0 : Math.sin(t * (settle > 0.5 ? 1.4 : 2.4)) * 0.012;
+    // a little lower and rounder when asleep
+    parts.neko.group.scale.set(0.0125 * (1 + breathe * 0.4 + settle * 0.03), 0.0125 * (1 + breathe - settle * 0.05), 0.0125 * (1 + breathe * 0.4 + settle * 0.03));
 
     // turntable
     st.spin = ease(st.spin, playing ? 1 : 0, 2.5);
@@ -601,7 +604,7 @@ export function createRoom(canvas, hooks) {
       lastNote = t;
       emit(noteMats[Math.floor(Math.random() * 3)], recW.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.4, 0.25, 0.1)), { size: 0.3 + beat * 0.1, spread: 0.5 });
     }
-    if (st.awake < 0.3 && !still && t - lastZ > 1.5) {
+    if (parts.neko.asleep && !still && t - lastZ > 1.5) {
       lastZ = t;
       emit(zMat, headW.clone().add(new THREE.Vector3(1.0, 0.45, 0.3)), { size: 0.26, spread: 0.15, up: 0.35, life: 2.6, kind: "z" });
     }

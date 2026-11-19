@@ -310,6 +310,27 @@ export function drawFace(g, opts) {
       g.arc(x + look - 1.9, 110, 2, 0, Math.PI * 2);
       g.fill();
     }
+  } else if (opts.eyes === "heavy") {
+    // sleepy: the lid covers the top half of the eye
+    for (const x of xs) {
+      g.beginPath();
+      g.arc(x, 112.5, 6.5, 0, Math.PI);
+      g.fill();
+      g.beginPath();
+      g.moveTo(x - 8, 112);
+      g.lineTo(x + 8, 112);
+      g.stroke();
+    }
+  } else if (opts.eyes === "yawn") {
+    // eyes squeezed shut while yawning
+    for (const x of xs) {
+      const d = x < 122 ? 1 : -1;
+      g.beginPath();
+      g.moveTo(x - 7 * d, 107);
+      g.lineTo(x + 5 * d, 112);
+      g.lineTo(x - 7 * d, 117);
+      g.stroke();
+    }
   } else if (opts.eyes === "blink") {
     for (const x of xs) {
       g.beginPath();
@@ -335,8 +356,19 @@ export function drawFace(g, opts) {
   g.lineWidth = 2;
   g.fill(NOSE);
   g.stroke(NOSE);
-  g.lineWidth = 2.6;
-  g.stroke(MOUTH);
+  if (opts.eyes === "yawn") {
+    // big open mouth with a little tongue
+    g.beginPath();
+    g.ellipse(122, 139, 9, 4 + 9 * (opts.yawn ?? 1), 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#ff8fa0";
+    g.beginPath();
+    g.ellipse(122, 143 + 4 * (opts.yawn ?? 1), 5.5, 2 + 2.5 * (opts.yawn ?? 1), 0, 0, Math.PI * 2);
+    g.fill();
+  } else {
+    g.lineWidth = 2.6;
+    g.stroke(MOUTH);
+  }
   g.fillStyle = P.blush;
   g.globalAlpha = 0.5;
   for (const x of [86, 158]) {
