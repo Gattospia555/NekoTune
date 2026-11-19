@@ -249,11 +249,14 @@ export class CatBrain {
     if (this.state === "walk") this.walk(dt, ctx, T, R, p);
     else {
       this.v = 0;
-      // not walking: face the camera (a little to the side) or the thing we came to see
-      const toCam = Math.atan2(ctx.camera.position.x - this.pos.x, ctx.camera.position.z - this.pos.z);
-      let want = toCam + (this.o.sideOffset ?? 0);
-      if (this.face && this.state !== "dance") want = this.view(Math.atan2(this.face.x - this.pos.x, this.face.z - this.pos.z), ctx, 0.6);
-      this.turnTo(want, dt, 3.5);
+      // not walking: the body keeps its direction (or faces what we came to see);
+      // dancing and sleeping on the cushion it faces you
+      const toCam = Math.atan2(ctx.camera.position.x - this.pos.x, ctx.camera.position.z - this.pos.z) + (this.o.sideOffset ?? 0);
+      if (this.bodyGoal == null) this.bodyGoal = toCam;
+      let want = this.bodyGoal;
+      if (this.state === "dance" || this.state === "sleep" || this.act === "knead") want = toCam;
+      else if (this.face) want = Math.atan2(this.face.x - this.pos.x, this.face.z - this.pos.z);
+      this.turnTo(want, dt, 3);
     }
 
     // one-off actions
@@ -316,12 +319,7 @@ export class CatBrain {
     pose.sx *= R.sx;
     if (ctx.still) Object.assign(pose, { lean: 0, roll: 0, rot: 0, nod: 0, turn: 0, look: 0, sx: 1, sy: 1 });
 
-    // the face is a drawing on a puffy shape: body + head together never turn too far from the camera
-    if (!pose.yawAdd) {
-      const toCam = Math.atan2(ctx.camera.position.x - this.pos.x, ctx.camera.position.z - this.pos.z);
-      const rel = wrap(this.yaw - toCam);
-      pose.turn = clamp(pose.turn, -0.75 - rel, 0.75 - rel);
-    }
+    pose.turn = clamp(pose.turn, -0.85, 0.85);
     pose.x = this.pos.x + pose.dx * Math.cos(this.yaw);
     pose.z = this.pos.z - pose.dx * Math.sin(this.yaw);
     pose.y = this.y + pose.dy + pose.hop + edge;
@@ -388,12 +386,11 @@ export class CatBrain {
     }
 
     // the body faces the way it goes (but never shows its back); the head leads
-    // the face stays readable: body and head turn only a little, the body *leans*
-    // the way it goes (forwards, sideways) so the direction still shows
-    this.turnTo(this.view(this.heading, ctx, 0.45), dt, 6);
+    // the body turns the way it goes; the head is a little ahead in the curves
+    this.turnTo(this.heading, dt, 7);
     const rel = wrap(this.heading - this.yaw);
-    T.turn = clamp(rel * 0.5, -0.3, 0.3);
-    T.look = clamp(rel * 0.9, -1, 1);
+    T.turn = clamp(rel * 0.8, -0.5, 0.5);
+    T.look = clamp(rel * 1.2, -1, 1);
     const s = clamp01(this.v / vmax);
     const accLean = clamp(this.accel * 0.05, -0.18, 0.18);
     const fx = Math.cos(rel);
@@ -443,6 +440,7 @@ export class CatBrain {
 
   arrive(ctx) {
     this.v = 0;
+    this.bodyGoal = this.face ? Math.atan2(this.face.x - this.pos.x, this.face.z - this.pos.z) : this.yaw;
     this.state = "sit";
     this.timer = rand(1.8, 4);
     this.sp.sy.vel -= this.gait === "bound" ? 1.6 : 0.9; // sits down with a little squash
@@ -464,9 +462,18 @@ export class CatBrain {
       const r = Math.random();
       let turn = 0;
       let nod = rand(-0.03, 0.05);
-      const at = (q) => clamp(wrap(Math.atan2(q.x - this.pos.x, q.z - this.pos.z) - this.yaw), -0.75, 0.75);
+      const dirTo = (q) => Math.atan2(q.x - this.pos.x, q.z - this.pos.z);
+      const at = (q) => clamp(wrap(dirTo(q) - this.yaw), -0.75, 0.75);
+      // now and then the whole cat turns round: towards you, the other cat, or somewhere else
+      if (Math.random() < 0.22) {
+        const w = Math.random();
+        this.face = null;
+        this.bodyGoal = w < 0.5 ? dirTo(ctx.camera.position) + (this.o.sideOffset ?? 0) * 0.5 : w < 0.8 && ctx.other ? dirTo(ctx.other) : this.yaw + rand(-1.6, 1.6);
+        this.flick = 0.6;
+      }
       if (r < 0.38) {
-        if (Math.random() < 0.3) this.blinkUntil = t + 0.7; // a slow blink: "I like you"
+        turn = at(ctx.camera.position);
+        if (Math.random() < 0.3 && Math.abs(turn) < 0.6) this.blinkUntil = t + 0.7; // a slow blink: "I like you"
       } else if (r < 0.6 && ctx.other) turn = at(ctx.other);
       else if (r < 0.72 && ctx.yarn) {
         turn = at(ctx.yarn.position);
@@ -508,12 +515,6 @@ export class CatBrain {
     }
     this.flick *= Math.exp(-dt * 2.5);
     p.energy += this.flick * 2.2;
-  }
-
-  /** The cats are puffy drawings: keep the face towards the camera, turned at most `max` radians. */
-  view(a, ctx, max) {
-    const toCam = Math.atan2(ctx.camera.position.x - this.pos.x, ctx.camera.position.z - this.pos.z);
-    return toCam + clamp(wrap(a - toCam), -max, max);
   }
 
   turnTo(a, dt, rate) {

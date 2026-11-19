@@ -17,7 +17,7 @@ cam.position.set(2.2, 2.4, 6.4);
 cam.lookAt(0, 1.4, 0);
 const isLuna = q.get("luna") === "1";
 const cat = createCat3D({ pal: isLuna ? LUNA : NEKO, scale: 0.0125, ramp: toonRamp(true), bow: isLuna, earColor: isLuna ? "#f6c2d2" : "#ffc7a6" });
-cat.group.rotation.y = 0.15;
+cat.group.rotation.y = Number(q.get("yaw") ?? 0.15);
 scene.add(cat.group);
 const dt = 1 / 30;
 const base = { eyes: q.get("eyes") || "open", rot: 0, nod: 0, turn: Number(q.get("turn") || 0), dy: 0, breath: 0, look: Number(q.get("look") || 0), energy: 1, wave: Number(q.get("wave") || 0), mouth: q.get("mouth") || "" };

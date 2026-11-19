@@ -4,7 +4,7 @@ Il sito pubblicato è in `../docs/` (GitHub Pages). Qui c'è il codice che diven
 
 - `blender/room.py` — la stanza costruita in Blender da Python ed esportata in `docs/media/room.glb`
 - `src/mascot.js` — Neko e Luna disegnati come la mascotte dell'app (stessi tracciati di `src/js/ui/mascot.js` di NekoTune), su canvas
-- `src/cat3d.js` — Neko e Luna in 3D: ogni parte è il contorno del disegno della mascotte "gonfiato" (testa, orecchie, corpo, zampe, coda a nota), con la faccia dipinta sulla testa
+- `src/cat3d.js` — Neko e Luna in 3D: testa e corpo sono volumi tondi che visti di fronte hanno esattamente il contorno del disegno della mascotte (e da dietro sono nuca, schiena e coda); orecchie sottili, zampe, coda a nota, faccia dipinta sulla testa
 - `src/brain.js` — il "cervello" dei gatti: dove andare nella stanza (evitando mobili e cuscino), gesti (stiracchiarsi, lavarsi la zampa, testa inclinata, inseguire la coda, saltare sul gomitolo, salutare, miagolare) e balli diversi a tempo di musica. Neko ogni tanto si sveglia da solo, fa un giro e torna a dormire. Ogni movimento passa da "molle" (niente scatti), camminano con accelerazione, curve e passo molleggiato, e i gesti hanno preparazione e atterraggio. Per i test: `?dbg&ff=6` accelera i gatti; `?dbg&fixed=24&film` avanza un fotogramma alla volta (per filmarli)
 - `src/mascotshot.js` — pagina di prova (`mascot.html?m=asleep|awake|friends`) per le immagini delle sezioni
 - `src/main.js` — lettore di prova, scorrimento, orologio nell'intestazione

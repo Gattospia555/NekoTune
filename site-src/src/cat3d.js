@@ -1,7 +1,7 @@
-// Neko and Luna in 3D, built from the app's mascot drawing: every part is the
-// drawing's own outline, "inflated" into a soft, rounded volume (like a vinyl
-// toy made from the sketch). From the front it matches the mascot; from an
-// angle it has real depth. The face is painted on the head, the tail is the
+// Neko and Luna in 3D, built from the app's mascot drawing: head and body are
+// round volumes whose front silhouette is exactly the drawing's outline (like a
+// vinyl toy made from the sketch). From the front they match the mascot; from
+// the side and from behind they are still a cat (back of the head, ears, tail). The face is painted on the head, the tail is the
 // app's music-note tail, moving the same way.
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -80,6 +80,77 @@ function puff(shape, depth, round, segments = 10, face = false) {
 }
 const local = (x, y, z = 0) => new THREE.Vector3(x - MID_X, FOOT_Y - y, z);
 
+/**
+ * A round volume whose front silhouette is exactly the outline: every ring of a
+ * sphere is stretched to the outline's radius in that direction (so seen from the
+ * front it is the drawing), and the depth is `depth` front and back (so from the
+ * side and from behind it is a soft, round shape, not a flat cut-out).
+ * e < 1 makes it a little "boxier" (a broader, flatter face).
+ * With `face`, the front half gets the drawing's coordinates as UVs (the painted
+ * face); the back half samples outside the face, which is plain fur colour.
+ */
+function inflate(shape, depth, e = 0.8, face = false) {
+  const pts = shape.getSpacedPoints(256).slice(0, -1);
+  const c = pts.reduce((a, q) => a.add(q), new THREE.Vector2()).multiplyScalar(1 / pts.length);
+  // radius of the outline as a function of the angle (the outlines are star-shaped)
+  const polar = pts.map((q) => ({ a: Math.atan2(q.y - c.y, q.x - c.x), r: q.distanceTo(c) })).sort((u, v) => u.a - v.a);
+  const radius = (a) => {
+    let i = polar.findIndex((q) => q.a >= a);
+    if (i <= 0) i = polar.length;
+    const p0 = polar[(i - 1) % polar.length];
+    const p1 = polar[i % polar.length];
+    let span = p1.a - p0.a;
+    let d = a - p0.a;
+    if (span <= 0) span += Math.PI * 2;
+    if (d < 0) d += Math.PI * 2;
+    return p0.r + (p1.r - p0.r) * Math.min(1, d / span);
+  };
+  const NP = 32; // rings from the front pole to the back pole (even: one ring is the silhouette)
+  const NT = 96;
+  const pos = [];
+  const uv = [];
+  const sgn = (v) => (v < 0 ? -1 : 1);
+  for (let i = 0; i <= NP; i++) {
+    const phi = (i / NP) * Math.PI;
+    const sp = Math.sin(phi);
+    const cp = Math.cos(phi);
+    const ring = Math.pow(Math.abs(sp), e);
+    const z = depth * sgn(cp) * Math.pow(Math.abs(cp), e);
+    for (let j = 0; j <= NT; j++) {
+      const th = (j / NT) * Math.PI * 2 - Math.PI;
+      const R = radius(th);
+      const x = c.x + Math.cos(th) * R * ring;
+      const y = c.y + Math.sin(th) * R * ring;
+      pos.push(x, y, z);
+      if (i <= NP / 2) uv.push(x, y);
+      else uv.push(c.x + Math.cos(th) * R * 2.2, c.y + Math.sin(th) * R * 2.2);
+    }
+  }
+  const idx = [];
+  for (let i = 0; i < NP; i++)
+    for (let j = 0; j < NT; j++) {
+      const a = i * (NT + 1) + j;
+      const b = a + NT + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  const m = mergeVertices(g, 0.001);
+  m.computeVertexNormals();
+  if (!face) m.deleteAttribute("uv");
+  // where the surface is, seen from the front at (x, y): used to place whiskers and legs on it
+  m.userData.surfaceZ = (x, y) => {
+    const a = Math.atan2(y - c.y, x - c.x);
+    const rho = Math.min(1, Math.hypot(x - c.x, y - c.y) / radius(a));
+    const sp = Math.pow(rho, 1 / e);
+    return depth * Math.pow(Math.sqrt(Math.max(0, 1 - sp * sp)), e);
+  };
+  return m;
+}
+
+
 export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor = "#ffc7a6" }) {
   const group = new THREE.Group();
   group.scale.setScalar(scale);
@@ -98,7 +169,8 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   };
 
   // body, front legs, bean feet
-  add(puff(shapeFrom(BODY), 34, 26), fur);
+  const bodyGeo = inflate(shapeFrom(BODY), 50, 0.85);
+  add(bodyGeo, fur);
   const legs = [];
   for (const x of [106, 138]) {
     const pv = new THREE.Group();
@@ -131,7 +203,7 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   faceTex.repeat.set(1 / 260, 1 / 262);
   faceTex.offset.set(MID_X / 260, (262 - FOOT_Y) / 262);
   const headMat = toon("#ffffff", { map: faceTex });
-  const headGeo = puff(shapeFrom(HEAD), 30, 30, 12, true);
+  const headGeo = inflate(shapeFrom(HEAD), 52, 0.78, true);
   const headMesh = add(headGeo, headMat, head);
   headMesh.position.copy(inHead(local(122, 242, 6)));
   // ears on pivots at their base, so they can twitch and turn
@@ -140,10 +212,12 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
     const pv = new THREE.Group();
     pv.position.copy(inHead(local(k ? 152 : 92, 71, 0)));
     head.add(pv);
-    const ear = add(puff(triShape(EARS[k]), 8, 7, 6), fur, pv);
-    ear.position.copy(inHead(local(122, 242, -6)).sub(pv.position));
-    const inner = add(puff(triShape(INNER[k]), 2, 2.5, 3), toon(earColor), pv);
-    inner.position.copy(inHead(local(122, 242, 4)).sub(pv.position));
+    // thin and rounded (thicker in the middle), turned a little outwards like real ears
+    const ear = add(inflate(triShape(EARS[k]), 7, 0.9), fur, pv);
+    ear.position.copy(inHead(local(122, 242, 0)).sub(pv.position));
+    const inner = add(inflate(triShape(INNER[k]), 2.2, 0.9), toon(earColor), pv);
+    inner.position.copy(inHead(local(122, 242, 5.5)).sub(pv.position));
+    pv.rotation.y = k ? 0.32 : -0.32;
     ears.push(pv);
   }
   const earV = [0, 0];
@@ -155,8 +229,9 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
     [[164, 121], [192, 116]],
     [[164, 129], [192, 133]],
   ]) {
-    const p0 = inHead(local(a[0], a[1], 50));
-    const p1 = inHead(local(b[0], b[1], 40));
+    const zr = headGeo.userData.surfaceZ(a[0] - MID_X, FOOT_Y - a[1]) + 6;
+    const p0 = inHead(local(a[0], a[1], zr - 2));
+    const p1 = inHead(local(b[0], b[1], zr - 14));
     const w = add(new THREE.CylinderGeometry(1.4, 1.1, p0.distanceTo(p1), 6), whiskerMat, head, 4);
     w.position.copy(p0).add(p1).multiplyScalar(0.5);
     w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize());
