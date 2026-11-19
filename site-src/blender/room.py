@@ -30,9 +30,9 @@ COLORS = {
     "curtain": "#e9a0a0", "curtain2": "#d48585", "bulb": "#fff2c4", "lampshade": "#f5d9a6",
     "neko": "#ffb37e", "nekoDark": "#f28a5b", "nekoCream": "#ffe3c8", "nekoInner": "#f6a08f",
     "luna": "#efe9f8", "lunaDark": "#b9a3e3", "lunaInner": "#f2b8c6",
-    "eye": "#2b1d16", "nose": "#c75b5b", "blush": "#ff9c8a", "phones": "#5a4a7a", "phonesPad": "#ffb37e",
+    "eye": "#2b1d16", "nose": "#c75b5b", "blush": "#ff9aa2", "phones": "#5a4a7a", "phonesPad": "#ffb37e",
     "book1": "#5fb3a8", "book2": "#e5a54b", "book3": "#d65b4a", "book4": "#6c8fc4", "book5": "#93b07a",
-    "sky": "#8fd3cf", "led": "#d65b4a",
+    "sky": "#8fd3cf", "led": "#d65b4a", "nekoLine": "#e0764a", "lunaLine": "#8e78bd",
 }
 MATS = {}
 
@@ -434,82 +434,135 @@ plant("plant", -4.1, 4.0, 1.25)
 plant("plant_small", 4.3, -3.95 + 2.6, 0.7, "teal")
 
 # ================================================================== cats
-def cat(prefix, x, z, base, dark, cream, inner, sitting=False, face_deg=0):
-    root = empty(prefix, (x, 0.0, z))
-    if not sitting:
-        # Neko: a loaf on a cushion, like the app icon: body to the left, head on the right
-        cyl(f"{prefix}_cushion", 1.45, 0.32, (x, 0.32, z), "cushion", bevel=0.14, verts=48)
-        cyl(f"{prefix}_cushion_top", 1.18, 0.1, (x, 0.47, z), "cushion2", bevel=0.05, verts=48)
-        by = 0.5
-        blob(f"{prefix}_body", [
-            ((x - 0.3, by + 0.42, z - 0.05), 0.85, (1.25, 0.62, 0.78)),
-            ((x - 0.85, by + 0.48, z - 0.1), 0.5, (0.8, 0.8, 0.9)),
-            ((x + 0.35, by + 0.38, z + 0.15), 0.55, (0.9, 0.75, 0.85)),
-            ((x + 0.3, by + 0.16, z + 0.48), 0.26, (0.8, 0.6, 1.25)),
-            ((x + 0.72, by + 0.16, z + 0.42), 0.26, (0.8, 0.6, 1.25)),
-        ], base)
-        # tail wrapped around the front
-        tube(f"{prefix}_tail", [(x - 1.1, by + 0.32, z - 0.25), (x - 1.25, by + 0.16, z + 0.3), (x - 0.9, by + 0.1, z + 0.62), (x - 0.42, by + 0.1, z + 0.7)], 0.125, base, res=12, taper=[1.0, 0.9, 0.75, 0.6])
-        sphere(f"{prefix}_tailtip", 0.08, (x - 0.42, by + 0.1, z + 0.7), dark, seg=16)
-        hx, hy, hz = x + 0.5, by + 1.05, z + 0.3
-    else:
-        by = 0.12
-        blob(f"{prefix}_body", [
-            ((x, by + 0.55, z), 0.62, (0.85, 1.05, 0.8)),
-            ((x, by + 0.22, z + 0.05), 0.62, (1.0, 0.55, 0.95)),
-            ((x - 0.2, by + 0.1, z + 0.42), 0.18, (0.8, 0.6, 1.1)),
-            ((x + 0.2, by + 0.1, z + 0.42), 0.18, (0.8, 0.6, 1.1)),
-        ], base)
-        tube(f"{prefix}_tail", [(x - 0.35, by + 0.12, z - 0.45), (x - 0.75, by + 0.1, z - 0.05), (x - 0.55, by + 0.08, z + 0.45)], 0.12, base, res=12, taper=[1.0, 0.95, 0.8])
-        sphere(f"{prefix}_tailtip", 0.1, (x - 0.55, by + 0.08, z + 0.45), dark, seg=16)
-        hx, hy, hz = x, by + 1.35, z + 0.1
-    x0 = x
-    x = hx
-    # head: its own object so the site can nod it to the beat
-    head = empty(f"{prefix}_head", (x, hy - 0.35, hz), parent=root)
-    hs = blob(f"{prefix}_skull", [
-        ((x, hy, hz), 0.7, (1.05, 0.88, 0.9)),
-        ((x - 0.28, hy - 0.14, hz + 0.28), 0.32, (1.0, 0.8, 0.8)),
-        ((x + 0.28, hy - 0.14, hz + 0.28), 0.32, (1.0, 0.8, 0.8)),
-    ], base, parent=head)
-    blob(f"{prefix}_muzzle", [((x - 0.13, hy - 0.2, hz + 0.47), 0.17, (1, 0.8, 0.7)), ((x + 0.13, hy - 0.2, hz + 0.47), 0.17, (1, 0.8, 0.7))], cream, res=0.025, parent=head)
-    for side in (-1, 1):
-        ex = x + side * 0.42
-        ear = cyl(f"{prefix}_ear{side}", 0.28, 0.48, (ex, hy + 0.5, hz - 0.05), base, r2=0.04, bevel=0.06, verts=24, rot=(0, 0, -side * 20), parent=head)
-        cyl(f"{prefix}_earin{side}", 0.17, 0.32, (ex + side * -0.005, hy + 0.46, hz + 0.08), inner, r2=0.02, bevel=0.03, verts=20, rot=(0, 0, -side * 20), parent=head)
-        # open eyes: glossy dark ovals with a highlight
-        sphere(f"{prefix}_eye{side}", 0.1, (x + side * 0.27, hy + 0.02, hz + 0.53), "eye", scale=(0.85, 1.15, 0.5), parent=head, seg=16)
-        sphere(f"{prefix}_eyehi{side}", 0.032, (x + side * 0.27 - 0.03, hy + 0.08, hz + 0.585), "white", parent=head, seg=10)
-        # closed eyes: little arcs (shown while sleeping)
-        tube(f"{prefix}_eyeshut{side}", [(x + side * 0.27 - 0.1, hy + 0.04, hz + 0.555), (x + side * 0.27, hy - 0.02, hz + 0.585), (x + side * 0.27 + 0.1, hy + 0.04, hz + 0.555)], 0.018, "eye", res=6, parent=head)
-        sphere(f"{prefix}_blush{side}", 0.11, (x + side * 0.42, hy - 0.16, hz + 0.43), "blush", scale=(1, 0.55, 0.3), parent=head, seg=16)
-        for k in (-1, 1):
-            tube(f"{prefix}_whisker{side}{k}", [(x + side * 0.42, hy - 0.17 + k * 0.03, hz + 0.47), (x + side * 0.62, hy - 0.15 + k * 0.07, hz + 0.4), (x + side * 0.76, hy - 0.12 + k * 0.1, hz + 0.31)], 0.0055, "ink", res=5, parent=head)
-    sphere(f"{prefix}_nose", 0.055, (x, hy - 0.1, hz + 0.62), "nose", scale=(1.2, 0.8, 0.7), parent=head, seg=12)
-    tube(f"{prefix}_mouth", [(x - 0.12, hy - 0.2, hz + 0.6), (x - 0.06, hy - 0.25, hz + 0.62), (x, hy - 0.19, hz + 0.63), (x + 0.06, hy - 0.25, hz + 0.62), (x + 0.12, hy - 0.2, hz + 0.6)], 0.012, "eye", res=5, parent=head)
-    if not sitting:
-        # headphones (shown while music plays)
-        ph = empty(f"{prefix}_phones", (x, hy, hz), parent=head)
-        tube(f"{prefix}_phones_band", [(x - 0.74, hy + 0.05, hz - 0.12), (x - 0.62, hy + 0.55, hz - 0.2), (x, hy + 0.8, hz - 0.24), (x + 0.62, hy + 0.55, hz - 0.2), (x + 0.74, hy + 0.05, hz - 0.12)], 0.065, "phones", res=10, parent=ph)
-        for side in (-1, 1):
-            cyl(f"{prefix}_phones_cup{side}", 0.28, 0.2, (x + side * 0.74, hy - 0.05, hz - 0.08), "phones", rot=(0, 0, 90), bevel=0.07, verts=32, parent=ph)
-            cyl(f"{prefix}_phones_pad{side}", 0.2, 0.06, (x + side * 0.86, hy - 0.05, hz - 0.08), "phonesPad", rot=(0, 0, 90), bevel=0.03, verts=32, parent=ph)
-    else:
-        # Luna wears a little bow
-        for side in (-1, 1):
-            sphere(f"{prefix}_bow{side}", 0.12, (x + 0.3 + side * 0.13, hy + 0.5, hz + 0.22), "teal", scale=(1.2, 0.8, 0.6), rot=(0, 0, side * 20), parent=head, seg=16)
-        sphere(f"{prefix}_bowk", 0.06, (x + 0.3, hy + 0.5, hz + 0.27), "tealDark", parent=head, seg=12)
-    # move every top-level part of this cat under its root
-    for o in list(COL.objects):
-        if o.name.startswith(prefix + "_") and o.parent is None and o is not root:
-            mw = o.matrix_world.copy()
-            o.parent = root
-            o.matrix_world = mw
+# Chibi sitting cat, after Gatto's mascot sheet: big round head wider than the
+# body, dot eyes, tiny "w" mouth, pink cheeks, straight front legs with bean
+# paws, a tail that curls like a music note (awake) or wraps the paws (asleep).
+def apply_mods(o):
+    for ob in bpy.context.selected_objects:
+        ob.select_set(False)
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    for m in list(o.modifiers):
+        bpy.ops.object.modifier_apply(modifier=m.name)
+
+def front(obj, x, y, back=0.0):
+    """Front surface point (three.js coords) of obj at (x, y), ray cast along -z."""
+    ok, loc, nrm, _ = obj.ray_cast(P(x, y, 5), Vector((0, 1, 0)))
+    if not ok:
+        return None
+    return (loc.x, loc.z, -loc.y - back)
+
+def side(obj, x, y, z, dirx):
+    """Surface point hit from the side (dirx = +1 from the left, -1 from the right)."""
+    ok, loc, nrm, _ = obj.ray_cast(P(x - dirx * 5, y, z), Vector((dirx, 0, 0)))
+    return (loc.x, loc.z, -loc.y) if ok else (x, y, z)
+
+def reparent(objs, parent):
+    bpy.context.view_layer.update()
+    for o in objs:
+        mw = o.matrix_world.copy()
+        o.parent = parent
+        o.matrix_world = mw
+
+def chibi(prefix, base, dark, line_dark, accent=None, phones=False):
+    """Built at the origin facing +z; returns the root empty."""
+    made_before = set(COL.objects)
+    # body: a soft bell
+    body = blob(f"{prefix}_body", [
+        ((0, 0.42, -0.06), 0.66, (1.0, 0.78, 0.86)),
+        ((0, 0.86, 0.0), 0.46, (0.86, 0.82, 0.8)),
+    ], base)
+    apply_mods(body)
+    # front legs + bean paws (separate pieces, so the outline draws them like the drawing)
+    legs = []
+    for sx in (-1, 1):
+        legs.append(sphere(f"{prefix}_leg{sx}", 0.12, (sx * 0.17, 0.42, 0.4), base, scale=(0.9, 2.9, 0.95), seg=24))
+        legs.append(sphere(f"{prefix}_paw{sx}", 0.13, (sx * 0.19, 0.09, 0.52), base, scale=(1.05, 0.62, 1.2), seg=20))
+    # head: wide and round, chubby at the cheeks
+    hy = 1.36
+    head_mesh = blob(f"{prefix}_skull", [
+        ((0, hy, 0.04), 0.8, (1.12, 0.92, 0.9)),
+        ((-0.38, hy - 0.17, 0.1), 0.3, (1.0, 0.82, 0.86)),
+        ((0.38, hy - 0.17, 0.1), 0.3, (1.0, 0.82, 0.86)),
+    ], base, res=0.035)
+    apply_mods(head_mesh)
+    feat = []
+    # ears: rounded triangles, a little outward
+    for sx in (-1, 1):
+        e = cyl(f"{prefix}_ear{sx}", 0.29, 0.46, (sx * 0.47, hy + 0.5, -0.02), base, r2=0.04, bevel=0.06, verts=24, rot=(0, 0, -sx * 20))
+        e.scale = (1.0, 0.55, 1.0)  # flatten front-to-back (Blender y)
+        feat.append(e)
+    # face, glued to the head surface
+    for sx in (-1, 1):
+        ex = sx * 0.31
+        f = front(head_mesh, ex, hy + 0.0, back=0.03)
+        eye = sphere(f"{prefix}_eye{sx}", 0.078, f, "eye", scale=(0.92, 1.12, 0.55), seg=18)
+        hi = sphere(f"{prefix}_eyehi{sx}", 0.02, (f[0] - sx * 0.0 - 0.022, f[1] + 0.035, f[2] + 0.035), "white", seg=10)
+        # closed eyes: a small arc (flipped upside down = happy eyes)
+        pts = []
+        for k, (dx, dy) in enumerate(((-0.085, 0.025), (0.0, -0.025), (0.085, 0.025))):
+            q = front(head_mesh, ex + dx, hy + dy, back=-0.012)
+            pts.append(q)
+        shut = tube(f"{prefix}_eyeshut{sx}", pts, 0.017, "eye", res=6)
+        # cheeks
+        c = front(head_mesh, sx * 0.5, hy - 0.16, back=0.02)
+        blush = sphere(f"{prefix}_blush{sx}", 0.1, c, "blush", scale=(1.25, 0.62, 0.3), rot=(0, sx * 28, 0), seg=16)
+        feat += [eye, hi, shut, blush]
+        # whiskers: two short strokes leaving the cheek
+        for k, dy in ((0, 0.05), (1, -0.04)):
+            st0 = side(head_mesh, sx * 0.3, hy - 0.12 + dy, 0.3, -sx)
+            st0 = (st0[0] - sx * 0.02, st0[1], st0[2])
+            w = tube(f"{prefix}_whisker{sx}{k}", [st0, (st0[0] + sx * 0.2, st0[1] + dy * 0.6 + 0.01, st0[2] - 0.02), (st0[0] + sx * 0.36, st0[1] + dy * 1.4 + 0.02, st0[2] - 0.06)], 0.0075, line_dark, res=5)
+            feat.append(w)
+    n = front(head_mesh, 0, hy - 0.11, back=0.012)
+    nose = sphere(f"{prefix}_nose", 0.042, n, "eye", scale=(1.3, 0.85, 0.6), seg=12)
+    mpts = [front(head_mesh, dx, hy - 0.2 + dy, back=-0.01) for dx, dy in ((-0.1, 0.02), (-0.05, -0.025), (0, 0.01), (0.05, -0.025), (0.1, 0.02))]
+    mouth = tube(f"{prefix}_mouth", mpts, 0.014, "eye", res=5)
+    feat += [nose, mouth]
+    if accent == "bow":
+        for sx in (-1, 1):
+            feat.append(sphere(f"{prefix}_bow{sx}", 0.13, (0.42 + sx * 0.14, hy + 0.5, 0.25), "teal", scale=(1.25, 0.85, 0.6), rot=(0, 0, sx * 20), seg=16))
+        feat.append(sphere(f"{prefix}_bowk", 0.065, (0.42, hy + 0.5, 0.3), "tealDark", seg=12))
+    # tails: one curled up like a note (awake), one wrapped round the paws (asleep)
+    up = tube(f"{prefix}_tailup", [(0.42, 0.26, -0.42), (0.84, 0.3, -0.3), (1.0, 0.62, -0.18), (0.96, 0.95, -0.12), (0.78, 1.06, -0.08), (0.64, 0.93, -0.05), (0.73, 0.82, -0.04)], 0.1, base, res=10, taper=[1, 1, 0.95, 0.9, 0.85, 0.82, 0.8])
+    upt = sphere(f"{prefix}_tailuptip", 0.095, (0.73, 0.82, -0.04), dark, seg=16)
+    wrap = tube(f"{prefix}_tailwrap", [(0.42, 0.18, -0.42), (0.82, 0.13, -0.05), (0.66, 0.11, 0.52), (0.2, 0.1, 0.78), (-0.25, 0.1, 0.72)], 0.1, base, res=10, taper=[1, 1, 0.95, 0.9, 0.85])
+    wrapt = sphere(f"{prefix}_tailwraptip", 0.095, (-0.25, 0.1, 0.72), dark, seg=16)
+    root = empty(prefix, (0, 0, 0))
+    head = empty(f"{prefix}_head", (0, hy - 0.45, 0.0), parent=root)
+    reparent([head_mesh] + feat, head)
+    tail_up = empty(f"{prefix}_tail_up", (0.42, 0.28, -0.42), parent=root)
+    reparent([up, upt], tail_up)
+    tail_wrap = empty(f"{prefix}_tail_wrap", (0.42, 0.18, -0.42), parent=root)
+    reparent([wrap, wrapt], tail_wrap)
+    if phones:
+        ph = empty(f"{prefix}_phones", (0, hy, 0), parent=head)
+        band = tube(f"{prefix}_phones_band", [(-0.9, hy + 0.0, -0.06), (-0.78, hy + 0.55, -0.16), (0, hy + 0.9, -0.22), (0.78, hy + 0.55, -0.16), (0.9, hy + 0.0, -0.06)], 0.07, "phones", res=10)
+        parts = [band]
+        for sx in (-1, 1):
+            parts.append(cyl(f"{prefix}_phones_cup{sx}", 0.27, 0.2, (sx * 0.9, hy - 0.06, -0.02), "phones", rot=(0, 0, 90), bevel=0.07, verts=32))
+            parts.append(cyl(f"{prefix}_phones_pad{sx}", 0.2, 0.06, (sx * 1.02, hy - 0.06, -0.02), "phonesPad", rot=(0, 0, 90), bevel=0.03, verts=32))
+        reparent(parts, ph)
+    # everything else of this cat under the root
+    rest = [o for o in COL.objects if o not in made_before and o.parent is None and o is not root]
+    reparent(rest, root)
     return root
 
-nk = cat("neko", -0.2, 0.55, "neko", "nekoDark", "nekoCream", "nekoInner")
-nk.scale = (1.15, 1.15, 1.15)
-cat("luna", 2.15, 1.55, "luna", "lunaDark", "white", "lunaInner", sitting=True)
+def place(root, x, z, yaw, scale=1.0):
+    root.location = P(x, 0, z)
+    root.rotation_euler = R(0, yaw, 0)
+    root.scale = (scale, scale, scale)
+    bpy.context.view_layer.update()
+
+# Neko on his cushion, turned towards the camera
+cyl("neko_cushion", 1.6, 0.32, (-0.2, 0.32, 0.55), "cushion", bevel=0.14, verts=48)
+cyl("neko_cushion_top", 1.3, 0.1, (-0.2, 0.47, 0.55), "cushion2", bevel=0.05, verts=48)
+nk = chibi("neko", "neko", "nekoDark", "nekoLine", phones=True)
+place(nk, -0.2, 0.55, 38, 1.35)
+nk.location = P(-0.2, 0.5, 0.55)
+lu = chibi("luna", "luna", "lunaDark", "lunaLine", accent="bow")
+place(lu, 2.35, 2.0, 22, 1.05)
+lu.location = P(2.35, 0.12, 2.0)
 
 # ================================================================== export
 for o in COL.objects:

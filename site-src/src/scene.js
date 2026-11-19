@@ -170,7 +170,7 @@ export function createRoom(canvas, hooks) {
       "media/room.glb",
       (g) => {
         room.add(g.scene);
-        const mats = toonify(g.scene, ramp);
+        const mats = toonify(g.scene, ramp, toonRamp(true));
         const by = (n) => g.scene.getObjectByName(n);
         g.scene.traverse((o) => {
           if (!o.isMesh) return;
@@ -205,13 +205,14 @@ export function createRoom(canvas, hooks) {
         const luna = by("luna");
         g.scene.updateMatrixWorld(true);
         parts.nekoHead = by("neko_head");
+        parts.nekoHeadY = parts.nekoHead.position.y;
         parts.lunaHead = by("luna_head");
         parts.nekoBody = pivot(by("neko_body"), baseOf(by("neko_body")));
-        parts.nekoTail = pivot(by("neko_tail"), neko.getWorldPosition(new THREE.Vector3()));
-        parts.nekoTail.attach(by("neko_tailtip"));
+        parts.nekoTail = by("neko_tail_up");
+        parts.nekoTailWrap = by("neko_tail_wrap");
         parts.lunaBody = pivot(by("luna_body"), baseOf(by("luna_body")));
-        parts.lunaTail = pivot(by("luna_tail"), luna.getWorldPosition(new THREE.Vector3()));
-        parts.lunaTail.attach(by("luna_tailtip"));
+        parts.lunaTail = by("luna_tail_up");
+        by("luna_tail_wrap").visible = false;
         parts.phones = by("neko_phones");
         parts.eyesOpen = [];
         parts.eyesShut = [];
@@ -297,7 +298,7 @@ export function createRoom(canvas, hooks) {
     h.act();
     if (tip) tip.textContent = h.label();
   });
-  const headPos = (o) => o.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 1.1, 0.3));
+  const headPos = (o) => o.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 1.9, 0.2));
   function petNeko() {
     st.happy = 1.8;
     if (!playing && st.awake < 0.5) {
@@ -486,19 +487,26 @@ export function createRoom(canvas, hooks) {
     parts.nekoBody.scale.set(1 + breathe * 0.4, 1 + breathe, 1 + breathe * 0.4);
     const pet = st.happy > 0 ? Math.sin(t * 9) * 0.12 * Math.min(1, st.happy) : 0;
     parts.nekoHead.rotation.set(
-      lerp(0.3, -look.y * 0.18, aw) + nod,
-      lerp(0.45, 0.3 + look.x * 0.45, aw),
-      lerp(-0.18, pet + (still ? 0 : Math.sin(t * 1.3) * 0.04), aw)
+      lerp(0.16, -look.y * 0.16, aw) + nod,
+      lerp(-0.05, look.x * 0.45, aw),
+      lerp(-0.2, pet + (still ? 0 : Math.sin(t * 1.3) * 0.05), aw)
     );
-    parts.nekoHead.position.y = lerp(-0.08, 0, aw);
-    parts.nekoTail.rotation.y = still ? 0 : Math.sin(t * (1 + aw * 2)) * (0.05 + aw * 0.1);
-    const nekoEyes = aw > 0.45 && !(st.happy > 0.3);
+    parts.nekoHead.position.y = parts.nekoHeadY + lerp(-0.05, 0, aw);
+    const tailUp = aw > 0.5;
+    parts.nekoTail.visible = tailUp;
+    parts.nekoTailWrap.visible = !tailUp;
+    // the note-tail sways, a little differently every time (like in the app)
+    parts.nekoTail.rotation.set(still ? 0 : Math.sin(t * 1.7) * 0.08 + Math.sin(t * 0.63) * 0.05, still ? 0 : Math.sin(t * 2.3 + 1) * 0.12, still ? 0 : Math.sin(t * 2.9) * 0.06 + (st.happy > 0 ? Math.sin(t * 11) * 0.1 : 0));
+    // blink now and then
+    const blink = !still && aw > 0.5 && (t % 4.1) < 0.12;
+    const nekoEyes = aw > 0.45 && !(st.happy > 0.3) && !blink;
     const happyEyes = st.happy > 0.3;
     parts.eyesOpen.forEach(({ o, cat }) => (o.visible = cat === "neko" ? nekoEyes : !(st.lunaHappy > 0.3)));
     parts.eyesShut.forEach(({ o, cat }) => {
       o.visible = cat === "neko" ? !nekoEyes : st.lunaHappy > 0.3;
       // happy eyes are the same arcs, flipped
       o.scale.y = (cat === "neko" ? happyEyes : st.lunaHappy > 0.3) ? -1 : 1;
+      if (cat === "neko" && blink && !happyEyes) o.scale.y = 0.4;
     });
     const ph = THREE.MathUtils.smootherstep(st.music, 0, 1);
     parts.phones.visible = ph > 0.02;
@@ -506,8 +514,8 @@ export function createRoom(canvas, hooks) {
     parts.phones.position.y = lerp(0.6, 0, ph);
     const lb = still ? 0 : Math.sin(t * 1.7 + 1) * 0.02;
     parts.lunaBody.scale.set(1, 1 + lb, 1);
-    parts.lunaHead.rotation.set(beat * 0.05 * st.music, -0.55 + (st.lunaHappy > 0 ? Math.sin(t * 8) * 0.1 : 0) + (still ? 0 : Math.sin(t * 0.6) * 0.08), st.lunaHappy > 0 ? 0.15 : 0.05);
-    parts.lunaTail.rotation.y = still ? 0 : Math.sin(t * 1.4) * 0.12;
+    parts.lunaHead.rotation.set(beat * 0.05 * st.music, -0.3 + (st.lunaHappy > 0 ? Math.sin(t * 8) * 0.1 : 0) + (still ? 0 : Math.sin(t * 0.6) * 0.08), st.lunaHappy > 0 ? 0.15 : 0.05);
+    parts.lunaTail.rotation.y = still ? 0 : Math.sin(t * 1.4) * 0.1;
 
     // turntable
     st.spin = ease(st.spin, playing ? 1 : 0, 2.5);
@@ -556,7 +564,7 @@ export function createRoom(canvas, hooks) {
     }
     if (st.awake < 0.3 && !still && t - lastZ > 1.5) {
       lastZ = t;
-      emit(zMat, headW.clone().add(new THREE.Vector3(0.5, 0.9, 0.3)), { size: 0.26, spread: 0.15, up: 0.35, life: 2.6, kind: "z" });
+      emit(zMat, headW.clone().add(new THREE.Vector3(0.75, 1.95, 0.25)), { size: 0.26, spread: 0.15, up: 0.35, life: 2.6, kind: "z" });
     }
     for (let i = particles.length - 1; i >= 0; i--) {
       const s = particles[i];

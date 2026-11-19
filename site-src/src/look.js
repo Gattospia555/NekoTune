@@ -45,7 +45,7 @@ scene.add(lamp);
 const ramp = toonRamp();
 new GLTFLoader().load("media/room.glb", (g) => {
   const root = g.scene;
-  toonify(root, ramp);
+  toonify(root, ramp, toonRamp(true));
   const bulbs = mixNum(m.a.bulbs, m.b.bulbs, m.t);
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -82,6 +82,10 @@ new GLTFLoader().load("media/room.glb", (g) => {
     if (/_eyeshut/.test(o.name)) o.visible = sleeping;
     if (/neko_eye-?1$|neko_eye1$|neko_eyehi/.test(o.name)) o.visible = !sleeping;
     if (/neko_phones/.test(o.name)) o.visible = q.get("phones") === "1";
+    if (o.name === "neko_tail_up") o.visible = !sleeping;
+    if (o.name === "neko_tail_wrap") o.visible = sleeping;
+    if (o.name === "luna_tail_wrap") o.visible = false;
+    if (/luna_eyeshut/.test(o.name)) o.visible = false;
   });
   const only = q.get("only");
   if (only) {
