@@ -52,7 +52,7 @@ export class InkPass {
         vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
         fragmentShader: "uniform float id; varying vec3 vN; void main(){ gl_FragColor = vec4(normalize(vN) * 0.5 + 0.5, id); }",
       });
-    this.preMats = { 1: pre(1), 2: pre(0.6), 3: pre(0.3) };
+    this.preMats = { 1: pre(1), 2: pre(0.6), 3: pre(0.3), 4: pre(0.9) };
     this.swap = [];
     this.uniforms = {
       tDiffuse: { value: null },

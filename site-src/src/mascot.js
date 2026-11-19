@@ -65,6 +65,17 @@ export function createTail() {
       step(s.wave, dt);
       s.phase += step(s.speed, dt) * dt;
     },
+    /** Current centre line of the tail, in viewBox units. */
+    points() {
+      const [px, py] = TP[0];
+      return TP.map((q, i) => {
+        const u = ARC[i];
+        const g = Math.pow(u, 1.3) * (s.sway.v + s.wave.v * Math.sin(s.phase - 1.8 * u)) * DEG;
+        const dx = q[0] - px;
+        const dy = q[1] - py;
+        return [px + dx * Math.cos(g) - dy * Math.sin(g), py + dx * Math.sin(g) + dy * Math.cos(g)];
+      });
+    },
     path() {
       const [px, py] = TP[0];
       const p = new Path2D();
@@ -274,3 +285,65 @@ export function catCanvas(scale = 2) {
     },
   };
 }
+
+/** Just the face (eyes, nose, mouth, cheeks) on a flat fur-coloured background: the texture of the 3D head. */
+export function drawFace(g, opts) {
+  const P = opts.pal || NEKO;
+  g.fillStyle = P.fill;
+  g.fillRect(0, 0, 260, 262);
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  const xs = [100, 144];
+  const look = (opts.look || 0) * 3;
+  g.fillStyle = P.ink;
+  g.strokeStyle = P.ink;
+  g.lineWidth = 3.4;
+  if (opts.eyes === "open") {
+    for (const x of xs) {
+      g.beginPath();
+      g.arc(x + look, 112, 6.5, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = "#fff";
+    for (const x of xs) {
+      g.beginPath();
+      g.arc(x + look - 1.9, 110, 2, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else if (opts.eyes === "blink") {
+    for (const x of xs) {
+      g.beginPath();
+      g.moveTo(x - 7, 112);
+      g.lineTo(x + 7, 112);
+      g.stroke();
+    }
+  } else {
+    const happy = opts.eyes === "happy";
+    for (const x of xs) {
+      g.beginPath();
+      if (happy) {
+        g.moveTo(x - 8, 115);
+        g.quadraticCurveTo(x, 105, x + 8, 115);
+      } else {
+        g.moveTo(x - 8, 112);
+        g.quadraticCurveTo(x, 119, x + 8, 112);
+      }
+      g.stroke();
+    }
+  }
+  g.fillStyle = P.ink;
+  g.lineWidth = 2;
+  g.fill(NOSE);
+  g.stroke(NOSE);
+  g.lineWidth = 2.6;
+  g.stroke(MOUTH);
+  g.fillStyle = P.blush;
+  g.globalAlpha = 0.5;
+  for (const x of [86, 158]) {
+    g.beginPath();
+    g.arc(x, 130, 6, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+}
+export const CURLED_TAIL = [[168, 230], [196, 232], [204, 246], [184, 251], [154, 257], [98, 256], [72, 250]];

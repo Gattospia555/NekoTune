@@ -12,6 +12,7 @@ import { moodAt, MOODS, mixColor, mixNum, paintSky } from "./daylight.js";
 import { noteTexture, heartTexture, zTexture, coverTexture, createMonitorScreen } from "./textures.js";
 import { TRACKS } from "./audio.js";
 import { catCanvas, createTail, NEKO, LUNA } from "./mascot.js";
+import { createCat3D } from "./cat3d.js";
 
 const COVERS = [["#5fb3a8", "#ffe3c8", "#2a2430"], ["#b6a0dc", "#f6a08f", "#2a2430"], ["#6c8fc4", "#bfe6d3", "#1d2333"]];
 const smooth = (x, a, b) => THREE.MathUtils.smoothstep(x, a, b);
@@ -244,8 +245,11 @@ export function createRoom(canvas, hooks) {
         // pivots for things that move
         g.scene.updateMatrixWorld(true);
         // Neko and Luna: the mascot drawings from the app, standing in the room
-        parts.neko = makeCat({ pal: NEKO, height: 3.3, pos: [-0.2, 0.5, 0.55] });
-        parts.luna = makeCat({ pal: LUNA, height: 2.55, pos: [2.35, 0.12, 2.05], bow: true });
+        const softRamp = toonRamp(true);
+        parts.neko = createCat3D({ pal: NEKO, scale: 0.0125, ramp: softRamp, inkId: 2 });
+        parts.neko.group.position.set(-0.2, 0.5, 0.55);
+        parts.luna = createCat3D({ pal: LUNA, scale: 0.0098, ramp: softRamp, inkId: 3, bow: true, earColor: "#f6c2d2" });
+        parts.luna.group.position.set(2.35, 0.12, 2.05);
         room.add(parts.neko.group, parts.luna.group);
         parts.record = by("record");
         parts.recordPivot = pivot(parts.record, centerOf(parts.record));
@@ -268,8 +272,8 @@ export function createRoom(canvas, hooks) {
         }
         // interaction targets
         const T = (names, label, act) => names.forEach((n) => by(n)?.traverse((m) => m.isMesh && targets.push({ mesh: m, label, act })));
-        targets.push({ mesh: parts.neko.mesh, label: () => "Accarezza Neko", act: petNeko });
-        targets.push({ mesh: parts.luna.mesh, label: () => "Saluta Luna", act: petLuna });
+        parts.neko.meshes.forEach((m) => targets.push({ mesh: m, label: () => "Accarezza Neko", act: petNeko }));
+        parts.luna.meshes.forEach((m) => targets.push({ mesh: m, label: () => "Saluta Luna", act: petLuna }));
         T(["deck_base", "deck_platter", "record", "record_label", "tonearm", "deck_knob"], () => (playing ? "Ferma il disco" : "Fai partire il disco"), () => hooks.togglePlay());
         T(["speaker_l", "speaker_r", "speaker_l_cone", "speaker_r_cone", "speaker_l_tweet", "speaker_r_tweet"], () => (playing ? "Ferma la musica" : "Accendi la musica"), () => hooks.togglePlay());
         T(["crate", "crate_in", ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => "crate_rec" + i)], () => "Pesca un altro disco", () => hooks.nextTrack());
@@ -333,7 +337,7 @@ export function createRoom(canvas, hooks) {
     h.act();
     if (tip) tip.textContent = h.label();
   });
-  const headPos = (c) => c.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, c === parts.neko ? 3.0 : 2.3, 0.2));
+  const headPos = (c) => c.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, c === parts.neko ? 2.7 : 2.1, 0.2));
   function petNeko() {
     st.happy = 1.8;
     if (!playing && st.awake < 0.5) {
@@ -356,6 +360,7 @@ export function createRoom(canvas, hooks) {
     { pos: [16.6, 12.6, 18.8], tgt: [-0.2, 1.6, -0.1] },
     { pos: [-1.2, 2.75, -0.9], tgt: [-6, 2.75, -0.9] },
   ].map((k) => ({ pos: new THREE.Vector3(...k.pos), tgt: new THREE.Vector3(...k.tgt) }));
+  const dbgCam = q.has("cam") ? [q.get("cam").split(",").map(Number), (q.get("tgt") || "0,1.5,0").split(",").map(Number)] : null;
   const camPos = new THREE.Vector3();
   const camTgt = new THREE.Vector3();
   const tmp = new THREE.Vector3();
@@ -517,41 +522,38 @@ export function createRoom(canvas, hooks) {
     look.x = lerp(look.x, pointer.x, 0.06);
     look.y = lerp(look.y, pointer.y, 0.06);
     const aw = st.awake;
-    // cats face the camera (yaw only), drawn again ~30 times a second
-    for (const c of [parts.neko, parts.luna]) c.group.rotation.y = Math.atan2(camera.position.x - c.group.position.x, camera.position.z - c.group.position.z);
+    // cats turn towards the camera, a little to the side so their volume shows
+    const toCam = (c) => Math.atan2(camera.position.x - c.group.position.x, camera.position.z - c.group.position.z);
+    parts.neko.group.rotation.y = toCam(parts.neko) - 0.32;
+    parts.luna.group.rotation.y = toCam(parts.luna) + 0.42;
     const blink = !still && aw > 0.5 && t % 4.1 < 0.13;
     const happy = st.happy > 0.3;
-    const night = cur.stars;
-    const tint = new THREE.Color(1, 1, 1).lerp(new THREE.Color("#aaa6db"), night * 0.85).lerp(new THREE.Color("#ffd7ad"), st.lamp * night * 0.35);
-    if (frame % 2 === 0 || still) {
-      const n = parts.neko;
-      n.tail.step(dt * 2, happy ? 1.6 : 1);
-      n.cv.draw({
-        pal: NEKO,
-        eyes: happy ? "happy" : aw > 0.45 ? (blink ? "blink" : "open") : "sleep",
-        tail: aw > 0.45 ? n.tail : null,
-        head: aw > 0.45 ? { rot: (still ? 0 : Math.sin(t * 1.3) * 0.04) + beat * 0.07 * st.music + (happy ? Math.sin(t * 9) * 0.08 : 0), dy: -beat * 2 * st.music } : { rot: 0.06, dy: 3 + (still ? 0 : Math.sin(t * 1.4) * 1.2) },
-        phones: st.music > 0.5,
-        look: aw > 0.45 ? look.x : 0,
-      });
-      n.tex.needsUpdate = true;
-      const l = parts.luna;
-      const lh = st.lunaHappy > 0.3;
-      l.tail.step(dt * 2, lh ? 1.6 : 0.8);
-      l.cv.draw({
-        pal: LUNA,
-        bow: true,
-        eyes: lh ? "happy" : !still && (t + 1.7) % 5.3 < 0.13 ? "blink" : "open",
-        tail: l.tail,
-        head: { rot: -0.08 + (still ? 0 : Math.sin(t * 0.9 + 1) * 0.04) + beat * 0.05 * st.music + (lh ? Math.sin(t * 9) * 0.08 : 0), dy: 0 },
-        look: -0.6,
-      });
-      l.tex.needsUpdate = true;
-    }
-    parts.neko.mesh.material.color.copy(tint);
-    parts.luna.mesh.material.color.copy(tint);
+    const awakeNow = aw > 0.45;
+    parts.neko.update(dt, {
+      eyes: happy ? "happy" : awakeNow ? (blink ? "blink" : "open") : "sleep",
+      awake: awakeNow,
+      phones: st.music > 0.5,
+      rot: awakeNow ? (still ? 0 : Math.sin(t * 1.3) * 0.05) + (happy ? Math.sin(t * 9) * 0.09 : 0) : 0.07,
+      nod: awakeNow ? beat * 0.12 * st.music - look.y * 0.12 : 0.22,
+      turn: awakeNow ? look.x * 0.35 : 0,
+      dy: awakeNow ? 0 : 4 + (still ? 0 : Math.sin(t * 1.4) * 1.5),
+      look: awakeNow ? look.x : 0,
+      energy: happy ? 1.6 : 1,
+      still,
+    });
+    const lh = st.lunaHappy > 0.3;
+    parts.luna.update(dt, {
+      eyes: lh ? "happy" : !still && (t + 1.7) % 5.3 < 0.13 ? "blink" : "open",
+      awake: true,
+      rot: -0.08 + (still ? 0 : Math.sin(t * 0.9 + 1) * 0.04) + (lh ? Math.sin(t * 9) * 0.09 : 0),
+      nod: beat * 0.08 * st.music,
+      turn: -0.2,
+      look: -0.6,
+      energy: lh ? 1.6 : 0.8,
+      still,
+    });
     const breathe = still ? 0 : Math.sin(t * (aw > 0.5 ? 2.4 : 1.4)) * 0.012;
-    parts.neko.mesh.scale.set(1 - breathe * 0.5, 1 + breathe, 1);
+    parts.neko.group.scale.set(0.0125 * (1 + breathe * 0.4), 0.0125 * (1 + breathe), 0.0125 * (1 + breathe * 0.4));
 
     // turntable
     st.spin = ease(st.spin, playing ? 1 : 0, 2.5);
@@ -625,6 +627,11 @@ export function createRoom(canvas, hooks) {
       const k = 1 - smooth(p, 0, 0.4);
       camPos.x += look.x * 0.5 * k;
       camPos.y += look.y * 0.3 * k;
+    }
+    if (dbgCam) {
+      camPos.set(...dbgCam[0]);
+      camTgt.set(...dbgCam[1]);
+      camera.clearViewOffset();
     }
     camera.position.copy(camPos);
     camera.lookAt(camTgt);
