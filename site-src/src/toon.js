@@ -110,6 +110,8 @@ export class InkPass {
           // fat lines only when the cat is close enough to have room for them
           float near = 1.0 - smoothstep(9.0, 16.0, depthAt(vUv));
           if (id2 < 0.8) { id = min(id, id2); e = max(e, e2 * near); }
+          // drawn characters (id 0.9) keep their own outline: no ink around them
+          if (abs(id - 0.9) < 0.05) e = 0.0;
           float bg = step(0.9999, texture2D(tDepth, vUv).x);
           vec3 lineCol = mix(col.rgb * ink * 1.4, ink, 0.6);
           float k = strength;
@@ -143,7 +145,7 @@ export class InkPass {
     this.scene.traverse((o) => {
       if (!o.isMesh || !o.visible) return;
       swap.push(o, o.material);
-      o.material = this.preMats[o.userData.ink || 1];
+      o.material = o.userData.preMat || this.preMats[o.userData.ink || 1];
     });
     const prevClear = r.getClearColor(new THREE.Color());
     const prevAlpha = r.getClearAlpha();

@@ -2,7 +2,9 @@
 
 Il sito pubblicato è in `../docs/` (GitHub Pages). Qui c'è il codice che diventa `docs/room.js` e il modello della stanza.
 
-- `blender/room.py` — la stanza, Neko e Luna costruiti in Blender da Python ed esportati in `docs/media/room.glb`
+- `blender/room.py` — la stanza costruita in Blender da Python ed esportata in `docs/media/room.glb`
+- `src/mascot.js` — Neko e Luna disegnati come la mascotte dell'app (stessi tracciati di `src/js/ui/mascot.js` di NekoTune), su canvas; nella stanza sono sagome rivolte sempre verso chi guarda
+- `src/mascotshot.js` — pagina di prova (`mascot.html?m=asleep|awake|friends`) per le immagini delle sezioni
 - `src/main.js` — lettore di prova, scorrimento, orologio nell'intestazione
 - `src/scene.js` — la scena 3D: luce, telecamera, oggetti cliccabili, TV con l'app
 - `src/toon.js` — ombre a due toni e contorni a inchiostro (stile cartone animato)

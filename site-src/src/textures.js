@@ -1,6 +1,7 @@
 // Canvas-drawn textures for the scene: record label, album covers,
 // chat bubbles, notes, hearts, the stream monitor.
 import * as THREE from "three";
+import { drawCat, createTail, NEKO } from "./mascot.js";
 
 export const C = {
   mist: "#F3EEFB",
@@ -310,6 +311,7 @@ export function createMonitorScreen() {
   const [c, g] = canvas(W * SC, H * SC);
   const texture = tex(c);
   texture.anisotropy = 4;
+  const tail = createTail();
   function draw(time, track, playing) {
     g.setTransform(SC, 0, 0, SC, 0, 0);
     const sky = g.createLinearGradient(0, 0, 0, H);
@@ -337,21 +339,14 @@ export function createMonitorScreen() {
       g.lineTo(W, H);
       g.fill();
     });
-    // a little runner (a cat silhouette, simplified)
-    const bob = Math.abs(Math.sin(time * 6)) * 14;
-    g.fillStyle = C.peach;
-    g.beginPath();
-    g.ellipse(W * 0.62, H * 0.68 - bob, 34, 24, 0, 0, Math.PI * 2);
-    g.ellipse(W * 0.62 + 34, H * 0.62 - bob, 20, 18, 0, 0, Math.PI * 2);
-    g.fill();
-    g.beginPath();
-    g.moveTo(W * 0.62 + 24, H * 0.56 - bob);
-    g.lineTo(W * 0.62 + 30, H * 0.5 - bob);
-    g.lineTo(W * 0.62 + 38, H * 0.56 - bob);
-    g.moveTo(W * 0.62 + 40, H * 0.56 - bob);
-    g.lineTo(W * 0.62 + 48, H * 0.5 - bob);
-    g.lineTo(W * 0.62 + 52, H * 0.58 - bob);
-    g.fill();
+    // Neko himself, playing along (the mascot from the app)
+    const bob = Math.abs(Math.sin(time * 3.2)) * 6;
+    tail.step(1 / 30, 1);
+    g.save();
+    g.translate(W * 0.6, H * 0.2 - bob);
+    g.scale(0.95, 0.95);
+    drawCat(g, { pal: NEKO, eyes: playing ? "open" : "sleep", tail: playing ? tail : null, head: { rot: playing ? Math.sin(time * 5) * 0.06 : 0.05 }, phones: playing });
+    g.restore();
     // LIVE
     g.fillStyle = "#FF5C7A";
     roundRect(g, 24, 22, 108, 44, 14);

@@ -556,26 +556,12 @@ def place(root, x, z, yaw, scale=1.0):
 # Neko on his cushion, turned towards the camera
 cyl("neko_cushion", 1.6, 0.32, (-0.2, 0.32, 0.55), "cushion", bevel=0.14, verts=48)
 cyl("neko_cushion_top", 1.3, 0.1, (-0.2, 0.47, 0.55), "cushion2", bevel=0.05, verts=48)
-nk = chibi("neko", "neko", "nekoDark", "nekoLine", phones=True, inner="nekoEar", whisk="whisk")
-place(nk, -0.2, 0.55, 38, 1.35)
-nk.location = P(-0.2, 0.5, 0.55)
-lu = chibi("luna", "luna", "lunaDark", "lunaLine", accent="bow", inner="lunaEar", whisk="lunaWhisk")
-place(lu, 2.35, 2.0, 22, 1.05)
-lu.location = P(2.35, 0.12, 2.0)
-
-# lucky cat (maneki-neko) on the shelf: the same little cat, white, waving
-mk = chibi("statue", "white", "red", "ink", inner="lunaEar", whisk="ink")
-for n in ("statue_tailwrap", "statue_tailwraptip"):
-    o = bpy.data.objects.get(n)
-    if o: bpy.data.objects.remove(o, do_unlink=True)
-mk_paw = tube("statue_wave", [(0.3, 0.7, 0.2), (0.48, 1.0, 0.26), (0.5, 1.25, 0.26)], 0.11, "white", res=8)
-mk_pawt = sphere("statue_wavepaw", 0.13, (0.5, 1.3, 0.26), "white", seg=16)
-mk_col = torus("statue_collar", 0.42, 0.05, (0, 0.98, 0.04), "red", rot=(0, 0, 0))
-mk_bell = sphere("statue_bell", 0.09, (0, 0.92, 0.46), "yellow", seg=16)
-mk_coin = cyl("statue_coin", 0.2, 0.05, (-0.12, 0.42, 0.55), "yellow", rot=(80, 0, 0), bevel=0.02, verts=24)
-reparent([mk_paw, mk_pawt, mk_col, mk_bell, mk_coin], mk)
-place(mk, -W + 0.4, SZ + 0.55, 90, 0.36)
-mk.location = P(-W + 0.4, SY + 0.05, SZ + 0.55)
+# Neko and Luna are drawn (2D, like the mascot in the app) by the site itself.
+# Lucky "statue" on the shelf: an acrylic stand of Neko (the print is added by the site).
+stat = empty("statue", (-W + 0.42, SY + 0.05, SZ + 0.55))
+sbase = box("stand_base", (0.26, 0.06, 0.5), (-W + 0.42, SY + 0.08, SZ + 0.55), "white", bevel=0.025)
+splate = box("stand_plate", (0.025, 0.66, 0.56), (-W + 0.42, SY + 0.44, SZ + 0.55), "glass", bevel=0.01)
+reparent([sbase, splate], stat)
 
 # ================================================================== export
 for o in COL.objects:
