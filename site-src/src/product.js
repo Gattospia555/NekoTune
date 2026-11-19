@@ -21,7 +21,7 @@ const visible = (el) => {
   return r.bottom > -100 && r.top < innerHeight + 100;
 };
 
-// ---------------------------------------------------------------- A2 player
+// ---------------------------------------------------------------- player
 const ap = $("#player");
 const apParts = ap && {
   laptop: $(".laptop", ap),
@@ -70,47 +70,21 @@ function updatePlayer() {
   P.facts.forEach((li) => li.classList.toggle("on", p >= STEPS[Number(li.dataset.step)]));
 }
 
-// ---------------------------------------------------------------- A3 lyrics
-const lyr = $("#testi");
-const words = lyr ? $$(".lyr-line span", lyr) : [];
-const lyrNeko = lyr && $(".lyr-neko", lyr);
-function updateLyrics() {
-  if (!lyr || !visible(lyr)) return;
-  const p = progress(lyr);
-  const k = reduced.matches ? words.length : smooth(p, 0.08, 0.86) * words.length;
-  words.forEach((w, i) => w.style.setProperty("--lit", clamp01(k - i).toFixed(2)));
-  if (lyrNeko && !reduced.matches) {
-    lyrNeko.style.transform = `translateY(${lerp(40, -40, p).toFixed(1)}px) rotate(${lerp(-4, 4, p).toFixed(2)}deg)`;
-  }
-}
-
-// ---------------------------------------------------------------- B1 friends
+// ---------------------------------------------------------------- friends + streaming: play once when they come into view
 const fr = $("#amici");
-const bubbles = fr ? $$(".bub", fr) : [];
-function updateFriends() {
-  if (!fr || !visible(fr)) return;
-  const p = progress(fr);
-  bubbles.forEach((b, i) => {
-    const k = reduced.matches ? 1 : smooth(p, 0.1 + i * 0.13, 0.16 + i * 0.13);
-    b.style.opacity = k.toFixed(3);
-    b.style.transform = `translateY(${((1 - k) * 18).toFixed(1)}px) scale(${lerp(0.94, 1, k).toFixed(3)})`;
-  });
-}
-
-// ---------------------------------------------------------------- B2 streaming
 const st = $("#diretta");
-const stBg = st && $(".st-bg", st);
 const stWidget = st && $(".st-widget", st);
-function updateStream() {
-  if (!st || !visible(st)) return;
-  const p = progress(st);
-  if (stBg && !reduced.matches) stBg.style.transform = `scale(${lerp(1.16, 1, smooth(p, 0, 0.7)).toFixed(4)})`;
-  if (stWidget) {
-    const k = reduced.matches ? 1 : smooth(p, 0.25, 0.45);
-    stWidget.style.opacity = k.toFixed(3);
-    stWidget.style.transform = `translateX(${((1 - k) * -40).toFixed(1)}px)`;
-  }
-}
+const io = new IntersectionObserver(
+  (entries) =>
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add("in");
+      io.unobserve(e.target);
+    }),
+  { threshold: 0.35 }
+);
+[fr, st].forEach((el) => el && io.observe(el));
+if (fr) $$(".bub", fr).forEach((b, i) => b.style.setProperty("--i", i));
 addEventListener("neko-track", (e) => {
   if (!stWidget) return;
   $(".sw-title", stWidget).textContent = e.detail.title;
@@ -119,7 +93,7 @@ addEventListener("neko-track", (e) => {
   stWidget.classList.toggle("playing", !!e.detail.playing);
 });
 
-// ---------------------------------------------------------------- A4 themes
+// ---------------------------------------------------------------- themes
 const th = $("#temi");
 if (th) {
   const shot = $(".th-shot", th);
@@ -170,7 +144,7 @@ if (th) {
   });
 }
 
-// ---------------------------------------------------------------- B3 download
+// ---------------------------------------------------------------- download
 const dl = $("#scarica");
 if (dl) {
   const art = $(".dl-art", dl);
@@ -195,7 +169,7 @@ function updateHeader() {
   });
   links.forEach((a, i) => (i === cur ? a.setAttribute("aria-current", "true") : a.removeAttribute("aria-current")));
   // dark sections get a dark header
-  const dark = $$(".ap, .st").some((s) => {
+  const dark = $$(".ap").some((s) => {
     const r = s.getBoundingClientRect();
     return r.top <= 40 && r.bottom > 40;
   });
@@ -206,9 +180,6 @@ let queued = false;
 function update() {
   queued = false;
   updatePlayer();
-  updateLyrics();
-  updateFriends();
-  updateStream();
   updateHeader();
 }
 const schedule = () => {

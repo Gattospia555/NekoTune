@@ -16,8 +16,8 @@ export const C = {
   mint: "#BFE6D3",
 };
 
-const DISPLAY = '"Fredoka", "Nunito", system-ui, sans-serif';
-const BODY = '"Nunito", system-ui, sans-serif';
+const DISPLAY = '"Dela Gothic One", "Zen Maru Gothic", system-ui, sans-serif';
+const BODY = '"Zen Maru Gothic", system-ui, sans-serif';
 
 function canvas(w, h) {
   const c = document.createElement("canvas");
