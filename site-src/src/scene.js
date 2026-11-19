@@ -9,10 +9,11 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { toonRamp, toonify, InkPass } from "./toon.js";
 import { moodAt, MOODS, mixColor, mixNum, paintSky } from "./daylight.js";
-import { noteTexture, heartTexture, zTexture, coverTexture, createMonitorScreen } from "./textures.js";
+import { noteTexture, heartTexture, zTexture, qTexture, coverTexture, createMonitorScreen } from "./textures.js";
 import { TRACKS } from "./audio.js";
 import { catCanvas, createTail, NEKO, LUNA } from "./mascot.js";
 import { createCat3D } from "./cat3d.js";
+import { CatBrain, SPOTS } from "./brain.js";
 
 const COVERS = [["#5fb3a8", "#ffe3c8", "#2a2430"], ["#b6a0dc", "#f6a08f", "#2a2430"], ["#6c8fc4", "#bfe6d3", "#1d2333"]];
 const smooth = (x, a, b) => THREE.MathUtils.smoothstep(x, a, b);
@@ -88,6 +89,7 @@ export function createRoom(canvas, hooks) {
   let playing = false;
   let beat = 0;
   let groove = 0;
+  let grooveT = 0;
   let wakeUntil = 0;
   let trackIndex = 0;
 
@@ -156,6 +158,7 @@ export function createRoom(canvas, hooks) {
   const noteMats = ["#ffb37e", "#5fb3a8", "#b6a0dc"].map((c) => new THREE.SpriteMaterial({ map: noteTexture(c), transparent: true, depthWrite: false }));
   const heartMat = new THREE.SpriteMaterial({ map: heartTexture(), transparent: true, depthWrite: false });
   const zMat = new THREE.SpriteMaterial({ map: zTexture(), transparent: true, depthWrite: false });
+  const qMat = new THREE.SpriteMaterial({ map: qTexture(), transparent: true, depthWrite: false });
   const particles = [];
   function emit(material, from, opts = {}) {
     const s = new THREE.Sprite(material.clone());
@@ -252,6 +255,8 @@ export function createRoom(canvas, hooks) {
         parts.luna = createCat3D({ pal: LUNA, scale: 0.0098, ramp: softRamp, inkId: 3, bow: true, earColor: "#f6c2d2" });
         parts.luna.group.position.set(2.35, 0.12, 2.05);
         room.add(parts.neko.group, parts.luna.group);
+        brains.neko = new CatBrain("neko", parts.neko, { home: SPOTS.neko, sleeper: true, speed: 0.95, sideOffset: -0.32 });
+        brains.luna = new CatBrain("luna", parts.luna, { home: SPOTS.home, speed: 1.15, sideOffset: 0.35 });
         // blue yarn ball (Luna's song is "Gomitolo blu")
         {
           const yg = new THREE.Group();
@@ -269,8 +274,7 @@ export function createRoom(canvas, hooks) {
           yg.add(loose);
           room.add(yg);
           parts.yarn = yg;
-          const p0 = new THREE.Vector3(0.2 + Math.cos(yarn.a0) * 2.15, 0.36, 0.9 + Math.sin(yarn.a0) * 2.15);
-          yg.position.copy(p0);
+          yg.position.set(1.0, 0.36, 3.3);
           yg.traverse((m) => m.isMesh && targets.push({ mesh: m, label: () => "Lancia il gomitolo a Luna", act: throwYarn }));
         }
         parts.record = by("record");
@@ -308,6 +312,7 @@ export function createRoom(canvas, hooks) {
         hitMeshes = targets.map((x) => x.mesh);
         document.fonts?.ready.then(paintPoster);
         ready = true;
+        if (q.has("dbg")) window.__cats = { brains, parts, yarn, petLuna, petNeko, throwYarn };
         paintPoster();
         resolve();
       },
@@ -366,45 +371,95 @@ export function createRoom(canvas, hooks) {
   const headPos = (c) => c.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, c === parts.neko ? 2.7 : 2.1, 0.2));
   function petNeko() {
     st.happy = 1.8;
-    if (!playing && st.awake < 0.5) {
-      wakeUntil = clock.getElapsed() + 3.5;
+    const b = brains.neko;
+    if (!playing && (parts.neko.asleep || b.state === "sleep")) {
+      wakeUntil = clock.getElapsed() + 6;
       hooks.say("Mrr? Neko si è svegliato un attimo.");
-    } else hooks.say("Neko fa le fusa.");
+    } else {
+      hooks.say("Neko fa le fusa.");
+      if (b.state === "sit" && Math.random() < 0.5) b.doAct(Math.random() < 0.5 ? "wave" : "hop");
+    }
     hooks.purr();
     const from = headPos(parts.neko);
     for (let i = 0; i < 6; i++) emit(heartMat, from, { size: 0.24 + Math.random() * 0.1, spread: 1.2, up: 0.8 });
   }
-  // Luna: every click does something different; she naps if left alone
-  const luna = { idle: 0, act: "", t: 0, n: 0, hover: false };
+  // Each cat has a little brain (brain.js): it walks around, plays, dances.
+  const brains = {};
+  const luna = { idle: 0, n: 0, hover: false };
   const LUNA_ACTS = [
     ["hop", "Luna saltella contenta."],
     ["wave", "Luna ti saluta con la zampa."],
     ["spin", "Luna fa una giravolta."],
     ["mew", "Miao! Luna ti ha risposto."],
+    ["tailchase", "Luna si mette a inseguire la sua coda."],
+    ["tilt", "Luna ti guarda con la testa inclinata."],
   ];
   function petLuna() {
     luna.idle = 0;
-    if (parts.luna.asleep) {
+    const b = brains.luna;
+    if (parts.luna.asleep || b.state === "sleep") {
+      b.state = "sit";
+      b.timer = 2;
       hooks.say("Luna si stiracchia e si sveglia.");
       return;
     }
     const [act, text] = LUNA_ACTS[luna.n++ % LUNA_ACTS.length];
-    luna.act = act;
-    luna.t = 0;
+    b.face = null;
+    b.doAct(act);
     hooks.say(text);
-    if (act === "mew") hooks.mew?.();
-    if (act === "hop" || act === "mew") st.lunaHappy = 1.2;
+    if (act === "hop" || act === "spin") st.lunaHappy = 1.0;
     const from = headPos(parts.luna);
-    for (let i = 0; i < (act === "hop" ? 5 : 3); i++) emit(heartMat, from, { size: 0.22, spread: 1, up: 0.7 });
+    for (let i = 0; i < 3; i++) emit(heartMat, from, { size: 0.22, spread: 1, up: 0.7 });
   }
-  // the yarn ball on the rug: throw it and Luna watches it roll, then hops
-  const yarn = { t: -1, a0: 1.05, a1: 2.35, pos: new THREE.Vector3() };
+  // the yarn ball: it rolls where it is pushed, slows down, bounces off walls and the cushion
+  const yarn = { vel: new THREE.Vector2(), rolling: false };
+  function pushYarn(dirX, dirZ, speed) {
+    const n = Math.hypot(dirX, dirZ) || 1;
+    yarn.vel.set((dirX / n) * speed, (dirZ / n) * speed);
+    yarn.rolling = true;
+  }
   function throwYarn() {
     luna.idle = 0;
-    if (yarn.t >= 0 && yarn.t < 1) return;
-    yarn.t = 0;
-    [yarn.a0, yarn.a1] = [yarn.a1, yarn.a0];
-    hooks.say(parts.luna.asleep ? "Il gomitolo rotola. Luna apre un occhio..." : "Luna insegue il gomitolo con lo sguardo.");
+    const a = Math.random() * Math.PI * 2;
+    pushYarn(Math.cos(a), Math.sin(a), 3.2);
+    hooks.say(parts.luna.asleep ? "Il gomitolo rotola. Luna apre un occhio..." : "Luna corre dietro al gomitolo!");
+    const b = brains.luna;
+    if (b && b.state !== "sleep") setTimeout(() => b.state !== "sleep" && chaseYarn(), 600);
+  }
+  function chaseYarn() {
+    const b = brains.luna;
+    const y = parts.yarn.position;
+    const dx = y.x - b.pos.x;
+    const dz = y.z - b.pos.z;
+    const d = Math.hypot(dx, dz) || 1;
+    b.goTo({ x: y.x - (dx / d) * 0.6, z: y.z - (dz / d) * 0.6 }, () => {
+      b.face = { x: y.x, z: y.z };
+      b.doAct("pounce");
+    });
+  }
+  function stepYarn(dt) {
+    if (!parts.yarn || !yarn.rolling) return;
+    const p = parts.yarn.position;
+    p.x += yarn.vel.x * dt;
+    p.z += yarn.vel.y * dt;
+    if (p.x < -3.2 || p.x > 4.4) (yarn.vel.x *= -0.7), (p.x = THREE.MathUtils.clamp(p.x, -3.2, 4.4));
+    if (p.z < -2.4 || p.z > 4.5) (yarn.vel.y *= -0.7), (p.z = THREE.MathUtils.clamp(p.z, -2.4, 4.5));
+    const cx = p.x + 0.2;
+    const cz = p.z - 0.55;
+    const cd = Math.hypot(cx, cz);
+    if (cd < 1.75) {
+      const nx = cx / cd;
+      const nz = cz / cd;
+      const dot = yarn.vel.x * nx + yarn.vel.y * nz;
+      if (dot < 0) yarn.vel.set(yarn.vel.x - 1.6 * dot * nx, yarn.vel.y - 1.6 * dot * nz);
+      p.x = -0.2 + nx * 1.75;
+      p.z = 0.55 + nz * 1.75;
+    }
+    const sp = yarn.vel.length();
+    parts.yarn.rotation.x += (yarn.vel.y * dt) / 0.24;
+    parts.yarn.rotation.z -= (yarn.vel.x * dt) / 0.24;
+    yarn.vel.multiplyScalar(Math.exp(-dt * 1.3));
+    if (sp < 0.05) yarn.rolling = false;
   }
 
   // ------------------------------------------------------------ camera
@@ -537,6 +592,9 @@ export function createRoom(canvas, hooks) {
     else o.v.pause();
   }
 
+  // ?ff=4 runs the cats' brains faster (for testing)
+  const FF = q.has("ff") ? +q.get("ff") || 1 : 1;
+  let brainT = 0;
   function tick(now) {
     if (!running) return;
     requestAnimationFrame(tick);
@@ -573,100 +631,66 @@ export function createRoom(canvas, hooks) {
     // cats
     look.x = lerp(look.x, pointer.x, 0.06);
     look.y = lerp(look.y, pointer.y, 0.06);
-    const aw = st.awake;
-    // cats turn towards the camera, a little to the side so their volume shows
-    const toCam = (c) => Math.atan2(camera.position.x - c.group.position.x, camera.position.z - c.group.position.z);
-    parts.neko.group.rotation.y = toCam(parts.neko) - 0.32;
-    parts.luna.group.rotation.y = toCam(parts.luna) + 0.42;
-    const blink = !still && aw > 0.5 && t % 4.1 < 0.13;
+    // ---- the cats: brains decide, poses move the 3D models
+    const bdt = dt * FF;
+    brainT += bdt;
+    stepYarn(bdt);
+    luna.idle += bdt;
+    if (playing || yarn.rolling) luna.idle = 0;
+    const beatLen = 60 / TRACKS[trackIndex].bpm;
+    const ctxB = {
+      t: brainT,
+      dt: bdt,
+      still,
+      camera,
+      music: st.music,
+      groove,
+      phase: grooveT / beatLen,
+      yarn: parts.yarn,
+      lunaSleep: luna.idle > 45,
+      lunaSpot: { x: brains.luna.pos.x + 1.1, z: brains.luna.pos.z - 0.6 },
+      question: (b) => emit(qMat, headPos(b.cat === parts.neko ? parts.neko : parts.luna).add(new THREE.Vector3(0.4, 0.1, 0)), { size: 0.34, spread: 0.1, up: 0.3, life: 1.6 }),
+      say: (name) => name === "luna" && hooks.mew?.(),
+      batYarn: (b) => {
+        pushYarn(Math.sin(b.yaw), Math.cos(b.yaw), 2.6 + Math.random());
+        hooks.say(b.name === "luna" ? "Luna colpisce il gomitolo con la zampa." : "Neko colpisce il gomitolo.");
+      },
+    };
+    const lookRolling = yarn.rolling ? parts.yarn.position : null;
+    // Neko
+    const nb = brains.neko;
+    if (playing || t < wakeUntil) nb.wake(t < wakeUntil ? (wakeUntil - t) * FF : 2);
+    const np = nb.update(bdt, { ...ctxB, lookAt: lookRolling });
+    // Luna
+    const lb = brains.luna;
+    let lookL = lookRolling;
+    if (!lookL && luna.hover) lookL = camera.position.clone().add(new THREE.Vector3(pointer.x * 4, pointer.y * 2, 0));
+    const lpz = lb.update(bdt, { ...ctxB, lookAt: lookL });
     const happy = st.happy > 0.3;
-    const awakeNow = wantAwake === 1;
-    parts.neko.update(dt, {
-      eyes: happy ? "happy" : blink ? "blink" : "open",
-      awake: awakeNow,
-      phones: st.music > 0.5,
-      rot: (still ? 0 : Math.sin(t * 1.3) * 0.05) + (happy ? Math.sin(t * 9) * 0.09 : 0),
-      nod: (groove - 0.5) * 0.2 * st.music - look.y * 0.12,
-      turn: look.x * 0.35,
-      dy: 0,
-      breath: still ? 0 : Math.sin(t * 1.4) * 1.5,
-      look: look.x,
-      energy: happy ? 1.6 : 1,
-      still,
-    });
     const lh = st.lunaHappy > 0.3;
-    // yarn ball rolling along the rug
-    if (yarn.t >= 0) {
-      yarn.t = Math.min(1.6, yarn.t + dt / 2.2);
-      const u = THREE.MathUtils.smootherstep(Math.min(1, yarn.t), 0, 1);
-      const a = yarn.a0 + (yarn.a1 - yarn.a0) * u;
-      const prev = parts.yarn.position.clone();
-      parts.yarn.position.set(0.2 + Math.cos(a) * 2.15, 0.36, 0.9 + Math.sin(a) * 2.15);
-      const d = parts.yarn.position.distanceTo(prev);
-      parts.yarn.rotation.x += (d / 0.24) * Math.sign(yarn.a1 - yarn.a0);
-      if (yarn.t >= 1 && luna.act !== "hop" && yarn.t < 1.05 && !parts.luna.asleep) {
-        luna.act = "hop";
-        luna.t = 0;
-        st.lunaHappy = 1.2;
-      }
-      if (yarn.t >= 1.6) yarn.t = -1;
-    }
-    // where Luna looks: the yarn while it rolls, the pointer when you hover her, else Neko
-    const lp = parts.luna.group.position;
-    let lookTurn = -0.2;
-    let lookEyes = -0.6;
-    const rolling = yarn.t >= 0 && yarn.t < 1.2;
-    if (rolling || luna.hover) {
-      const target = rolling ? parts.yarn.position : camera.position.clone().add(new THREE.Vector3(pointer.x * 4, pointer.y * 2, 0));
-      const ang = Math.atan2(target.x - lp.x, target.z - lp.z) - parts.luna.group.rotation.y;
-      const wrapped = Math.atan2(Math.sin(ang), Math.cos(ang));
-      lookTurn = THREE.MathUtils.clamp(wrapped * 0.6, -0.6, 0.6);
-      lookEyes = THREE.MathUtils.clamp(wrapped * 1.2, -1, 1);
-    }
-    // naps when nobody plays with her and there is no music
-    luna.idle += dt;
-    if (playing || rolling) luna.idle = 0;
-    luna.t += dt;
-    let hopY = 0;
-    let spin = 0;
-    let wave = 0;
-    let mouth = "";
-    if (luna.act === "hop") {
-      const k = luna.t / 0.9;
-      hopY = Math.abs(Math.sin(Math.min(1, k) * Math.PI * 2)) * 0.45 * (1 - Math.min(1, k) * 0.3);
-      if (k >= 1) luna.act = "";
-    } else if (luna.act === "spin") {
-      spin = THREE.MathUtils.smootherstep(Math.min(1, luna.t / 0.9), 0, 1) * Math.PI * 2;
-      hopY = Math.sin(Math.min(1, luna.t / 0.9) * Math.PI) * 0.25;
-      if (luna.t > 0.9) luna.act = "";
-    } else if (luna.act === "wave") {
-      wave = Math.sin(Math.min(1, luna.t / 1.6) * Math.PI);
-      if (luna.t > 1.6) luna.act = "";
-    } else if (luna.act === "mew") {
-      mouth = luna.t < 0.6 ? "mew" : "";
-      if (luna.t > 0.9) luna.act = "";
-    }
-    parts.luna.group.position.y = 0.12 + hopY;
-    parts.luna.group.rotation.y += spin;
-    // sways with the music
-    parts.luna.group.rotation.z = (groove - 0.5) * 0.09 * st.music;
-    parts.luna.update(dt, {
-      eyes: lh ? "happy" : !still && (t + 1.7) % 5.3 < 0.13 ? "blink" : "open",
-      awake: luna.idle < 40,
-      mouth,
-      wave,
-      rot: -0.08 + (still ? 0 : Math.sin(t * 0.9 + 1) * 0.04) + (lh ? Math.sin(t * 9) * 0.09 : 0) + (luna.act === "mew" ? 0.15 : 0),
-      nod: (groove - 0.5) * 0.14 * st.music,
-      turn: lookTurn,
-      look: lookEyes,
-      breath: still ? 0 : Math.sin(t * 1.2) * 1.2,
-      energy: lh ? 1.6 : 0.8 + st.music * 0.5,
-      still,
-    });
-    const settle = parts.neko.group.userData.settle || 0;
-    const breathe = still ? 0 : Math.sin(t * (settle > 0.5 ? 1.4 : 2.4)) * 0.012;
-    // a little lower and rounder when asleep
-    parts.neko.group.scale.set(0.0125 * (1 + breathe * 0.4 + settle * 0.03), 0.0125 * (1 + breathe - settle * 0.05), 0.0125 * (1 + breathe * 0.4 + settle * 0.03));
+    const blink = !still && t % 4.1 < 0.13;
+    const blinkL = !still && (t + 1.7) % 3.6 < 0.13;
+    const applyPose = (cat, pz, base, extra) => {
+      cat.group.position.set(pz.x, pz.y, pz.z);
+      cat.group.rotation.set(pz.lean, pz.yaw, pz.roll, "YXZ");
+      const settle = cat.group.userData.settle || 0;
+      const br = still ? 0 : Math.sin(t * (settle > 0.5 ? 1.4 : 2.4)) * 0.012;
+      cat.group.scale.set(base * pz.sx * (1 + br * 0.4 + settle * 0.03), base * pz.sy * (1 + br - settle * 0.05), base * pz.sx * (1 + br * 0.4 + settle * 0.03));
+      cat.update(dt, {
+        ...pz,
+        eyes: extra.happy ? "happy" : pz.eyes === "open" && (cat === parts.luna ? blinkL : blink) ? "blink" : pz.eyes,
+        rot: pz.rot + (extra.happy ? Math.sin(t * 9) * 0.09 : 0),
+        nod: pz.nod - (extra.lookY || 0),
+        turn: pz.turn + (extra.turn || 0),
+        look: pz.look + (extra.look || 0),
+        breath: still ? 0 : Math.sin(t * 1.4) * 1.5,
+        phones: extra.phones,
+        still,
+      });
+    };
+    applyPose(parts.neko, np, 0.0125, { happy, phones: st.music > 0.5, lookY: nb.state === "sit" ? look.y * 0.1 : 0, turn: nb.state === "sit" ? look.x * 0.25 : 0, look: nb.state === "sit" ? look.x * 0.5 : 0 });
+    applyPose(parts.luna, lpz, 0.0098, { happy: lh });
+    const aw = np.awake ? 1 : 0;
 
     // turntable
     st.spin = ease(st.spin, playing ? 1 : 0, 2.5);
@@ -796,8 +820,9 @@ export function createRoom(canvas, hooks) {
     setBeat(b) {
       beat = b;
     },
-    setGroove(g) {
+    setGroove(g, phaseT) {
       groove = g;
+      grooveT = phaseT ?? grooveT;
     },
     setTrack(i) {
       trackIndex = i;

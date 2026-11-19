@@ -152,7 +152,7 @@ try {
       room.setBeat(beat);
       let groove = band.groove();
       if (playing && !band.ctx) groove = 0.5 + 0.5 * Math.cos(fakeClock * (TRACKS[band.track].bpm / 60) * Math.PI * 2);
-      room.setGroove(groove);
+      room.setGroove(groove, band.ctx ? band.elapsed - 0.06 : fakeClock);
       tickPlayer(dt);
     },
   });

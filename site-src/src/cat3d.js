@@ -111,8 +111,7 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
     foot.position.copy(local(x - 2, 233, 50).sub(pv.position));
     legs.push(pv);
   }
-  const legZ = legs[1].position.z;
-  const legX = legs[1].position.x;
+  const legBase = legs.map((l) => l.position.clone());
 
   // head group, pivoting at the neck so it can nod and tilt
   const head = new THREE.Group();
@@ -262,6 +261,8 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   const IDQ = new THREE.Quaternion();
   const waveQ = new THREE.Quaternion();
   const waveDir = new THREE.Vector3();
+  const pawQ = [new THREE.Quaternion(), new THREE.Quaternion()];
+  const pawW = [0, 0];
   const ease = (x) => x * x * (3 - 2 * x);
   const clamp = (x) => Math.min(1, Math.max(0, x));
   let frame = 0;
@@ -341,16 +342,25 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
       head.rotation.z += (-((opts.rot || 0) * (1 - s) + 0.07 * s) - head.rotation.z) * k;
       // waving paw (right front leg)
       const w = opts.wave || 0;
-      // raised up beside the face and waving
-      const wig = Math.sin(sm.t * 13) * 0.22;
-      waveDir.set(0.75 + wig, 0.95, 0.4).normalize();
-      waveQ.setFromUnitVectors(DOWN, waveDir);
-      legs[1].quaternion.slerpQuaternions(IDQ, waveQ, w);
-      // the arm comes out of the fur a bit, and reaches a little further
-      legs[1].position.z = legZ + w * 16;
-      legs[1].position.x = legX + w * 10;
-      legs[1].scale.set(1, 1 + 0.4 * w, 1);
-      head.position.y = FOOT_Y - 152 - ((opts.dy || 0) * (1 - s) + (4 + breath) * s) + sm.bounce * 5 + headUp * 3;
+      // front paws: each can be raised in any direction (wave, groom, swat, walk)
+      const paws = opts.paws || [null, opts.wave ? { w: opts.wave, dir: [0.75 + Math.sin(sm.t * 13) * 0.22, 0.95, 0.4] } : null];
+      for (let i = 0; i < 2; i++) {
+        const p = paws[i];
+        const w = p ? p.w : 0;
+        const target = pawQ[i];
+        if (p && w > 0) {
+          waveDir.set(...p.dir).normalize();
+          target.setFromUnitVectors(DOWN, waveDir);
+        }
+        const kk = opts.still ? 1 : 1 - Math.exp(-dt * 16);
+        pawW[i] += (w - pawW[i]) * kk;
+        legs[i].quaternion.slerpQuaternions(IDQ, target, Math.min(1, pawW[i]));
+        const out = Math.min(1, pawW[i]) * (p?.lift ?? 1);
+        legs[i].position.copy(legBase[i]);
+        legs[i].position.z += out * 16;
+        legs[i].position.x += out * 10 * (i ? 1 : -1);
+        legs[i].scale.set(1, 1 + 0.4 * out, 1);
+      }
       // the body settles a little as he falls asleep
       group.userData.settle = s;
       // tail: animate the note-tail while (partly) awake; morph towards the curl

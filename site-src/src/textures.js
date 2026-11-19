@@ -292,6 +292,24 @@ export function zTexture() {
   return tex(c);
 }
 
+export function qTexture() {
+  const [c, g] = canvas(128, 128);
+  g.strokeStyle = C.lilac;
+  g.fillStyle = C.lilac;
+  g.lineWidth = 13;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.beginPath();
+  g.moveTo(40, 42);
+  g.bezierCurveTo(40, 14, 90, 14, 90, 42);
+  g.bezierCurveTo(90, 62, 64, 62, 64, 82);
+  g.stroke();
+  g.beginPath();
+  g.arc(64, 106, 8, 0, Math.PI * 2);
+  g.fill();
+  return tex(c);
+}
+
 export function dotTexture() {
   const [c, g] = canvas(64, 64);
   const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
