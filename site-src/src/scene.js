@@ -255,8 +255,8 @@ export function createRoom(canvas, hooks) {
         parts.luna = createCat3D({ pal: LUNA, scale: 0.0098, ramp: softRamp, inkId: 3, bow: true, earColor: "#f6c2d2" });
         parts.luna.group.position.set(2.35, 0.12, 2.05);
         room.add(parts.neko.group, parts.luna.group);
-        brains.neko = new CatBrain("neko", parts.neko, { home: SPOTS.neko, sleeper: true, speed: 0.95, sideOffset: -0.32 });
-        brains.luna = new CatBrain("luna", parts.luna, { home: SPOTS.home, speed: 1.15, sideOffset: 0.35 });
+        brains.neko = new CatBrain("neko", parts.neko, { home: SPOTS.neko, sleeper: true, pace: 0.9, sideOffset: -0.32 });
+        brains.luna = new CatBrain("luna", parts.luna, { home: SPOTS.home, pace: 1.05, sideOffset: 0.35 });
         // blue yarn ball (Luna's song is "Gomitolo blu")
         {
           const yg = new THREE.Group();
@@ -372,6 +372,7 @@ export function createRoom(canvas, hooks) {
   function petNeko() {
     st.happy = 1.8;
     const b = brains.neko;
+    b.startle();
     if (!playing && (parts.neko.asleep || b.state === "sleep")) {
       wakeUntil = clock.getElapsed() + 6;
       hooks.say("Mrr? Neko si è svegliato un attimo.");
@@ -397,8 +398,9 @@ export function createRoom(canvas, hooks) {
   function petLuna() {
     luna.idle = 0;
     const b = brains.luna;
+    b.startle();
     if (parts.luna.asleep || b.state === "sleep") {
-      b.state = "sit";
+      b.wakeUp("pet");
       b.timer = 2;
       hooks.say("Luna si stiracchia e si sveglia.");
       return;
@@ -432,10 +434,11 @@ export function createRoom(canvas, hooks) {
     const dx = y.x - b.pos.x;
     const dz = y.z - b.pos.z;
     const d = Math.hypot(dx, dz) || 1;
-    b.goTo({ x: y.x - (dx / d) * 0.6, z: y.z - (dz / d) * 0.6 }, () => {
-      b.face = { x: y.x, z: y.z };
+    b.goTo({ x: y.x - (dx / d) * 0.75, z: y.z - (dz / d) * 0.75, face: { x: y.x, z: y.z } }, () => {
+      const q = parts.yarn.position;
+      b.face = { x: q.x, z: q.z };
       b.doAct("pounce");
-    });
+    }, d > 1.5 ? "bound" : "walk");
   }
   function stepYarn(dt) {
     if (!parts.yarn || !yarn.rolling) return;
@@ -594,13 +597,22 @@ export function createRoom(canvas, hooks) {
 
   // ?ff=4 runs the cats' brains faster (for testing)
   const FF = q.has("ff") ? +q.get("ff") || 1 : 1;
+  const FIXED = q.has("fixed") ? +q.get("fixed") || 24 : 0;
+  let fixedT = 0;
+  const FILM = FIXED && q.has("film");
   let brainT = 0;
   function tick(now) {
     if (!running) return;
     requestAnimationFrame(tick);
     clock.update(now);
-    const dt = Math.min(Math.max(clock.getDelta(), 0), 0.05);
-    const t = clock.getElapsed();
+    let dt = Math.min(Math.max(clock.getDelta(), 0), 0.05);
+    if (FILM) {
+      if (!(window.__go > 0)) return;
+      window.__go--;
+    }
+    // ?fixed=24: every frame is exactly 1/24 s (to film the animations frame by frame)
+    if (FIXED) dt = 1 / FIXED;
+    const t = FIXED ? (fixedT += dt) : clock.getElapsed();
     const still = reduced.matches;
     frame++;
     const target = forceP ?? hooks.progress();
@@ -652,20 +664,32 @@ export function createRoom(canvas, hooks) {
       question: (b) => emit(qMat, headPos(b.cat === parts.neko ? parts.neko : parts.luna).add(new THREE.Vector3(0.4, 0.1, 0)), { size: 0.34, spread: 0.1, up: 0.3, life: 1.6 }),
       say: (name) => name === "luna" && hooks.mew?.(),
       batYarn: (b) => {
-        pushYarn(Math.sin(b.yaw), Math.cos(b.yaw), 2.6 + Math.random());
+        const q = parts.yarn.position;
+        const ax = q.x - b.pos.x;
+        const az = q.z - b.pos.z;
+        if (Math.hypot(ax, az) > 1.6) return;
+        pushYarn(ax + (Math.random() - 0.5) * 0.6, az + (Math.random() - 0.5) * 0.6, 2.4 + Math.random() * 1.2);
         hooks.say(b.name === "luna" ? "Luna colpisce il gomitolo con la zampa." : "Neko colpisce il gomitolo.");
       },
     };
+    // a cat walking into the yarn pushes it along
+    for (const b of [brains.neko, brains.luna]) {
+      const q = parts.yarn.position;
+      const ax = q.x - b.pos.x;
+      const az = q.z - b.pos.z;
+      const d = Math.hypot(ax, az);
+      if (d < 0.55 && b.v > 0.3 && yarn.vel.length() < b.v) pushYarn(ax, az, b.v * 1.2);
+    }
     const lookRolling = yarn.rolling ? parts.yarn.position : null;
     // Neko
     const nb = brains.neko;
     if (playing || t < wakeUntil) nb.wake(t < wakeUntil ? (wakeUntil - t) * FF : 2);
-    const np = nb.update(bdt, { ...ctxB, lookAt: lookRolling });
+    const np = nb.update(bdt, { ...ctxB, lookAt: lookRolling, other: brains.luna.pos });
     // Luna
     const lb = brains.luna;
     let lookL = lookRolling;
     if (!lookL && luna.hover) lookL = camera.position.clone().add(new THREE.Vector3(pointer.x * 4, pointer.y * 2, 0));
-    const lpz = lb.update(bdt, { ...ctxB, lookAt: lookL });
+    const lpz = lb.update(bdt, { ...ctxB, lookAt: lookL, other: brains.neko.pos });
     const happy = st.happy > 0.3;
     const lh = st.lunaHappy > 0.3;
     const blink = !still && t % 4.1 < 0.13;
@@ -679,7 +703,7 @@ export function createRoom(canvas, hooks) {
       cat.update(dt, {
         ...pz,
         eyes: extra.happy ? "happy" : pz.eyes === "open" && (cat === parts.luna ? blinkL : blink) ? "blink" : pz.eyes,
-        rot: pz.rot + (extra.happy ? Math.sin(t * 9) * 0.09 : 0),
+        rot: pz.rot + (extra.happy ? Math.sin(t * 6) * 0.06 : 0),
         nod: pz.nod - (extra.lookY || 0),
         turn: pz.turn + (extra.turn || 0),
         look: pz.look + (extra.look || 0),

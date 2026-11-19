@@ -134,12 +134,19 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
   const headGeo = puff(shapeFrom(HEAD), 30, 30, 12, true);
   const headMesh = add(headGeo, headMat, head);
   headMesh.position.copy(inHead(local(122, 242, 6)));
+  // ears on pivots at their base, so they can twitch and turn
+  const ears = [];
   for (let k = 0; k < 2; k++) {
-    const ear = add(puff(triShape(EARS[k]), 8, 7, 6), fur, head);
-    ear.position.copy(inHead(local(122, 242, -6)));
-    const inner = add(puff(triShape(INNER[k]), 2, 2.5, 3), toon(earColor), head);
-    inner.position.copy(inHead(local(122, 242, 4)));
+    const pv = new THREE.Group();
+    pv.position.copy(inHead(local(k ? 152 : 92, 71, 0)));
+    head.add(pv);
+    const ear = add(puff(triShape(EARS[k]), 8, 7, 6), fur, pv);
+    ear.position.copy(inHead(local(122, 242, -6)).sub(pv.position));
+    const inner = add(puff(triShape(INNER[k]), 2, 2.5, 3), toon(earColor), pv);
+    inner.position.copy(inHead(local(122, 242, 4)).sub(pv.position));
+    ears.push(pv);
   }
+  const earV = [0, 0];
   // whiskers: thin and dark, no ink around them
   const whiskerMat = new THREE.MeshBasicMaterial({ color: pal.whisker });
   for (const [a, b] of [
@@ -340,6 +347,13 @@ export function createCat3D({ pal, scale, ramp, bow = false, inkId = 2, earColor
       head.rotation.x += ((opts.nod || 0) * (1 - s) + 0.22 * s - headUp * 0.18 - head.rotation.x) * k;
       head.rotation.y += ((opts.turn || 0) * (1 - s) - head.rotation.y) * k;
       head.rotation.z += (-((opts.rot || 0) * (1 - s) + 0.07 * s) - head.rotation.z) * k;
+      // ears: + flicks the ear outwards (and a little back)
+      for (let i = 0; i < 2; i++) {
+        const e = (opts.ears?.[i] || 0) * (1 - s);
+        earV[i] += (e - earV[i]) * (opts.still ? 1 : 1 - Math.exp(-dt * 22));
+        ears[i].rotation.z = earV[i] * (i ? -1 : 1) * 0.9;
+        ears[i].rotation.x = -earV[i] * 0.5;
+      }
       // waving paw (right front leg)
       const w = opts.wave || 0;
       // front paws: each can be raised in any direction (wave, groom, swat, walk)
