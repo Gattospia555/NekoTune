@@ -1,0 +1,93 @@
+/* Terms and privacy pages: long text to read, in the colours of the other
+   NekoTune pages and the fonts of the home page. */
+@font-face { font-family: "Dela Gothic One"; src: url("fonts/dela-gothic-one-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+:root {
+  --bg: #15110f;
+  --card: rgba(34, 27, 24, 0.9);
+  --edge: rgba(255, 255, 255, 0.08);
+  --text: #fff7f0;
+  --muted: rgba(255, 247, 240, 0.7);
+  --accent: #e0a07a;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Zen Maru Gothic", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  line-height: 1.7;
+}
+.glow {
+  position: fixed;
+  inset: -80px;
+  z-index: -1;
+  background: radial-gradient(circle at 20% 10%, rgba(204, 139, 101, 0.28), transparent 55%),
+    radial-gradient(circle at 80% 90%, rgba(232, 185, 138, 0.14), transparent 50%);
+  filter: blur(60px);
+}
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 22px 24px 0;
+}
+.top a.home {
+  font-family: "Dela Gothic One", "Zen Maru Gothic", sans-serif;
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.langs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); }
+.langs button {
+  border: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.langs button[aria-pressed="true"] { background: var(--accent); color: #1d130e; }
+.langs button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main {
+  max-width: 820px;
+  margin: 18px auto 40px;
+  padding: 34px clamp(20px, 5vw, 48px) 40px;
+  border: 1px solid var(--edge);
+  border-radius: 26px;
+  background: var(--card);
+  backdrop-filter: blur(18px);
+}
+article[hidden] { display: none; }
+h1 { font-family: "Dela Gothic One", "Zen Maru Gothic", sans-serif; font-weight: 400; margin: 0 0 6px; font-size: clamp(1.7rem, 4vw, 2.2rem); line-height: 1.2; }
+.updated { margin: 0 0 24px; color: var(--muted); font-size: 0.9rem; }
+.summary {
+  margin: 0 0 28px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: rgba(224, 160, 122, 0.1);
+  border: 1px solid rgba(224, 160, 122, 0.25);
+}
+.summary p { margin: 0; }
+h2 { margin: 34px 0 8px; font-size: 1.2rem; font-weight: 700; }
+h3, strong { font-weight: 700; }
+h3 { margin: 20px 0 4px; font-size: 1rem; }
+p, li { color: rgba(255, 247, 240, 0.88); }
+ul { padding-left: 22px; }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+.toc { margin: 0 0 8px; padding-left: 20px; columns: 2 240px; font-size: 0.92rem; }
+footer { max-width: 820px; margin: 0 auto 40px; padding: 0 24px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+footer a { margin: 0 8px; }

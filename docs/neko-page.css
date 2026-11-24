@@ -119,3 +119,4 @@ h1 {
 footer { font-size: 0.75rem; color: var(--muted); }
 .hidden { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+footer a { color: inherit; }
