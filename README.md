@@ -11,6 +11,8 @@ Un lettore musicale gratuito per Windows: cerchi un brano, lo ascolti, lo salvi 
 [![Download](https://img.shields.io/github/downloads/Gattospia555/NekoTune/total?label=download&color=8fd3cf&labelColor=2e2a38)](https://github.com/Gattospia555/NekoTune/releases)
 [![Windows 10 e 11](https://img.shields.io/badge/Windows-10%20%7C%2011-bca0dc?labelColor=2e2a38)](https://github.com/Gattospia555/NekoTune/releases/latest)
 [![Sito](https://img.shields.io/badge/sito-gattospia555.github.io-5fb3a8?labelColor=2e2a38)](https://gattospia555.github.io/NekoTune/)
+<br />
+![In arrivo: Android e Linux, forse iOS](https://img.shields.io/badge/in%20arrivo-Android%20%C2%B7%20Linux%20%C2%B7%20iOS%20(forse)-f2e6d2?labelColor=2e2a38)
 
 ### [⬇️ Scarica per Windows](https://github.com/Gattospia555/NekoTune/releases/latest) &nbsp;·&nbsp; [🏠 Entra nella stanza di Neko](https://gattospia555.github.io/NekoTune/)
 
@@ -142,9 +144,9 @@ Dal catalogo pubblico di YouTube e YouTube Music. NekoTune non ospita brani: li 
 </details>
 
 <details>
-<summary><b>C'è per Mac, Linux o telefono?</b></summary>
+<summary><b>C'è per Linux o per telefono?</b></summary>
 <br />
-Per ora NekoTune è per Windows 10 e 11.
+Per ora NekoTune è per Windows 10 e 11. Sono in arrivo <b>Android</b> e <b>Linux</b>, e forse anche <b>iOS</b>.
 </details>
 
 <details>
@@ -180,7 +182,7 @@ Questa repository contiene **il sito** di NekoTune (cartella [`docs/`](docs), pu
 <summary>🇬🇧 <b>In English</b></summary>
 <br />
 
-**NekoTune** is a free music player for Windows 10 and 11, with a cat inside. Search the YouTube Music catalog, listen, save songs offline and share them with friends: messages, group listening sessions, shared playlists, synced lyrics, an equalizer, six themes, an OBS widget, Discord status, two-step verification and unlockable rewards. The optional **NekoTune Plus** (€5/month on Ko-fi) adds custom themes, exclusive rewards and no ads.
+**NekoTune** is a free music player for Windows 10 and 11 (Android and Linux are on the way, maybe iOS too), with a cat inside. Search the YouTube Music catalog, listen, save songs offline and share them with friends: messages, group listening sessions, shared playlists, synced lyrics, an equalizer, six themes, an OBS widget, Discord status, two-step verification and unlockable rewards. The optional **NekoTune Plus** (€5/month on Ko-fi) adds custom themes, exclusive rewards and no ads.
 
 [Download the latest release](https://github.com/Gattospia555/NekoTune/releases/latest) · [Website](https://gattospia555.github.io/NekoTune/) · [Terms](https://gattospia555.github.io/NekoTune/termini.html?lang=en) · [Privacy](https://gattospia555.github.io/NekoTune/privacy.html?lang=en)
 
