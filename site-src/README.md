@@ -22,6 +22,12 @@ Rigenerare la stanza (serve il pacchetto Python `bpy`, cioè Blender come modulo
 python3 blender/room.py -- ../docs/media/room.glb
 ```
 
+Poi comprimerlo (da 1,2 MB a circa 380 KB, stesso aspetto; `scene.js` ha già il decoder Meshopt):
+
+```
+npx @gltf-transform/cli meshopt ../docs/media/room.glb ../docs/media/room.glb --level medium
+```
+
 Rigenerare `docs/room.js`:
 
 ```
