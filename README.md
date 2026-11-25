@@ -193,5 +193,5 @@ If Windows shows "Windows protected your PC", choose **More info → Run anyway*
 <br />
 <img src="docs/media/neko-asleep.webp" alt="Neko che dorme" width="90" />
 <br />
-<sub>Fatto con ♥ (e qualche pisolino) da Gatto</sub>
+<sub>Fatto con ♥ (e qualche pisolino) da <a href="https://github.com/Gattospia555">CatDevStudio</a></sub>
 </div>
