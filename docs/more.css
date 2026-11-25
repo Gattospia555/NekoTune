@@ -1,0 +1,323 @@
+/* Sections after "In diretta": sound, small things, security, Plus.
+   Same language as room.css: ink outlines, hard shadows, Neko orange. */
+
+.eqs-inner,
+.sc2-inner,
+.mt-inner,
+.pl-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(80px, 13vh, 140px) var(--gutter);
+}
+
+/* ===== sound ===== */
+.eqs {
+  background: var(--paper);
+  overflow: hidden;
+}
+.eqs-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+}
+.eqs-text > p {
+  color: var(--ink-soft);
+  max-width: 32rem;
+  margin: 14px 0 0;
+}
+.eqs-shot {
+  margin: 0;
+  justify-self: center;
+  width: min(100%, 440px);
+  transform: rotate(-4deg) translateY(24px);
+  opacity: 0;
+  transition:
+    transform 0.9s var(--ease),
+    opacity 0.6s var(--ease);
+}
+.eqs.in .eqs-shot {
+  transform: rotate(-1.5deg);
+  opacity: 1;
+}
+.eqs-shot img,
+.sc2-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 22px;
+  border: var(--bw) solid var(--line);
+  box-shadow: 0 10px 0 var(--line);
+  background: #f6f2ec;
+}
+
+/* ===== the small things ===== */
+.mt {
+  background: var(--paper-2);
+}
+.mt-inner > h2 {
+  max-width: 16ch;
+}
+.mt-grid {
+  list-style: none;
+  margin: clamp(28px, 5vh, 48px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.mt-card {
+  position: relative;
+  padding: 22px 22px 24px;
+  border-radius: 20px;
+  background: var(--paper);
+  border: var(--bw) solid var(--line);
+  box-shadow: 0 5px 0 var(--line);
+  transition: transform 0.25s var(--ease);
+}
+.mt-card:hover {
+  transform: translateY(-3px);
+}
+.mt-card svg {
+  width: 46px;
+  height: 46px;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--c, var(--neko));
+  border: 2px solid var(--line);
+  fill: none;
+  stroke: #2e2a38;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mt-card h3 {
+  margin: 14px 0 6px;
+  font-family: var(--text);
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+.mt-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* ===== security, at night like the stream ===== */
+.sc2 {
+  background: var(--dark);
+  color: #f4ecdd;
+}
+.sc2-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+}
+.sc2 .points li {
+  color: rgba(244, 236, 221, 0.84);
+}
+.sc2 .points strong {
+  color: var(--neko);
+}
+.sc2 .points li::before {
+  box-shadow: 0 0 0 2px #000;
+}
+.sc2 .points a {
+  color: #f4ecdd;
+  text-underline-offset: 3px;
+}
+.sc2-shot {
+  margin: 0;
+  justify-self: center;
+  width: min(100%, 360px);
+}
+.sc2-shot img {
+  border-color: #000;
+  box-shadow: 0 10px 0 #000;
+}
+
+/* ===== free and Plus ===== */
+.pl {
+  background: var(--paper-2);
+}
+.pl-inner {
+  text-align: center;
+}
+.pl-lead {
+  max-width: 34rem;
+  margin: 14px auto 0;
+  color: var(--ink-soft);
+}
+.pl-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 360px));
+  justify-content: center;
+  gap: clamp(20px, 3vw, 36px);
+  margin-top: clamp(56px, 9vh, 90px);
+  text-align: left;
+}
+.pl-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 26px 26px;
+  border-radius: 24px;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--bw) solid var(--line);
+  box-shadow: 0 6px 0 var(--line);
+}
+.pl-card h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.5rem;
+}
+.pl-price {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+}
+.pl-price strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--ink);
+  margin-right: 4px;
+}
+.pl-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 24px;
+  display: grid;
+  gap: 10px;
+  flex: 1;
+}
+.pl-list li {
+  position: relative;
+  padding-left: 28px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+.pl-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+}
+.pl-list li::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: calc(0.2em + 4px);
+  width: 5px;
+  height: 8px;
+  border: solid var(--line);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.pl-card .btn {
+  align-self: flex-start;
+}
+.pl-plus {
+  background: var(--neko);
+  color: #2e2a38;
+}
+.pl-plus h3,
+.pl-plus .pl-price strong {
+  color: #2e2a38;
+}
+.pl-plus .pl-price,
+.pl-plus .pl-list li {
+  color: #4a3a3a;
+}
+.pl-plus .pl-list li::before {
+  background: #fff3e6;
+  border-color: #2e2a38;
+}
+.pl-plus .pl-list li::after {
+  border-color: #2e2a38;
+}
+.pl-plus .btn {
+  background: #2e2a38;
+  color: #fff3e6;
+}
+.pl-note {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  color: #4a3a3a;
+  line-height: 1.45;
+}
+.pl-note a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+/* Neko peeks over the Plus card */
+.pl-peek {
+  position: absolute;
+  right: 18px;
+  top: -64px;
+  width: 104px;
+  height: 66px;
+  object-fit: cover;
+  object-position: 50% 0;
+  transform: translateY(14px);
+  transition: transform 0.5s var(--ease);
+  pointer-events: none;
+}
+.pl.in .pl-peek {
+  transform: none;
+}
+.pl-plus:hover .pl-peek {
+  transform: translateY(-4px);
+}
+
+/* the night: cards keep their contrast */
+html[data-time="night"] .mt-card,
+html[data-time="night"] .pl-card:not(.pl-plus) {
+  border-color: #0f0e1f;
+  box-shadow: 0 6px 0 #0f0e1f;
+}
+
+@media (max-width: 900px) {
+  .eqs-inner,
+  .sc2-inner {
+    grid-template-columns: 1fr;
+  }
+  .eqs-shot {
+    order: 2;
+  }
+  .mt-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .mt-grid,
+  .pl-cards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eqs-shot,
+  .pl-peek {
+    transition: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+html[data-time="night"] .pl-card:not(.pl-plus) .pl-list li::before {
+  border-color: var(--ink-soft);
+  background: transparent;
+}
+html[data-time="night"] .pl-card:not(.pl-plus) .pl-list li::after {
+  border-color: var(--ink-soft);
+}
+html[data-time="night"] .mt-card svg {
+  border-color: #0f0e1f;
+}
