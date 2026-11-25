@@ -321,3 +321,91 @@ html[data-time="night"] .pl-card:not(.pl-plus) .pl-list li::after {
 html[data-time="night"] .mt-card svg {
   border-color: #0f0e1f;
 }
+
+/* ===== Luna's note with the code (after throwing the yarn) ===== */
+.yarn-gift {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 60;
+  width: min(92vw, 380px);
+  padding: 20px 22px 18px;
+  border-radius: 20px;
+  background: #fbf5ea;
+  color: #2e2a38;
+  border: 2.5px solid #2e2a38;
+  box-shadow: 0 6px 0 #2e2a38;
+  font-family: var(--text);
+  transform: translate(-50%, 30px) rotate(-1.5deg);
+  opacity: 0;
+  transition:
+    transform 0.5s var(--ease),
+    opacity 0.4s var(--ease);
+}
+.yarn-gift.in {
+  transform: translate(-50%, 0) rotate(-1.5deg);
+  opacity: 1;
+}
+.yarn-gift p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+  color: #5f5869;
+}
+.yarn-gift .yg-title {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  color: #2e2a38;
+  margin-bottom: 6px;
+}
+.yg-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+.yg-code code {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px dashed #9b7fc4;
+  background: #f6f1fc;
+  color: #4b3a6e;
+  font-weight: 900;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.yg-copy,
+.yg-close {
+  font: inherit;
+  cursor: pointer;
+  border: 2px solid #2e2a38;
+  color: #2e2a38;
+}
+.yg-copy {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #5fb3a8;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #2e2a38;
+}
+.yg-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.yarn-gift .yg-how {
+  font-size: 0.85rem;
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yarn-gift {
+    transition: none;
+  }
+}

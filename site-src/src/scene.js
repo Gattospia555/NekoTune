@@ -420,8 +420,18 @@ export function createRoom(canvas, hooks) {
     yarn.vel.set((dirX / n) * speed, (dirZ / n) * speed);
     yarn.rolling = true;
   }
+  // Throw it enough times and Luna brings back a note with a code for the app
+  // (docs/more.js shows it)
+  let yarnThrows = 0;
   function throwYarn() {
     luna.idle = 0;
+    yarnThrows++;
+    if (yarnThrows === 6) {
+      setTimeout(() => {
+        hooks.say("Luna torna con il gomitolo... c'è un bigliettino attaccato!");
+        window.dispatchEvent(new CustomEvent("nekotune:yarn-gift"));
+      }, 1800);
+    }
     const a = Math.random() * Math.PI * 2;
     pushYarn(Math.cos(a), Math.sin(a), 3.2);
     hooks.say(parts.luna.asleep ? "Il gomitolo rotola. Luna apre un occhio..." : "Luna corre dietro al gomitolo!");
