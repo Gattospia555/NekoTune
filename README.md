@@ -5,7 +5,7 @@
 # NekoTune
 
 **Musica con un gatto dentro.**<br />
-Un lettore musicale gratuito per Windows: cerchi un brano, lo ascolti, lo salvi offline e lo condividi con gli amici.
+Un lettore musicale gratuito per Windows: cerchi un brano, lo ascolti, lo metti nelle tue playlist e lo condividi con gli amici.
 
 [![Ultima versione](https://img.shields.io/github/v/release/Gattospia555/NekoTune?label=versione&color=ffb37e&labelColor=2e2a38)](https://github.com/Gattospia555/NekoTune/releases/latest)
 [![Download](https://img.shields.io/github/downloads/Gattospia555/NekoTune/total?label=download&color=8fd3cf&labelColor=2e2a38)](https://github.com/Gattospia555/NekoTune/releases)
@@ -29,7 +29,6 @@ Un lettore musicale gratuito per Windows: cerchi un brano, lo ascolti, lo salvi 
 - **Il catalogo di YouTube Music**: brani, album, artisti, remix e cover.
 - **Smart Radio**: quando la coda finisce, continua da sola con musica simile.
 - **Una Home che ti conosce**: brani consigliati in base ai tuoi gusti, artisti e album in evidenza.
-- **Offline**: salvi i brani e li ascolti anche senza internet, oppure li scarichi sul PC.
 - **File locali**: anche la musica che hai già sul computer.
 
 <table>
@@ -116,7 +115,7 @@ Tutto quello che serve per ascoltare è **gratis**. NekoTune Plus per ora è **i
 
 | | NekoTune | NekoTune Plus |
 |---|:---:|:---:|
-| Musica, offline, testi, equalizzatore | ✅ | ✅ |
+| Musica, testi, equalizzatore | ✅ | ✅ |
 | Amici, messaggi, sessioni di gruppo | ✅ | ✅ |
 | Sei temi pronti | ✅ | ✅ |
 | Crei, modifichi e importi i tuoi temi | | ✅ |
@@ -152,7 +151,7 @@ Per ora NekoTune è per Windows 10 e 11. Sono in arrivo <b>Android</b> e <b>Linu
 <details>
 <summary><b>Funziona senza internet?</b></summary>
 <br />
-Sì, con i brani che hai salvato offline nell'app o scaricato sul PC.
+Solo con i file musicali che hai già sul computer (Libreria Locale). Per cercare e ascoltare il resto serve la connessione.
 </details>
 
 <details>
@@ -182,7 +181,7 @@ Questa repository contiene **il sito** di NekoTune (cartella [`docs/`](docs), pu
 <summary>🇬🇧 <b>In English</b></summary>
 <br />
 
-**NekoTune** is a free music player for Windows 10 and 11 (Android and Linux are on the way, maybe iOS too), with a cat inside. Search the YouTube Music catalog, listen, save songs offline and share them with friends: messages, group listening sessions, shared playlists, synced lyrics, an equalizer, six themes, an OBS widget, Discord status, two-step verification and unlockable rewards. **NekoTune Plus** (custom themes, exclusive rewards, no ads) is paused for now: any voluntary donation on Ko-fi gives you one month of it as a thank-you.
+**NekoTune** is a free music player for Windows 10 and 11 (Android and Linux are on the way, maybe iOS too), with a cat inside. Search the YouTube Music catalog, listen, build playlists and share songs with friends: messages, group listening sessions, shared playlists, synced lyrics, an equalizer, six themes, an OBS widget, Discord status, two-step verification and unlockable rewards. **NekoTune Plus** (custom themes, exclusive rewards, no ads) is paused for now: any voluntary donation on Ko-fi gives you one month of it as a thank-you.
 
 [Download the latest release](https://github.com/Gattospia555/NekoTune/releases/latest) · [Website](https://gattospia555.github.io/NekoTune/) · [Terms](https://gattospia555.github.io/NekoTune/termini.html?lang=en) · [Privacy](https://gattospia555.github.io/NekoTune/privacy.html?lang=en)
 

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<!-- the tokens in the address must not reach other sites -->
+<meta name="referrer" content="no-referrer" />
+<title>NekoTune — Accesso</title>
+<link rel="icon" href="assets/favicon-64.png" />
+<style>
+  @font-face { font-family: "Dela Gothic One"; src: url("fonts/dela-gothic-one-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-latin-900-normal.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+
+  /* the site's night palette */
+  :root {
+    --sky: #24284a;
+    --paper: #1f2244;
+    --ink: #f4ecdd;
+    --ink-soft: #bdb7d6;
+    --line: #0f0e1f;
+    --neko: #ffb37e;
+    --bad: #ff8f80;
+    --bw: 2.5px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(255, 179, 126, 0.16), transparent 42%),
+      radial-gradient(circle at 85% 90%, rgba(108, 91, 168, 0.35), transparent 50%),
+      var(--sky);
+    color: var(--ink);
+    font: 500 1rem/1.55 "Zen Maru Gothic", system-ui, sans-serif;
+  }
+  /* small stars, like the night room */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 30%, #fff8 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 72% 18%, #fff6 50%, transparent 51%),
+      radial-gradient(2px 2px at 40% 78%, #fff5 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 60%, #fff7 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 25% 88%, #fff4 50%, transparent 51%);
+    pointer-events: none;
+  }
+  .card {
+    position: relative;
+    width: min(420px, 100%);
+    padding: 72px 28px 28px;
+    border: var(--bw) solid var(--line);
+    border-radius: 26px;
+    background: var(--paper);
+    box-shadow: 0 6px 0 var(--line);
+    text-align: center;
+    animation: pop 0.5s var(--ease) both;
+  }
+  .neko {
+    position: absolute;
+    left: 50%;
+    top: -66px;
+    width: auto;
+    height: 124px;
+    translate: -50% 0;
+    filter: drop-shadow(0 4px 0 var(--line));
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    color: var(--ink-soft);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .brand img { width: 24px; height: 24px; border-radius: 7px; }
+  h1 {
+    margin: 0 0 8px;
+    font: 400 1.7rem/1.2 "Dela Gothic One", "Zen Maru Gothic", system-ui, sans-serif;
+  }
+  p { margin: 0; color: var(--ink-soft); }
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 22px;
+    padding: 12px 16px;
+    border: var(--bw) solid var(--line);
+    border-radius: 14px;
+    background: var(--neko);
+    color: #2e2a38;
+    font-weight: 900;
+    box-shadow: 0 4px 0 var(--line);
+  }
+  .status.quiet { background: transparent; color: var(--ink); box-shadow: none; border-color: rgba(244, 236, 221, 0.25); font-weight: 700; }
+  .status.bad { background: var(--bad); }
+  .paw {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(46, 42, 56, 0.25);
+    border-top-color: #2e2a38;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .again {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--neko);
+    font-weight: 700;
+  }
+  [hidden] { display: none !important; }
+  @keyframes pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .card { animation: none; }
+    .paw { animation-duration: 3s; }
+  }
+</style>
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <img class="neko" id="neko" src="media/neko-awake.webp" alt="" />
+    <p class="brand"><img src="assets/logo-256.png" alt="" width="24" height="24" />NekoTune</p>
+    <h1 id="title">Un attimo…</h1>
+    <p id="desc">Sto finendo l'accesso.</p>
+    <div class="status" id="status"><span class="paw" aria-hidden="true"></span><span id="status-text">Apro NekoTune…</span></div>
+    <a class="again" id="again" href="#" hidden>Apri NekoTune</a>
+  </main>
+
+<script>
+(function () {
+  var en = !/^it\b/i.test(navigator.language || "");
+  var T = en ? {
+    doneTitle: "You're signed in!",
+    doneDesc: "Neko is opening NekoTune for you.",
+    opening: "Opening NekoTune…",
+    laterDesc: "If NekoTune didn't open, click the link below. Then you can close this page.",
+    laterStatus: "You can close this page",
+    again: "Open NekoTune",
+    errTitle: "Sign-in didn't finish",
+    errDesc: "Go back to NekoTune and try again.",
+    errStatus: "No sign-in data received",
+    pageTitle: "NekoTune — Sign in"
+  } : {
+    doneTitle: "Accesso fatto!",
+    doneDesc: "Neko sta aprendo NekoTune per te.",
+    opening: "Apro NekoTune…",
+    laterDesc: "Se NekoTune non si è aperto, clicca il link qui sotto. Poi puoi chiudere questa pagina.",
+    laterStatus: "Puoi chiudere questa pagina",
+    again: "Apri NekoTune",
+    errTitle: "L'accesso non è finito",
+    errDesc: "Torna su NekoTune e riprova.",
+    errStatus: "Nessun dato di accesso ricevuto",
+    pageTitle: "NekoTune — Accesso"
+  };
+  if (en) document.documentElement.lang = "en";
+  document.title = T.pageTitle;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var hash = window.location.hash.slice(1);
+  var params = new URLSearchParams(hash);
+  var ok = params.get("access_token") && params.get("refresh_token");
+
+  // the tokens leave the address bar: no copy stays in the history
+  if (window.history && history.replaceState) history.replaceState(null, "", window.location.pathname);
+
+  if (!ok) {
+    $("neko").src = "media/neko-asleep.webp";
+    $("title").textContent = T.errTitle;
+    $("desc").textContent = (params.get("error_description") || "").replace(/\+/g, " ") || T.errDesc;
+    $("status").className = "status bad";
+    $("status").innerHTML = "";
+    $("status").textContent = T.errStatus;
+    return;
+  }
+
+  var deepLink = "nekotune://auth/callback#" + hash;
+  $("title").textContent = T.doneTitle;
+  $("desc").textContent = T.doneDesc;
+  $("status-text").textContent = T.opening;
+  $("again").textContent = T.again;
+  $("again").addEventListener("click", function (e) { e.preventDefault(); window.location.href = deepLink; });
+
+  window.location.href = deepLink;
+
+  setTimeout(function () {
+    $("desc").textContent = T.laterDesc;
+    $("status").className = "status quiet";
+    $("status").textContent = T.laterStatus;
+    $("again").hidden = false;
+  }, 3000);
+})();
+</script>
+</body>
+</html>
